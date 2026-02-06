@@ -1,4 +1,4 @@
-# Disaster Logistics Response Management System
+# Disaster Response Response System
 
 A web-based disaster logistics response management system built using **Flask**, **SQLite**, and **Flask-Login**. 
 This system allows operators to track disaster reports, assign teams, and monitor ongoing emergency responses in real-time. 
