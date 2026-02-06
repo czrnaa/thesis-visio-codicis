@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Reports</title>
+    <style>
+        :root { --primary-red: #d90429; --sidebar-bg: #e0e0e0; --header-gray: #ccc; --border-color: #333; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background-color: #f4f4f4; }
+        
+        /* HEADER */
+        .top-bar { background-color: var(--primary-red); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; height: 60px; box-sizing: border-box; }
+        .top-bar h2 { margin: 0; font-size: 1.3rem; font-weight: 600; }
+        .user-profile { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
+        .user-circle { width: 32px; height: 32px; background: #ddd; border-radius: 50%; }
+        
+        /* LAYOUT */
+        .main-container { display: flex; flex: 1; height: calc(100vh - 60px); }
+        .sidebar { width: 260px; background: var(--sidebar-bg); border-right: 1px solid #ccc; display: flex; flex-direction: column; padding-top: 10px; }
+        .nav-item { padding: 15px 25px; color: #333; cursor: pointer; display: flex; align-items: center; gap: 15px; text-decoration: none; font-size: 1rem; font-weight: 500; transition: 0.2s; border-left: 5px solid transparent; }
+        .nav-item:hover { background: #d0d0d0; }
+        .nav-item.active { background: #ccc; border-left-color: #333; font-weight: 700; }
+        .icon { width: 20px; text-align: center; }
+
+        /* CONTENT */
+        .content { flex: 1; padding: 30px; overflow-y: auto; background: #fff; display: flex; flex-direction: column; gap: 25px; }
+
+        /* --- TABLE SECTION --- */
+        .table-container { 
+            border: 1px solid var(--border-color); 
+            border-radius: 5px; 
+            background: white; 
+            display: flex; 
+            flex-direction: column;
+        }
+
+        .table-header {
+            background-color: var(--header-gray);
+            border-bottom: 2px solid var(--border-color);
+            padding-right: 15px; 
+        }
+        
+        .table-scroll {
+            max-height: 250px; 
+            overflow-y: auto;
+            padding-right: 2px; 
+        }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; table-layout: fixed; }
+        
+        /* REMOVED VERTICAL LINES */
+        th, td { 
+            padding: 12px 15px; 
+            text-align: left; 
+            /* border-right removed */
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            white-space: nowrap;
+        }
+        td { border-bottom: 1px solid #ccc; /* border-right removed */ }
+        th:last-child, td:last-child { border-right: none; }
+        
+        .col-id { width: 15%; }
+        .col-loc { width: 25%; }
+        .col-prio { width: 10%; }
+        .col-stat { width: 15%; }
+        .col-team { width: 15%; }
+        .col-act { width: 20%; text-align: center; }
+
+        .btn-view { padding: 5px 15px; border: 1px solid #333; background: white; border-radius: 4px; cursor: pointer; font-size: 0.85rem; text-decoration: none; color: #333; display: inline-flex; align-items: center; gap: 5px; }
+        .btn-view:hover { background: #f0f0f0; }
+
+        .create-report-row { padding: 10px; display: flex; justify-content: flex-end; border-top: 1px solid #ccc; background: #fff; }
+        .btn-create { background-color: #d94343; color: white; border: none; padding: 8px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; text-decoration: none; font-size: 0.9rem; }
+        .btn-create:hover { background-color: #b00220; }
+
+        /* --- DETAILS FORM SECTION --- */
+        .details-container { border: 1px solid #333; border-radius: 5px; background: #fff; }
+        .details-header { background: #ccc; padding: 10px 20px; border-bottom: 1px solid #333; font-weight: 700; color: #333; display: flex; justify-content: space-between; align-items: center; }
+        
+        .header-actions { display: flex; gap: 10px; }
+        .btn-save { background-color: #d94343; color: white; border: none; padding: 6px 15px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .btn-edit { background-color: white; color: #333; border: 1px solid #333; padding: 6px 15px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+
+        .details-body { padding: 25px; display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 40px; }
+        
+        /* FORM INPUTS */
+        label { display: block; font-size: 0.85rem; font-weight: 600; color: #333; margin-bottom: 5px; }
+        
+        /* Gray Inputs (Standard) */
+        input[type="text"], select { 
+            width: 100%; padding: 8px; 
+            border: 1px solid #333; 
+            border-radius: 4px; 
+            font-size: 0.9rem; 
+            background: #e0e0e0; 
+            box-sizing: border-box; 
+            color: #333; 
+        }
+
+        /* White Inputs (Notes & Status) */
+        textarea { 
+            width: 100%; padding: 8px; 
+            border: 1px solid #333; 
+            border-radius: 4px; 
+            font-size: 0.9rem; 
+            background: #ffffff; 
+            box-sizing: border-box; 
+            color: #333; 
+        }
+
+        .status-select {
+            background-color: #ffffff !important; 
+        }
+
+        .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .form-group { margin-bottom: 15px; }
+
+        /* LOCATION BOX */
+        .location-container { background-color: #e0e0e0; border: 1px solid #333; border-radius: 5px; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .location-container input, .location-container select, .location-container textarea { background-color: #fff !important; }
+
+        /* FOOTER ACTIONS */
+        .details-footer { padding: 0 25px 25px 25px; display: flex; justify-content: space-between; align-items: end; }
+        .status-group { display: flex; align-items: center; gap: 10px; }
+        .btn-assign { background-color: #d94343; color: white; border: none; padding: 8px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; text-decoration: none; }
+        .btn-route { background-color: white; color: #333; border: 1px solid #333; padding: 8px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <h2>Disaster Response Logistics Platform</h2>
+        <div class="user-profile"><span>{{ user.account_id }}</span><div class="user-circle"></div></div>
+    </div>
+    
+    <div class="main-container">
+        <div class="sidebar">
+            <a href="/dashboard" class="nav-item"><span class="icon"></span> Dashboard</a>
+            <a href="/reports" class="nav-item active"><span class="icon"></span> Reports</a>
+            <a href="/teams" class="nav-item"><span class="icon"></span> Teams & Resources</a>
+            <a href="/monitor" class="nav-item"><span class="icon"></span> Monitor Routing</a>
+            <a href="/profile_settings" class="nav-item"><span class="icon"></span> Profile Settings</a>
+        </div>
+        
+        <div class="content">
+            
+            <div class="table-container">
+                <div class="table-header">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="col-id">Task ID</th>
+                                <th class="col-loc">Location</th>
+                                <th class="col-prio">Priority</th>
+                                <th class="col-stat">Status</th>
+                                <th class="col-team">Assigned Team</th>
+                                <th class="col-act">Actions</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+
+                <div class="table-scroll">
+                    <table>
+                        <tbody>
+                            {% for r in reports %}
+                            <tr>
+                                <td class="col-id">{{ r.task_id }}</td>
+                                <td class="col-loc">{{ r.location }}</td>
+                                <td class="col-prio">{{ r.severity }}</td>
+                                <td class="col-stat">{{ r.status }}</td>
+                                <td class="col-team">{{ r.assigned_team if r.assigned_team else '-' }}</td>
+                                <td class="col-act">
+                                    <a href="/reports?view_id={{ loop.index0 }}" class="btn-view">👁 View</a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="6" style="text-align:center; padding: 20px;">No reports found.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="create-report-row">
+                    <a href="/create_report" class="btn-create">Create Report</a>
+                </div>
+            </div>
+
+            {% if selected_report %}
+            <form action="/save_report_changes" method="POST">
+                <input type="hidden" name="report_id" value="{{ selected_report.id }}">
+                <input type="hidden" name="view_id" value="{{ request.args.get('view_id') }}">
+
+                <div class="details-container">
+                    <div class="details-header">
+                        <span>{{ selected_report.task_id }} Details</span>
+                        <div class="header-actions">
+                            <button type="submit" class="btn-save">Save Changes</button>
+                            <button type="button" class="btn-edit">✎ Edit</button>
+                        </div>
+                    </div>
+
+                    <div class="details-body">
+                        <div>
+                            <div class="row-2">
+                                <div class="form-group"><label>Task ID</label><input type="text" value="{{ selected_report.task_id }}" readonly></div>
+                                <div class="form-group"><label>Disaster Type*</label>
+                                    <select name="disaster_type">
+                                        <option selected>{{ selected_report.disaster_type }}</option>
+                                        <option>Fire</option><option>Flood</option><option>Typhoon</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group"><label>Severity Level*</label>
+                                <select name="severity">
+                                    <option selected>{{ selected_report.severity }}</option>
+                                    <option>Low</option><option>Medium</option><option>High</option><option>Critical</option>
+                                </select>
+                            </div>
+
+                            <div class="row-2">
+                                <div class="form-group"><label>Response Type*</label>
+                                    <select>
+                                        <option selected>{{ selected_report.response_type }}</option>
+                                    </select>
+                                </div>
+                                <div class="form-group"><label>Estimated Number of People Affected*</label>
+                                    <select name="affected">
+                                        <option selected>{{ selected_report.affected }}</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group"><label>Required Resources</label>
+                                <input type="text" value="{{ selected_report.resources }}" readonly>
+                            </div>
+
+                            <div class="form-group"><label>Notes</label>
+                                <textarea name="notes" rows="6">{{ selected_report.notes }}</textarea>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="row-3">
+                                <div class="form-group"><label>Date</label><input type="text" value="{{ selected_report.date_str }}" readonly></div>
+                                <div class="form-group"><label>Day</label><input type="text" value="{{ selected_report.day_str }}" readonly></div>
+                                <div class="form-group"><label>Time</label><input type="text" value="{{ selected_report.time_str }}" readonly></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Location*</label>
+                                <div class="location-container">
+                                    <select><option selected>Central Luzon (Region III)</option></select>
+                                    <select><option selected>{{ selected_report.location }}</option></select>
+                                    <select><option selected>{{ selected_report.full_address }}</option></select>
+                                    <textarea rows="2" placeholder="Landmark...">{{ selected_report.full_address }}</textarea>
+                                </div>
+                            </div>
+
+                            <div class="form-group"><label>Constraints</label>
+                                <input type="text" value="{{ selected_report.constraints }}" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="details-footer">
+                        <div class="status-group">
+                            <div style="display:flex; flex-direction:column; gap:5px;">
+                                <label>Status</label>
+                                <select name="status" class="status-select" style="width: 150px; padding: 8px; border-radius: 4px;">
+                                    <option value="Pending" {% if selected_report.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                    <option value="In Progress" {% if selected_report.status == 'In Progress' %}selected{% endif %}>In Progress</option>
+                                    <option value="Resolved" {% if selected_report.status == 'Resolved' %}selected{% endif %}>Resolved</option>
+                                </select>
+                            </div>
+                            <a href="/teams" class="btn-assign" style="margin-top: 20px;">Assign Task</a>
+                        </div>
+                        
+                        <a href="/monitor" class="btn-route">View Route</a>
+                    </div>
+                </div>
+            </form>
+            {% endif %}
+
+        </div>
+    </div>
+</body>
+</html>

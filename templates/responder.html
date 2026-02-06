@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Field Responder App</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; color: #333; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+        .app-header { background-color: #d90429; color: white; padding: 15px; text-align: center; font-weight: 700; font-size: 1.1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 1000; display: flex; justify-content: space-between; align-items: center; }
+        .status-badge { background: #28a745; font-size: 0.7em; padding: 3px 8px; border-radius: 12px; font-weight: normal; }
+        .main-content { flex: 1; overflow-y: auto; position: relative; scroll-behavior: smooth; }
+        #view-list { padding: 10px; padding-bottom: 80px; }
+        .task-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); position: relative; border-left: 5px solid #ccc; transition: transform 0.2s; }
+        .task-card:active { transform: scale(0.98); }
+        .task-card.priority-High { border-left-color: #d90429; }
+        .task-card.priority-Medium { border-left-color: #ffc107; }
+        .task-card.priority-Low { border-left-color: #28a745; }
+        .task-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .task-id { font-weight: bold; color: #555; font-size: 0.9em; }
+        .task-time { font-size: 0.8em; color: #888; }
+        .task-title { font-size: 1.1rem; font-weight: bold; margin: 5px 0; color: #333; }
+        .task-loc { font-size: 0.95rem; color: #666; margin-bottom: 10px; display: flex; align-items: flex-start; gap: 5px; }
+        .btn-action { background: #007bff; color: white; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; }
+        #view-map { height: 100%; width: 100%; display: none; }
+        #map { height: 100%; width: 100%; }
+        .bottom-nav { background: white; border-top: 1px solid #ddd; height: 60px; display: flex; justify-content: space-around; align-items: center; z-index: 1000; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); }
+        .nav-btn { background: none; border: none; color: #888; font-size: 0.8em; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; height: 100%; justify-content: center; cursor: pointer; }
+        .nav-btn i { font-size: 1.4rem; margin-bottom: 2px; }
+        .nav-btn.active { color: #d90429; font-weight: bold; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: none; align-items: flex-end; }
+        .modal-sheet { background: white; width: 100%; border-radius: 20px 20px 0 0; padding: 25px; box-sizing: border-box; animation: slideUp 0.3s ease-out; max-height: 85vh; overflow-y: auto; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .sheet-handle { width: 40px; height: 5px; background: #ddd; border-radius: 5px; margin: 0 auto 20px auto; }
+        .sheet-title { font-size: 1.3rem; font-weight: bold; margin-bottom: 10px; }
+        .sheet-detail { margin-bottom: 15px; font-size: 1rem; color: #555; }
+        .sheet-detail strong { color: #333; display: block; font-size: 0.8em; text-transform: uppercase; color: #888; margin-bottom: 2px; }
+        .btn-resolve { background: #28a745; color: white; margin-top: 10px; }
+        .btn-close { background: #f1f1f1; color: #333; margin-top: 10px; }
+        .empty-state { text-align: center; padding-top: 100px; color: #999; }
+        .empty-state i { font-size: 3rem; margin-bottom: 15px; display: block; color: #ddd; }
+    </style>
+</head>
+<body>
+    <div class="app-header"><i class="fas fa-bars"></i><span>Field Responder Unit</span><span class="status-badge">ONLINE</span></div>
+    <div class="main-content">
+        <div id="view-list"><div id="task-container"><div class="empty-state"><i class="fas fa-check-circle"></i>No active tasks</div></div></div>
+        <div id="view-map"><div id="map"></div></div>
+    </div>
+    <div class="bottom-nav">
+        <button class="nav-btn active" onclick="switchTab('list')"><i class="fas fa-list-ul"></i> Tasks</button>
+        <button class="nav-btn" onclick="switchTab('map')"><i class="fas fa-map-marked-alt"></i> Map</button>
+        <button class="nav-btn"><i class="fas fa-user"></i> Profile</button>
+    </div>
+    <div id="detail-modal" class="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-sheet" onclick="event.stopPropagation()">
+            <div class="sheet-handle"></div><div class="sheet-title" id="m-title">Task Details</div>
+            <div class="sheet-detail"><strong>Location</strong><span id="m-loc">...</span></div>
+            <div class="sheet-detail"><strong>Situation</strong><span id="m-notes">...</span></div>
+            <div class="sheet-detail"><strong>Requirements</strong><span id="m-res">...</span></div>
+            <div style="display:grid; gap:10px;">
+                <button class="btn-action" onclick="openNav()">🗺️ Navigate (GPS)</button>
+                <button class="btn-action btn-resolve" onclick="markResolved()">✅ Mark Resolved</button>
+                <button class="btn-action btn-close" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let currentReports = []; let selectedReportId = null; let mapInitialized = false; let map;
+        async function fetchReports() { try { let res = await fetch('/responder_data'); currentReports = await res.json(); renderList(); renderMap(); } catch(e) { console.error("Connection Error"); } }
+        function renderList() {
+            const container = document.getElementById('task-container'); container.innerHTML = "";
+            if(currentReports.length === 0) { container.innerHTML = '<div class="empty-state"><i class="fas fa-check-circle"></i>All clear. No active tasks.</div>'; return; }
+            currentReports.forEach((r, index) => {
+                let priorityClass = r.severity === "Critical" || r.severity === "High" ? "priority-High" : "priority-Medium";
+                let card = document.createElement('div'); card.className = `task-card ${priorityClass}`; card.onclick = () => openModal(index);
+                card.innerHTML = `<div class="task-header"><span class="task-id">${r.task_id}</span><span class="task-time">${r.status}</span></div><div class="task-title">${r.disaster_type} - ${r.severity}</div><div class="task-loc"><i class="fas fa-map-marker-alt" style="margin-top:3px; color:#d90429;"></i> ${r.location}</div><button class="btn-action" style="font-size:0.9rem; padding:8px; background:#f0f0f0; color:#333;">Tap for details</button>`;
+                container.appendChild(card);
+            });
+        }
+        function renderMap() {
+            if(!mapInitialized && document.getElementById('view-map').style.display === 'block') { map = L.map('map', { zoomControl: false }).setView([15.00, 121.00], 10); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map); mapInitialized = true; }
+            if(mapInitialized && map) { map.eachLayer((layer) => { if(layer instanceof L.Marker) map.removeLayer(layer); }); currentReports.forEach((r, index) => { L.marker([r.lat, r.lon]).addTo(map).bindPopup(`<b>${r.task_id}</b><br>${r.location}`).on('click', () => openModal(index)); }); }
+        }
+        function switchTab(tab) { document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); event.currentTarget.classList.add('active'); if(tab === 'list') { document.getElementById('view-list').style.display = 'block'; document.getElementById('view-map').style.display = 'none'; } else { document.getElementById('view-list').style.display = 'none'; document.getElementById('view-map').style.display = 'block'; setTimeout(renderMap, 100); } }
+        function openModal(index) { selectedReportId = index; let r = currentReports[index]; document.getElementById('m-title').innerText = `${r.task_id}: ${r.disaster_type}`; document.getElementById('m-loc').innerText = r.location; document.getElementById('m-notes').innerText = r.notes || "No additional notes provided."; document.getElementById('m-res').innerText = r.resources || "Standard response."; document.getElementById('detail-modal').style.display = 'flex'; }
+        function closeModal(e) { if(!e || e.target.id === "detail-modal" || e.target.classList.contains('btn-close')) { document.getElementById('detail-modal').style.display = 'none'; } }
+        function openNav() { let r = currentReports[selectedReportId]; window.open(`https://www.google.com/maps/dir/?api=1&destination=${r.lat},${r.lon}`, '_blank'); }
+        
+        // --- SECURE RESOLVE ---
+        function markResolved() { 
+            if(!confirm("Are you sure you want to mark this task as RESOLVED?")) return; 
+            let r = currentReports[selectedReportId];
+            fetch('/update_status', { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ id: r.id, status: "Resolved" }) // Using ID now, much safer
+            }).then(() => { closeModal(); fetchReports(); }); 
+        }
+        
+        setInterval(fetchReports, 3000); fetchReports();
+    </script>
+</body>
+</html>
