@@ -9,6 +9,11 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from models import db, DisasterReport, Team, User
 
 # ==========================================
+#  GLOBAL SETTINGS STORE
+# ==========================================
+USER_SETTINGS = {}
+
+# ==========================================
 #  GLOBAL MAP DATA
 # ==========================================
 NODE_LOCATIONS = {
@@ -95,23 +100,18 @@ def a_star_search(start, goal, avoid_nodes=[]):
                         heapq.heappush(open_set, (f_score[neighbor], neighbor))
     return None
 
-# ==========================================
-#  HELPER: REVERSE GEOCODING
-# ==========================================
 def get_address_from_coords(lat, lon):
     try:
         url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}&zoom=18&addressdetails=1"
         headers = {'User-Agent': 'DisasterApp/1.0'}
         response = requests.get(url, headers=headers, timeout=2)
         data = response.json()
-        
         if 'address' in data:
             addr = data['address']
             street = addr.get('road', addr.get('pedestrian', 'Street'))
             city = addr.get('city', addr.get('town', addr.get('municipality', 'Bulacan')))
             return f"{city} ({street})"
-    except:
-        pass
+    except: pass
     return f"{lat:.4f}, {lon:.4f}"
 
 # ==========================================
@@ -131,6 +131,13 @@ def create_app():
     @login_manager.user_loader
     def load_user(user_id): return User.query.get(int(user_id))
 
+    # --- HELPER: Identify Responder's Team ---
+    def get_responder_team():
+        if current_user.role == "Responder":
+            full_name = f"{current_user.first_name} {current_user.last_name}"
+            return Team.query.filter_by(leader=full_name).first()
+        return None
+
     # --- AUTH ROUTES ---
     @app.route('/login', methods=['GET', 'POST'])
     def login():
@@ -139,6 +146,7 @@ def create_app():
             if user and user.password == request.form.get('password'):
                 login_user(user)
                 user.last_login = datetime.datetime.now()
+                if user.id not in USER_SETTINGS: USER_SETTINGS[user.id] = {'show_routes': False}
                 db.session.commit()
                 return redirect(url_for('dashboard_view'))
             return render_template('login.html', error="Invalid Credentials")
@@ -154,13 +162,23 @@ def create_app():
     @app.route("/")
     def home(): return redirect(url_for("dashboard_view"))
 
-    # --- UPDATED DASHBOARD ROUTE ---
     @app.route("/dashboard")
     @login_required
     def dashboard_view():
-        reports_db = DisasterReport.query.order_by(DisasterReport.date_submitted.desc()).all()
+        show_all = USER_SETTINGS.get(current_user.id, {}).get('show_routes', False)
         
-        # Build richer data object with Team Coordinates
+        # --- ROLE BASED FILTERING ---
+        if current_user.role == "Responder":
+            team = get_responder_team()
+            if team:
+                # Show ONLY reports assigned to this responder's team
+                reports_db = DisasterReport.query.filter_by(assigned_team=team.team_id).order_by(DisasterReport.date_submitted.desc()).all()
+            else:
+                reports_db = []
+        else:
+            # Show ALL reports for Admin/Operator/Programmer
+            reports_db = DisasterReport.query.order_by(DisasterReport.date_submitted.desc()).all()
+
         reports_display = []
         for r in reports_db:
             r_dict = {
@@ -169,7 +187,7 @@ def create_app():
                 'date_submitted': r.date_submitted, 'lat': r.lat, 'lon': r.lon,
                 'disaster_type': r.disaster_type, 'resources': r.resources,
                 'constraints': r.constraints, 'notes': r.notes, 'full_address': r.full_address,
-                'team_coords': None # Default
+                'team_coords': None 
             }
             if r.assigned_team:
                 t = Team.query.filter_by(team_id=r.assigned_team).first()
@@ -180,13 +198,25 @@ def create_app():
             reports=reports_display,
             active=DisasterReport.query.filter(DisasterReport.status != 'Resolved').count(),
             pending=DisasterReport.query.filter_by(status='Pending').count(),
-            resources=Team.query.filter_by(status='Available').count(), user=current_user)
+            resources=Team.query.filter_by(status='Available').count(), 
+            user=current_user,
+            show_all_routes=show_all)
 
     @app.route("/reports")
     @login_required
     def reports_list():
         view_id = request.args.get('view_id', type=int)
-        reports = DisasterReport.query.order_by(DisasterReport.date_submitted.desc()).all()
+        
+        # --- ROLE BASED FILTERING ---
+        if current_user.role == "Responder":
+            team = get_responder_team()
+            if team:
+                reports = DisasterReport.query.filter_by(assigned_team=team.team_id).order_by(DisasterReport.date_submitted.desc()).all()
+            else:
+                reports = []
+        else:
+            reports = DisasterReport.query.order_by(DisasterReport.date_submitted.desc()).all()
+
         selected = reports[view_id] if view_id is not None and 0 <= view_id < len(reports) else None
         return render_template("reports_list.html", reports=reports, selected_report=selected, user=current_user)
 
@@ -196,13 +226,11 @@ def create_app():
         reports = DisasterReport.query.filter(DisasterReport.status != 'Resolved').all()
         teams_db = Team.query.all()
         display_teams = []
-        
         for t in teams_db:
             active_assignment = DisasterReport.query.filter_by(assigned_team=t.team_id).filter(DisasterReport.status.in_(['In Progress', 'En Route'])).first()
             final_status = "Busy" if active_assignment else "Available"
             task_str = active_assignment.task_id if active_assignment else "-"
             location_name = get_address_from_coords(t.lat, t.lon)
-            
             display_teams.append({
                 "id": t.team_id, "leader": t.leader, "location": location_name,
                 "role": t.role, "status": final_status, "task": task_str,
@@ -212,7 +240,9 @@ def create_app():
 
     @app.route("/monitor")
     @login_required
-    def monitor_view(): return render_template("monitor.html", user=current_user)
+    def monitor_view():
+        show_all = USER_SETTINGS.get(current_user.id, {}).get('show_routes', False)
+        return render_template("monitor.html", user=current_user, show_all_routes=show_all)
 
     @app.route("/profile_settings", methods=["GET", "POST"])
     @login_required
@@ -222,22 +252,19 @@ def create_app():
             current_user.last_name = request.form.get("last_name")
             current_user.phone = request.form.get("phone")
             new_password = request.form.get("new_password")
-            current_password_input = request.form.get("current_password")
-
             if new_password and new_password.strip():
-                if not current_password_input:
-                    flash("⚠️ Current Password is required to set a new password.", "error")
-                    return redirect(url_for('profile_settings'))
-                if current_user.password != current_password_input:
-                    flash("❌ Incorrect Current Password. Password NOT updated.", "error")
-                    return redirect(url_for('profile_settings'))
-                current_user.password = new_password
-                flash("✅ Password changed successfully.", "success")
-            else:
-                flash("✅ Profile details updated.", "success")
+                if current_user.password == request.form.get("current_password"):
+                    current_user.password = new_password
+                    flash("✅ Password changed successfully.", "success")
+                else:
+                    flash("❌ Incorrect Password.", "error")
+            visual_setting = request.form.get("routing_visual") == "on"
+            USER_SETTINGS[current_user.id] = {'show_routes': visual_setting}
+            if not new_password: flash("✅ Settings updated.", "success")
             db.session.commit()
             return redirect(url_for('profile_settings'))
-        return render_template("profile.html", user=current_user)
+        current_setting = USER_SETTINGS.get(current_user.id, {}).get('show_routes', False)
+        return render_template("profile.html", user=current_user, show_routes=current_setting)
 
     # --- ADMIN ROUTES ---
     @app.route("/manage_users")
@@ -264,62 +291,43 @@ def create_app():
     @login_required
     def register():
         if current_user.role != "Admin": return redirect(url_for('dashboard_view'))
-
         def get_next_details(prefix):
             count = 1
             while True:
                 new_id = f"{prefix}-{count:03d}"
                 if not User.query.filter_by(account_id=new_id).first(): return new_id, count
                 count += 1
-
         if request.method == 'POST':
             role = request.form.get('role')
             first_name = request.form.get('first_name')
             last_name = request.form.get('last_name')
-            
             prefix = "OPT" if role == "Operator" else "RSP"
             final_id, id_count = get_next_details(prefix)
             auto_pass = f"password{id_count:03d}"
-
             new_user = User(account_id=final_id, password=auto_pass, role=role, first_name=first_name, last_name=last_name)
             db.session.add(new_user)
-            
             if role == "Responder":
                 municipality = request.form.get('municipality')
                 street = request.form.get('street')
-                lat, lon = 14.8437, 120.8113 # Default
-
+                lat, lon = 14.8437, 120.8113
                 if municipality and street:
-                    full_address = f"{street}, {municipality}, Bulacan, Philippines"
                     try:
                         url = 'https://nominatim.openstreetmap.org/search'
-                        params = {'q': full_address, 'format': 'json', 'limit': 1}
+                        params = {'q': f"{street}, {municipality}, Bulacan, Philippines", 'format': 'json', 'limit': 1}
                         headers = {'User-Agent': 'DisasterApp/1.0'}
                         response = requests.get(url, params=params, headers=headers)
                         data = response.json()
                         if data:
-                            lat = float(data[0]['lat'])
-                            lon = float(data[0]['lon'])
+                            lat, lon = float(data[0]['lat']), float(data[0]['lon'])
                             flash(f"✅ Location set: {street}, {municipality}", "success")
-                        else:
-                            flash("⚠️ Address not found on map. Using default HQ.", "warning")
-                    except:
-                        flash("⚠️ Geocoding failed. Using default HQ.", "warning")
-
+                    except: pass
                 team_count = Team.query.count() + 1
-                new_team_id = f"TM-{team_count:03d}"
-                full_name = f"{first_name} {last_name}"
-                
-                new_team = Team(team_id=new_team_id, name=new_team_id, leader=full_name, role="Response Unit", 
-                                lat=lat, lon=lon, status="Available")
+                new_team = Team(team_id=f"TM-{team_count:03d}", name=f"TM-{team_count:03d}", leader=f"{first_name} {last_name}", role="Response Unit", lat=lat, lon=lon, status="Available")
                 db.session.add(new_team)
-
             db.session.commit()
             next_opt, _ = get_next_details("OPT")
             next_rsp, _ = get_next_details("RSP")
-            return render_template('register.html', user=current_user, success_user=new_user, generated_pass=auto_pass, 
-                                   next_opt=next_opt, next_rsp=next_rsp)
-            
+            return render_template('register.html', user=current_user, success_user=new_user, generated_pass=auto_pass, next_opt=next_opt, next_rsp=next_rsp)
         next_opt, _ = get_next_details("OPT")
         next_rsp, _ = get_next_details("RSP")
         return render_template('register.html', user=current_user, next_opt=next_opt, next_rsp=next_rsp)
@@ -328,6 +336,8 @@ def create_app():
     @app.route("/create_report")
     @login_required
     def create_report_view():
+        # BLOCK RESPONDERS
+        if current_user.role == "Responder": return redirect(url_for('dashboard_view'))
         now = datetime.datetime.now()
         return render_template("user.html", task_id=f"TASK-{DisasterReport.query.count() + 1:03d}", 
             auto_date=now.strftime("%m/%d/%Y"), auto_day=now.strftime("%A"), auto_time=now.strftime("%I:%M %p"), user=current_user)
@@ -335,6 +345,8 @@ def create_app():
     @app.route("/submit_report", methods=["POST"])
     @login_required
     def submit_report():
+        # BLOCK RESPONDERS
+        if current_user.role == "Responder": return redirect(url_for('dashboard_view'))
         try: lat, lon = float(request.form.get("lat")), float(request.form.get("lon"))
         except: return "Invalid Coordinates", 400
         new_report = DisasterReport(
@@ -356,34 +368,55 @@ def create_app():
         r = DisasterReport.query.get(request.form.get("report_id"))
         if r: 
             new_status = request.form.get("status")
+            if new_status == "In Progress" and (not r.assigned_team or r.assigned_team.strip() == ""):
+                flash("⚠️ Cannot change status to 'In Progress' without assigning a team first.", "error")
+                new_status = "Pending"
+            elif new_status == "Pending" or new_status == "Resolved":
+                r.assigned_team = None 
             r.status = new_status
             r.notes = request.form.get("notes")
-            if new_status == "Pending" or new_status == "Resolved": r.assigned_team = None 
+            r.disaster_type = request.form.get("disaster_type")
+            r.severity = request.form.get("severity")
+            r.response_type = request.form.get("response_type")
+            r.affected = request.form.get("affected")
             db.session.commit()
+            if new_status == request.form.get("status"):
+                flash("✅ Report details updated successfully.", "success")
         return redirect(url_for('reports_list', view_id=request.form.get("view_id")))
 
     @app.route("/assign_team", methods=["POST"])
     @login_required
     def assign_team():
-        r = DisasterReport.query.filter_by(task_id=request.form.get("task_id")).first()
-        if r: r.assigned_team = request.form.get("team_id"); r.status = "In Progress"; db.session.commit()
+        # BLOCK RESPONDERS
+        if current_user.role == "Responder": return redirect(url_for('dashboard_view'))
+        team_id = request.form.get("team_id")
+        task_id = request.form.get("task_id")
+        if not team_id or team_id.strip() == "": return redirect(url_for("teams_view"))
+        r = DisasterReport.query.filter_by(task_id=task_id).first()
+        if r: 
+            r.assigned_team = team_id
+            r.status = "In Progress" 
+            db.session.commit()
         return redirect(url_for("teams_view"))
 
     @app.route("/responder_data")
     @login_required
     def responder_data():
-        reports = DisasterReport.query.filter(DisasterReport.status != 'Resolved').all()
+        if current_user.role == "Responder":
+            team = get_responder_team()
+            if team: reports = DisasterReport.query.filter_by(assigned_team=team.team_id).filter(DisasterReport.status != 'Resolved').all()
+            else: reports = []
+        else:
+            reports = DisasterReport.query.filter(DisasterReport.status != 'Resolved').all()
         data = []
         for r in reports:
             team_display = "Pending Assignment"
             team_start_loc = None
-
             if r.assigned_team:
                 team = Team.query.filter_by(team_id=r.assigned_team).first()
                 if team:
                     team_display = f"{team.team_id} ({team.leader})"
                     team_start_loc = {"lat": team.lat, "lon": team.lon}
-            
             data.append({
                 "task_id": r.task_id, "disaster_type": r.disaster_type, "location": r.location,
                 "team_location": team_start_loc, "assigned_team": team_display,
@@ -396,33 +429,12 @@ def create_app():
         start_input = request.args.get('start', 'HQ_Malolos')
         end_input = request.args.get('end', 'Bocaue') 
         avoid = request.args.get('avoid', '')
-
-        def smart_match(text):
-            if not text: return "HQ_Malolos"
-            for node in NODE_LOCATIONS:
-                if node.lower() in text.lower(): return node
-            return "HQ_Malolos"
-
-        start_node = smart_match(start_input)
-        end_node = smart_match(end_input)
-        
-        if start_node == end_node and start_node in LOCAL_DESTINATIONS:
-            end_node = LOCAL_DESTINATIONS[start_node]
-
-        avoid_nodes = [avoid] if avoid and avoid in NODE_LOCATIONS else []
-        path = a_star_search(start_node, end_node, avoid_nodes=avoid_nodes)
-        
+        start_node, end_node = start_input, end_input
+        if start_node == end_node and start_node in LOCAL_DESTINATIONS: end_node = LOCAL_DESTINATIONS[start_node]
+        path = a_star_search(start_node, end_node, avoid_nodes=[avoid] if avoid else [])
         if not path: return jsonify({"path": [], "coords": [], "distance": "N/A", "eta": "Blocked"})
-
         coords = [[NODE_LOCATIONS[node]['lat'], NODE_LOCATIONS[node]['lon']] for node in path]
-        dist_km = sum(heuristic(path[i], path[i+1]) * 111 for i in range(len(path)-1))
-        time_min = int((dist_km / 40) * 60)
-        eta = f"{time_min} mins" if time_min < 60 else f"{time_min//60} hr {time_min%60} mins"
-
-        return jsonify({
-            "path": path, "coords": coords, "distance": f"{dist_km:.2f} km", 
-            "eta": "Local Area" if start_node == end_node else eta
-        })
+        return jsonify({"path": path, "coords": coords, "distance": "N/A", "eta": "N/A"})
 
     return app
 

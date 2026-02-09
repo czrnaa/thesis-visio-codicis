@@ -106,9 +106,23 @@
         .search-item strong { display: block; }
         .search-item small { color: #666; font-size: 0.8em; }
 
-        /* MULTISELECT STYLE */
+        /* MULTISELECT STYLE - FIXED ALIGNMENT HERE */
         .multiselect { position: relative; }
-        .select-box { position: relative; display: block; width: 100%; padding: 10px; border: 1px solid #333; border-radius: 5px; font-size: 0.9rem; background: #e0e0e0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .select-box { 
+            position: relative; 
+            display: block; 
+            width: 100%; 
+            padding: 10px; 
+            border: 1px solid #333; 
+            border-radius: 5px; 
+            font-size: 0.9rem; 
+            background: #e0e0e0; 
+            cursor: pointer; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            box-sizing: border-box; /* THIS FIXES THE ALIGNMENT ISSUE */
+        }
         .checkboxes { display: none; position: absolute; background-color: white; border: 1px solid #333; border-radius: 5px; width: 100%; max-height: 200px; overflow-y: auto; z-index: 1000; margin-top: 5px; }
         .checkboxes label { display: block; padding: 8px 10px; cursor: pointer; border-bottom: 1px solid #eee; margin: 0; font-weight: normal; }
         .checkboxes label:hover { background-color: #f1f1f1; }
