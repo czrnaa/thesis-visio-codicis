@@ -69,10 +69,33 @@
             margin-bottom: 20px;
             border: 1px solid #ccc;
             border-radius: 5px;
-            background-color: #e0e0e0; /* Grey background like wireframe */
+            background-color: #e0e0e0;
             font-size: 1rem;
-            box-sizing: border-box; /* Fix padding width issue */
+            box-sizing: border-box;
         }
+
+        /* PASSWORD WRAPPER FOR SHOW/HIDE BUTTON */
+        .password-wrapper {
+            position: relative;
+            width: 100%;
+            margin-bottom: 20px; /* Added spacing since link is gone */
+        }
+        
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            top: 40%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #666;
+            font-size: 0.9rem;
+            user-select: none;
+            background: none;
+            border: none;
+            font-weight: 600;
+        }
+        
+        .toggle-password:hover { color: #d90429; }
 
         .btn-login {
             background-color: #d90429;
@@ -89,14 +112,6 @@
 
         .btn-login:hover {
             background-color: #b00220;
-        }
-
-        .forgot {
-            color: #d90429;
-            text-decoration: none;
-            font-size: 0.9rem;
-            display: block;
-            margin-bottom: 20px;
         }
 
         .error {
@@ -128,18 +143,34 @@
 
             <form method="POST">
                 <label>Account ID</label>
-                <input type="text" name="account_id" placeholder="XX.XXX YY.YYY" required>
+                <input type="text" name="account_id" placeholder="Enter ID" required>
 
                 <label>Password</label>
-                <input type="password" name="password" placeholder="*********" required>
-
-                <a href="#" class="forgot">Forgot password?</a>
+                <div class="password-wrapper">
+                    <input type="password" name="password" id="password" placeholder="*********" required>
+                    <span class="toggle-password" onclick="togglePassword()">Show</span>
+                </div>
 
                 <button type="submit" class="btn-login">Login</button>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+    function togglePassword() {
+        var passwordField = document.getElementById("password");
+        var toggleBtn = document.querySelector(".toggle-password");
+        
+        if (passwordField.type === "password") {
+            passwordField.type = "text";
+            toggleBtn.textContent = "Hide";
+        } else {
+            passwordField.type = "password";
+            toggleBtn.textContent = "Show";
+        }
+    }
+</script>
 
 </body>
 </html>

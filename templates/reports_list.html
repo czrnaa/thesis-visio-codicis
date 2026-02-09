@@ -140,6 +140,11 @@
             <a href="/reports" class="nav-item active"><span class="icon"></span> Reports</a>
             <a href="/teams" class="nav-item"><span class="icon"></span> Teams & Resources</a>
             <a href="/monitor" class="nav-item"><span class="icon"></span> Monitor Routing</a>
+            
+            {% if user.role == 'Admin' %}
+            <a href="/manage_users" class="nav-item"><span class="icon"></span> Manage Users</a>
+            {% endif %}
+
             <a href="/profile_settings" class="nav-item"><span class="icon"></span> Profile Settings</a>
         </div>
         

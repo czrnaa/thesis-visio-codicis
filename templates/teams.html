@@ -7,13 +7,11 @@
         :root { --primary-red: #d90429; --sidebar-bg: #e0e0e0; --header-gray: #ccc; --border-color: #333; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background-color: #f4f4f4; }
         
-        /* HEADER */
         .top-bar { background-color: var(--primary-red); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; height: 60px; box-sizing: border-box; }
         .top-bar h2 { margin: 0; font-size: 1.3rem; font-weight: 600; }
         .user-profile { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
         .user-circle { width: 32px; height: 32px; background: #ddd; border-radius: 50%; }
         
-        /* LAYOUT */
         .main-container { display: flex; flex: 1; height: calc(100vh - 60px); }
         .sidebar { width: 260px; background: var(--sidebar-bg); border-right: 1px solid #ccc; display: flex; flex-direction: column; padding-top: 10px; }
         .nav-item { padding: 15px 25px; color: #333; cursor: pointer; display: flex; align-items: center; gap: 15px; text-decoration: none; font-size: 1rem; font-weight: 500; transition: 0.2s; border-left: 5px solid transparent; }
@@ -21,84 +19,31 @@
         .nav-item.active { background: #ccc; border-left-color: #333; font-weight: 700; }
         .icon { width: 20px; text-align: center; }
 
-        /* CONTENT */
         .content { flex: 1; padding: 30px; overflow-y: auto; background: #fff; display: flex; flex-direction: column; gap: 30px; }
 
-        /* TABLES */
         .table-container { border: 1px solid var(--border-color); border-radius: 5px; overflow: hidden; margin-bottom: 10px; }
         table { width: 100%; border-collapse: collapse; background: white; font-size: 0.9rem; }
-        
-        /* HEADER STYLE */
         thead { background-color: var(--header-gray); border-bottom: 2px solid var(--border-color); }
-        th { 
-            padding: 12px 15px; 
-            text-align: left; 
-            font-weight: 600; 
-            color: #333; 
-            /* REMOVED VERTICAL LINE: border-right: 1px solid #999; */
-        }
-        
-        /* ROW STYLE */
-        td { 
-            padding: 12px 15px; 
-            border-bottom: 1px solid #ccc; 
-            color: #333; 
-            /* REMOVED VERTICAL LINE: border-right: 1px solid #eee; */
-        }
+        th { padding: 12px 15px; text-align: left; font-weight: 600; color: #333; }
+        td { padding: 12px 15px; border-bottom: 1px solid #ccc; color: #333; }
         tr:last-child td { border-bottom: none; }
 
-        /* STATUS BADGES */
         .status-Available { color: green; font-weight: 600; }
         .status-Busy { color: red; font-weight: 600; }
         .status-En-Route { color: orange; font-weight: 600; }
 
-        /* BUTTONS */
         .btn-action { padding: 5px 15px; border: 1px solid #333; background: white; border-radius: 4px; cursor: pointer; font-size: 0.85rem; text-decoration: none; color: #333; display: inline-block; }
         .btn-action:hover { background: #f0f0f0; }
         .btn-assign { background: #ffffcc; border: 1px solid #999; } 
-        
-        /* YELLOW HIGHLIGHT ROW */
         .row-selected { background-color: #ffff99 !important; }
 
-        /* ASSIGNMENT BAR */
-        .assignment-wrapper {
-            display: block; 
-            margin-top: 15px; 
-            padding-left: 5px;
-        }
+        .assignment-wrapper { display: block; margin-top: 15px; padding-left: 5px; }
+        .assignment-bar { display: flex; gap: 15px; align-items: center; }
+        .assignment-bar select { padding: 10px; width: 300px; border: 1px solid #333; border-radius: 4px; background: #e0e0e0; font-size: 0.9rem; }
 
-        .assignment-bar { 
-            display: flex; 
-            gap: 15px; 
-            align-items: center; 
-        }
-
-        .assignment-bar select { 
-            padding: 10px; 
-            width: 300px; 
-            border: 1px solid #333; 
-            border-radius: 4px; 
-            background: #e0e0e0; 
-            font-size: 0.9rem;
-        }
-
-        .btn-confirm { 
-            background-color: #ccc; /* Default Disabled Color */
-            color: white; 
-            border: none; 
-            padding: 10px 25px; 
-            border-radius: 4px; 
-            font-weight: bold; 
-            cursor: not-allowed; 
-            font-size: 0.9rem;
-        }
-        /* Style when enabled */
-        .btn-confirm:not(:disabled) {
-            background-color: #d94343; /* Red when active */
-            cursor: pointer;
-        }
+        .btn-confirm { background-color: #ccc; color: white; border: none; padding: 10px 25px; border-radius: 4px; font-weight: bold; cursor: not-allowed; font-size: 0.9rem; }
+        .btn-confirm:not(:disabled) { background-color: #d94343; cursor: pointer; }
         .btn-confirm:not(:disabled):hover { background-color: #b00220; }
-
     </style>
 </head>
 <body>
@@ -114,6 +59,11 @@
             <a href="/reports" class="nav-item"><span class="icon"></span> Reports</a>
             <a href="/teams" class="nav-item active"><span class="icon"></span> Teams & Resources</a>
             <a href="/monitor" class="nav-item"><span class="icon"></span> Monitor Routing</a>
+            
+            {% if user.role == 'Admin' %}
+            <a href="/manage_users" class="nav-item"><span class="icon"></span> Manage Users</a>
+            {% endif %}
+
             <a href="/profile_settings" class="nav-item"><span class="icon"></span> Profile Settings</a>
         </div>
         
@@ -124,9 +74,8 @@
                     <thead>
                         <tr>
                             <th>Team ID</th>
-                            <th>Name</th>
                             <th>Squad Leader</th>
-                            <th>Assigned Task</th>
+                            <th>Location</th> <th>Assigned Task</th>
                             <th>Availability</th>
                             <th>Date</th>
                         </tr>
@@ -135,9 +84,8 @@
                         {% for t in teams %}
                         <tr>
                             <td>{{ t.id }}</td>
-                            <td>{{ t.name }}</td>
                             <td>{{ t.leader }}</td>
-                            <td>{{ t.task if t.task != '-' else 'None' }}</td>
+                            <td>{{ t.location }}</td> <td>{{ t.task if t.task != '-' else 'None' }}</td>
                             <td class="status-{{ t.status }}">{{ t.status }}</td>
                             <td>{{ t.last_updated if t.last_updated else 'MM-DD-YYYY' }}</td>
                         </tr>
@@ -153,12 +101,7 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Task ID</th>
-                                <th>Team ID</th>
-                                <th>Location</th>
-                                <th>Assigned Task</th>
-                                <th>Availability</th>
-                                <th>Actions</th>
+                                <th>Task ID</th><th>Team ID</th><th>Location</th><th>Assigned Task</th><th>Availability</th><th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -200,7 +143,7 @@
                             <option value="">-- Select Available Team --</option>
                             {% for t in teams %}
                                 {% if t.status == "Available" %}
-                                <option value="{{ t.id }}">{{ t.id }} - {{ t.name }} ({{ t.role }})</option>
+                                <option value="{{ t.id }}">{{ t.id }} - {{ t.leader }} ({{ t.location }})</option>
                                 {% endif %}
                             {% endfor %}
                         </select>
@@ -214,21 +157,10 @@
 
     <script>
         function selectTask(taskId) {
-            // 1. Reset all rows to white
-            document.querySelectorAll('tbody tr').forEach(row => {
-                row.classList.remove('row-selected');
-            });
-
-            // 2. Highlight selected row (Yellow)
+            document.querySelectorAll('tbody tr').forEach(row => { row.classList.remove('row-selected'); });
             let selectedRow = document.getElementById('row-' + taskId);
-            if (selectedRow) {
-                selectedRow.classList.add('row-selected');
-            }
-
-            // 3. Set hidden input value
+            if (selectedRow) { selectedRow.classList.add('row-selected'); }
             document.getElementById('selected_task_id').value = taskId;
-
-            // 4. Enable bottom controls
             document.getElementById('teamSelect').disabled = false;
             document.getElementById('confirmBtn').disabled = false;
         }

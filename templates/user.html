@@ -25,7 +25,34 @@
         /* CONTENT & FORM */
         .content { flex: 1; padding: 30px; overflow-y: auto; background: #fff; }
         .form-container { border: 1px solid #333; border-radius: 5px; background: #fff; max-width: 1200px; margin: 0 auto; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        .form-header-bar { background: #d9d9d9; padding: 12px 20px; border-bottom: 1px solid #333; font-weight: 700; color: #333; font-size: 1.1rem; border-radius: 5px 5px 0 0; }
+        
+        /* UPDATED HEADER BAR WITH CLOSE BUTTON */
+        .form-header-bar { 
+            background: #d9d9d9; 
+            padding: 12px 20px; 
+            border-bottom: 1px solid #333; 
+            font-weight: 700; 
+            color: #333; 
+            font-size: 1.1rem; 
+            border-radius: 5px 5px 0 0; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+
+        .close-btn {
+            text-decoration: none;
+            color: #333;
+            font-size: 1.5rem;
+            line-height: 1;
+            cursor: pointer;
+            font-weight: bold;
+            transition: color 0.2s;
+        }
+        .close-btn:hover {
+            color: var(--primary-red);
+        }
+
         .form-body { padding: 25px; display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 40px; }
         
         /* GENERAL INPUTS */
@@ -39,7 +66,7 @@
         .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
         .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px; }
 
-        /* --- LOCATION BOX (THE GRAY CONTAINER) --- */
+        /* LOCATION BOX */
         .location-container {
             background-color: #d9d9d9;
             border: 1px solid #333;
@@ -109,7 +136,10 @@
         
         <div class="content">
             <div class="form-container">
-                <div class="form-header-bar">Report Form</div>
+                <div class="form-header-bar">
+                    <span>Report Form</span>
+                    <a href="/reports" class="close-btn" title="Cancel">&times;</a>
+                </div>
                 
                 <form action="/submit_report" method="POST">
                     <div class="form-body">

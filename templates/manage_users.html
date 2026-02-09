@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Users</title>
+    <style>
+        :root { --primary-red: #d90429; --sidebar-bg: #e0e0e0; --header-gray: #ccc; --border-color: #333; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background-color: #f4f4f4; }
+        
+        /* HEADER */
+        .top-bar { background-color: var(--primary-red); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; height: 60px; box-sizing: border-box; }
+        .top-bar h2 { margin: 0; font-size: 1.3rem; font-weight: 600; }
+        .user-profile { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
+        .user-circle { width: 32px; height: 32px; background: #ddd; border-radius: 50%; }
+        
+        /* LAYOUT */
+        .main-container { display: flex; flex: 1; height: calc(100vh - 60px); }
+        .sidebar { width: 260px; background: var(--sidebar-bg); border-right: 1px solid #ccc; display: flex; flex-direction: column; padding-top: 10px; }
+        .nav-item { padding: 15px 25px; color: #333; cursor: pointer; display: flex; align-items: center; gap: 15px; text-decoration: none; font-size: 1rem; font-weight: 500; transition: 0.2s; border-left: 5px solid transparent; }
+        .nav-item:hover { background: #d0d0d0; }
+        .nav-item.active { background: #ccc; border-left-color: #333; font-weight: 700; }
+        .icon { width: 20px; text-align: center; }
+
+        /* CONTENT */
+        .content { flex: 1; padding: 40px; overflow-y: auto; background: #fff; }
+
+        /* HEADER SECTION */
+        .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #ccc; padding-bottom: 15px; }
+        .page-title { margin: 0; font-size: 1.5rem; color: #333; }
+        
+        .btn-add { 
+            background-color: #27ae60; color: white; text-decoration: none; 
+            padding: 10px 20px; border-radius: 5px; font-weight: bold; font-size: 0.95rem; 
+            display: flex; align-items: center; gap: 8px; transition: 0.2s;
+        }
+        .btn-add:hover { background-color: #219150; }
+
+        /* TABLE STYLES */
+        .users-table { width: 100%; border-collapse: collapse; border: 1px solid #333; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .users-table th { background: #d9d9d9; padding: 15px; border-bottom: 1px solid #333; text-align: left; font-weight: 700; color: #333; }
+        .users-table td { padding: 12px 15px; border-bottom: 1px solid #eee; color: #333; vertical-align: middle; }
+        
+        .role-badge { padding: 5px 10px; border-radius: 15px; font-size: 0.8rem; font-weight: bold; text-transform: uppercase; color: white; display: inline-block; min-width: 80px; text-align: center; }
+        .role-Admin { background: #333; }
+        .role-Responder { background: #d94343; }
+        .role-Operator { background: #2980b9; }
+
+        .actions { display: flex; gap: 10px; }
+        .btn-action { border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; text-decoration: none; color: white; font-weight: 600; }
+        .btn-edit { background: #f39c12; }
+        .btn-delete { background: #c0392b; }
+        .btn-delete:hover { background: #a93226; }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <h2>Disaster Response Logistics Platform</h2>
+        <div class="user-profile"><span>{{ user.account_id }}</span><div class="user-circle"></div></div>
+    </div>
+    
+    <div class="main-container">
+        <div class="sidebar">
+            <a href="/dashboard" class="nav-item"><span class="icon"></span> Dashboard</a>
+            <a href="/reports" class="nav-item"><span class="icon"></span> Reports</a>
+            <a href="/teams" class="nav-item"><span class="icon"></span> Teams & Resources</a>
+            <a href="/monitor" class="nav-item"><span class="icon"></span> Monitor Routing</a>
+
+            {% if user.role == 'Admin' or user.role == 'Programmer' %}
+            <a href="/manage_users" class="nav-item active">
+                <span class="icon"></span> Manage Users
+            </a>
+            {% endif %}
+
+            <a href="/profile_settings" class="nav-item"><span class="icon"></span> Profile Settings</a>
+        </div>
+        
+        <div class="content">
+            
+            <div class="header-section">
+                <h2 class="page-title">User Management</h2>
+                <a href="/register" class="btn-add">Register New User</a>
+            </div>
+            
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th style="width: 10%;">#</th> 
+                        
+                        <th style="width: 25%;">Account ID</th>
+                        
+                        <th style="width: 20%;">Role</th>
+                        <th style="width: 25%;">Last Login</th>
+                        <th style="width: 20%;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody">
+                    {% for u in users %}
+                        {% if u.role != 'Programmer' and u.id != user.id %}
+                        <tr>
+                            <td class="row-index" style="font-weight: bold;"></td>
+                            
+                            <td style="font-weight:bold;">{{ u.account_id }}</td>
+                            <td><span class="role-badge role-{{ u.role }}">{{ u.role }}</span></td>
+                            <td>{{ u.last_login.strftime('%m/%d/%Y %I:%M %p') if u.last_login else 'Never' }}</td>
+                            <td>
+                                <div class="actions">
+                                    <button class="btn-action btn-edit" onclick="alert('Feature coming soon')">Edit</button>
+                                    <a href="/delete_user/{{ u.id }}" class="btn-action btn-delete" onclick="return confirm('Are you sure you want to delete {{ u.account_id }}?');">Delete</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    {% else %}
+                        <tr><td colspan="5" style="text-align:center; padding:20px;">No users found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            let rows = document.querySelectorAll(".row-index");
+            rows.forEach((cell, index) => {
+                cell.innerText = index + 1;
+            });
+        });
+    </script>
+</body>
+</html>

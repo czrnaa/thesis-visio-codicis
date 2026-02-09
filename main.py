@@ -1,272 +1,450 @@
 import datetime
 import socket
 import math
+import heapq
 import os
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+import requests 
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from models import db, DisasterReport, Team, User
 
-app = Flask(__name__)
+# ==========================================
+#  GLOBAL MAP DATA
+# ==========================================
+NODE_LOCATIONS = {
+    "HQ_Malolos":            {"lat": 14.8437, "lon": 120.8113},
+    "Paombong":              {"lat": 14.8322, "lon": 120.7890},
+    "Hagonoy":               {"lat": 14.8320, "lon": 120.7380},
+    "Calumpit":              {"lat": 14.9140, "lon": 120.7650},
+    "Plaridel":              {"lat": 14.8870, "lon": 120.8570},
+    "Guiguinto":             {"lat": 14.8300, "lon": 120.8800},
+    "Balagtas":              {"lat": 14.8150, "lon": 120.9100},
+    "Bocaue":                {"lat": 14.7960, "lon": 120.9250},
+    "San Miguel":            {"lat": 15.1450, "lon": 120.9780},
+    "Malolos (City Hall)":   {"lat": 14.8450, "lon": 120.8150},
+    "Plaridel (Muni Hall)":  {"lat": 14.8890, "lon": 120.8600},
+    "Calumpit (Market)":     {"lat": 14.9160, "lon": 120.7680},
+    "Guiguinto (Plaza)":     {"lat": 14.8320, "lon": 120.8830},
+    "Bocaue (Crossing)":     {"lat": 14.7980, "lon": 120.9280},
+    "San Miguel (Viola St)": {"lat": 15.1485, "lon": 120.9820}, 
+}
 
-# --- CONFIGURATION ---
-basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'disaster.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'thesis_secret_key_123'
+GRAPH_CONNECTIONS = {
+    "HQ_Malolos":   ["Paombong", "Guiguinto", "Plaridel", "Malolos (City Hall)"],
+    "Paombong":     ["HQ_Malolos", "Hagonoy"],
+    "Hagonoy":      ["Paombong"],
+    "Plaridel":     ["HQ_Malolos", "Calumpit", "Guiguinto", "San Miguel", "Plaridel (Muni Hall)"],
+    "Calumpit":     ["Plaridel", "Calumpit (Market)"],
+    "Guiguinto":    ["HQ_Malolos", "Plaridel", "Balagtas", "Guiguinto (Plaza)"],
+    "Balagtas":     ["Guiguinto", "Bocaue"],
+    "Bocaue":       ["Balagtas", "Bocaue (Crossing)"],
+    "San Miguel":   ["Plaridel", "San Miguel (Viola St)"],
+    "Malolos (City Hall)":   ["HQ_Malolos"],
+    "Plaridel (Muni Hall)":  ["Plaridel"],
+    "Calumpit (Market)":     ["Calumpit"],
+    "Guiguinto (Plaza)":     ["Guiguinto"],
+    "Bocaue (Crossing)":     ["Bocaue"],
+    "San Miguel (Viola St)": ["San Miguel"]
+}
 
-db.init_app(app)
+LOCAL_DESTINATIONS = {
+    "HQ_Malolos": "Malolos (City Hall)",
+    "Plaridel":   "Plaridel (Muni Hall)",
+    "Calumpit":   "Calumpit (Market)",
+    "Guiguinto":  "Guiguinto (Plaza)",
+    "Bocaue":     "Bocaue (Crossing)",
+    "San Miguel": "San Miguel (Viola St)"
+}
 
-# --- LOGIN MANAGER ---
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
+# ==========================================
+#  A* ALGORITHM LOGIC
+# ==========================================
+def heuristic(node1, node2):
+    if node1 not in NODE_LOCATIONS or node2 not in NODE_LOCATIONS: return float('inf')
+    x1, y1 = NODE_LOCATIONS[node1]['lat'], NODE_LOCATIONS[node1]['lon']
+    x2, y2 = NODE_LOCATIONS[node2]['lat'], NODE_LOCATIONS[node2]['lon']
+    return math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
 
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+def a_star_search(start, goal, avoid_nodes=[]):
+    if start not in NODE_LOCATIONS or goal not in NODE_LOCATIONS: return None
+    open_set = []
+    heapq.heappush(open_set, (0, start))
+    came_from = {}
+    g_score = {node: float('inf') for node in NODE_LOCATIONS}; g_score[start] = 0
+    f_score = {node: float('inf') for node in NODE_LOCATIONS}; f_score[start] = heuristic(start, goal)
+    
+    while open_set:
+        current_cost, current = heapq.heappop(open_set)
+        if current == goal:
+            path = []
+            while current in came_from:
+                path.append(current)
+                current = came_from[current]
+            path.append(start)
+            return path[::-1] 
+        
+        if current in GRAPH_CONNECTIONS:
+            for neighbor in GRAPH_CONNECTIONS[current]:
+                if neighbor in avoid_nodes: continue 
+                tentative_g_score = g_score[current] + heuristic(current, neighbor)
+                if tentative_g_score < g_score[neighbor]:
+                    came_from[neighbor] = current
+                    g_score[neighbor] = tentative_g_score
+                    f_score[neighbor] = g_score[neighbor] + heuristic(neighbor, goal)
+                    if neighbor not in [i[1] for i in open_set]:
+                        heapq.heappush(open_set, (f_score[neighbor], neighbor))
+    return None
 
-# --- DATABASE SETUP ---
-def setup_system():
+# ==========================================
+#  HELPER: REVERSE GEOCODING
+# ==========================================
+def get_address_from_coords(lat, lon):
+    try:
+        url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}&zoom=18&addressdetails=1"
+        headers = {'User-Agent': 'DisasterApp/1.0'}
+        response = requests.get(url, headers=headers, timeout=2)
+        data = response.json()
+        
+        if 'address' in data:
+            addr = data['address']
+            street = addr.get('road', addr.get('pedestrian', 'Street'))
+            city = addr.get('city', addr.get('town', addr.get('municipality', 'Bulacan')))
+            return f"{city} ({street})"
+    except:
+        pass
+    return f"{lat:.4f}, {lon:.4f}"
+
+# ==========================================
+#  APP FACTORY
+# ==========================================
+def create_app():
+    app = Flask(__name__)
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'disaster.db')
+    app.config['SECRET_KEY'] = 'thesis_secret_key_123'
+    db.init_app(app)
+
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    login_manager.login_view = 'login'
+
+    @login_manager.user_loader
+    def load_user(user_id): return User.query.get(int(user_id))
+
+    # --- AUTH ROUTES ---
+    @app.route('/login', methods=['GET', 'POST'])
+    def login():
+        if request.method == 'POST':
+            user = User.query.filter_by(account_id=request.form.get('account_id')).first()
+            if user and user.password == request.form.get('password'):
+                login_user(user)
+                user.last_login = datetime.datetime.now()
+                db.session.commit()
+                return redirect(url_for('dashboard_view'))
+            return render_template('login.html', error="Invalid Credentials")
+        return render_template('login.html')
+
+    @app.route('/logout')
+    @login_required
+    def logout():
+        logout_user()
+        return redirect(url_for('login'))
+
+    # --- WEB ROUTES ---
+    @app.route("/")
+    def home(): return redirect(url_for("dashboard_view"))
+
+    # --- UPDATED DASHBOARD ROUTE ---
+    @app.route("/dashboard")
+    @login_required
+    def dashboard_view():
+        reports_db = DisasterReport.query.order_by(DisasterReport.date_submitted.desc()).all()
+        
+        # Build richer data object with Team Coordinates
+        reports_display = []
+        for r in reports_db:
+            r_dict = {
+                'task_id': r.task_id, 'location': r.location, 'severity': r.severity,
+                'status': r.status, 'assigned_team': r.assigned_team, 
+                'date_submitted': r.date_submitted, 'lat': r.lat, 'lon': r.lon,
+                'disaster_type': r.disaster_type, 'resources': r.resources,
+                'constraints': r.constraints, 'notes': r.notes, 'full_address': r.full_address,
+                'team_coords': None # Default
+            }
+            if r.assigned_team:
+                t = Team.query.filter_by(team_id=r.assigned_team).first()
+                if t: r_dict['team_coords'] = {'lat': t.lat, 'lon': t.lon}
+            reports_display.append(r_dict)
+
+        return render_template("dashboard.html", 
+            reports=reports_display,
+            active=DisasterReport.query.filter(DisasterReport.status != 'Resolved').count(),
+            pending=DisasterReport.query.filter_by(status='Pending').count(),
+            resources=Team.query.filter_by(status='Available').count(), user=current_user)
+
+    @app.route("/reports")
+    @login_required
+    def reports_list():
+        view_id = request.args.get('view_id', type=int)
+        reports = DisasterReport.query.order_by(DisasterReport.date_submitted.desc()).all()
+        selected = reports[view_id] if view_id is not None and 0 <= view_id < len(reports) else None
+        return render_template("reports_list.html", reports=reports, selected_report=selected, user=current_user)
+
+    @app.route("/teams")
+    @login_required
+    def teams_view():
+        reports = DisasterReport.query.filter(DisasterReport.status != 'Resolved').all()
+        teams_db = Team.query.all()
+        display_teams = []
+        
+        for t in teams_db:
+            active_assignment = DisasterReport.query.filter_by(assigned_team=t.team_id).filter(DisasterReport.status.in_(['In Progress', 'En Route'])).first()
+            final_status = "Busy" if active_assignment else "Available"
+            task_str = active_assignment.task_id if active_assignment else "-"
+            location_name = get_address_from_coords(t.lat, t.lon)
+            
+            display_teams.append({
+                "id": t.team_id, "leader": t.leader, "location": location_name,
+                "role": t.role, "status": final_status, "task": task_str,
+                "last_updated": t.last_updated.strftime('%m-%d-%Y') if t.last_updated else "N/A"
+            })
+        return render_template("teams.html", teams=display_teams, reports=reports, user=current_user)
+
+    @app.route("/monitor")
+    @login_required
+    def monitor_view(): return render_template("monitor.html", user=current_user)
+
+    @app.route("/profile_settings", methods=["GET", "POST"])
+    @login_required
+    def profile_settings():
+        if request.method == "POST":
+            current_user.first_name = request.form.get("first_name")
+            current_user.last_name = request.form.get("last_name")
+            current_user.phone = request.form.get("phone")
+            new_password = request.form.get("new_password")
+            current_password_input = request.form.get("current_password")
+
+            if new_password and new_password.strip():
+                if not current_password_input:
+                    flash("⚠️ Current Password is required to set a new password.", "error")
+                    return redirect(url_for('profile_settings'))
+                if current_user.password != current_password_input:
+                    flash("❌ Incorrect Current Password. Password NOT updated.", "error")
+                    return redirect(url_for('profile_settings'))
+                current_user.password = new_password
+                flash("✅ Password changed successfully.", "success")
+            else:
+                flash("✅ Profile details updated.", "success")
+            db.session.commit()
+            return redirect(url_for('profile_settings'))
+        return render_template("profile.html", user=current_user)
+
+    # --- ADMIN ROUTES ---
+    @app.route("/manage_users")
+    @login_required
+    def manage_users():
+        if current_user.role != "Admin": return redirect(url_for('dashboard_view'))
+        return render_template("manage_users.html", users=User.query.all(), user=current_user)
+
+    @app.route("/delete_user/<int:user_id>")
+    @login_required
+    def delete_user(user_id):
+        if current_user.role != "Admin": return redirect(url_for('dashboard_view'))
+        u = User.query.get(user_id)
+        if u: 
+            if u.role == "Responder":
+                full_name = f"{u.first_name} {u.last_name}"
+                team = Team.query.filter_by(leader=full_name).first()
+                if team: db.session.delete(team)
+            db.session.delete(u) 
+            db.session.commit()
+        return redirect(url_for('manage_users'))
+
+    @app.route('/register', methods=['GET', 'POST'])
+    @login_required
+    def register():
+        if current_user.role != "Admin": return redirect(url_for('dashboard_view'))
+
+        def get_next_details(prefix):
+            count = 1
+            while True:
+                new_id = f"{prefix}-{count:03d}"
+                if not User.query.filter_by(account_id=new_id).first(): return new_id, count
+                count += 1
+
+        if request.method == 'POST':
+            role = request.form.get('role')
+            first_name = request.form.get('first_name')
+            last_name = request.form.get('last_name')
+            
+            prefix = "OPT" if role == "Operator" else "RSP"
+            final_id, id_count = get_next_details(prefix)
+            auto_pass = f"password{id_count:03d}"
+
+            new_user = User(account_id=final_id, password=auto_pass, role=role, first_name=first_name, last_name=last_name)
+            db.session.add(new_user)
+            
+            if role == "Responder":
+                municipality = request.form.get('municipality')
+                street = request.form.get('street')
+                lat, lon = 14.8437, 120.8113 # Default
+
+                if municipality and street:
+                    full_address = f"{street}, {municipality}, Bulacan, Philippines"
+                    try:
+                        url = 'https://nominatim.openstreetmap.org/search'
+                        params = {'q': full_address, 'format': 'json', 'limit': 1}
+                        headers = {'User-Agent': 'DisasterApp/1.0'}
+                        response = requests.get(url, params=params, headers=headers)
+                        data = response.json()
+                        if data:
+                            lat = float(data[0]['lat'])
+                            lon = float(data[0]['lon'])
+                            flash(f"✅ Location set: {street}, {municipality}", "success")
+                        else:
+                            flash("⚠️ Address not found on map. Using default HQ.", "warning")
+                    except:
+                        flash("⚠️ Geocoding failed. Using default HQ.", "warning")
+
+                team_count = Team.query.count() + 1
+                new_team_id = f"TM-{team_count:03d}"
+                full_name = f"{first_name} {last_name}"
+                
+                new_team = Team(team_id=new_team_id, name=new_team_id, leader=full_name, role="Response Unit", 
+                                lat=lat, lon=lon, status="Available")
+                db.session.add(new_team)
+
+            db.session.commit()
+            next_opt, _ = get_next_details("OPT")
+            next_rsp, _ = get_next_details("RSP")
+            return render_template('register.html', user=current_user, success_user=new_user, generated_pass=auto_pass, 
+                                   next_opt=next_opt, next_rsp=next_rsp)
+            
+        next_opt, _ = get_next_details("OPT")
+        next_rsp, _ = get_next_details("RSP")
+        return render_template('register.html', user=current_user, next_opt=next_opt, next_rsp=next_rsp)
+
+    # --- REPORT & API ROUTES ---
+    @app.route("/create_report")
+    @login_required
+    def create_report_view():
+        now = datetime.datetime.now()
+        return render_template("user.html", task_id=f"TASK-{DisasterReport.query.count() + 1:03d}", 
+            auto_date=now.strftime("%m/%d/%Y"), auto_day=now.strftime("%A"), auto_time=now.strftime("%I:%M %p"), user=current_user)
+
+    @app.route("/submit_report", methods=["POST"])
+    @login_required
+    def submit_report():
+        try: lat, lon = float(request.form.get("lat")), float(request.form.get("lon"))
+        except: return "Invalid Coordinates", 400
+        new_report = DisasterReport(
+            task_id=request.form.get("task_id"), disaster_type=request.form.get("disaster_type"),
+            severity=request.form.get("severity"), lat=lat, lon=lon,
+            location=request.form.get("municipality"), full_address=request.form.get("address"),
+            resources=", ".join(request.form.getlist("resources")), constraints=", ".join(request.form.getlist("constraints")),
+            status="Pending", date_str=request.form.get("date"), day_str=request.form.get("day"), 
+            time_str=request.form.get("time"), affected=request.form.get("affected"),
+            response_type=request.form.get("response_type"), notes=request.form.get("notes")
+        )
+        db.session.add(new_report)
+        db.session.commit()
+        return redirect(url_for("reports_list"))
+
+    @app.route("/save_report_changes", methods=["POST"])
+    @login_required
+    def save_report_changes():
+        r = DisasterReport.query.get(request.form.get("report_id"))
+        if r: 
+            new_status = request.form.get("status")
+            r.status = new_status
+            r.notes = request.form.get("notes")
+            if new_status == "Pending" or new_status == "Resolved": r.assigned_team = None 
+            db.session.commit()
+        return redirect(url_for('reports_list', view_id=request.form.get("view_id")))
+
+    @app.route("/assign_team", methods=["POST"])
+    @login_required
+    def assign_team():
+        r = DisasterReport.query.filter_by(task_id=request.form.get("task_id")).first()
+        if r: r.assigned_team = request.form.get("team_id"); r.status = "In Progress"; db.session.commit()
+        return redirect(url_for("teams_view"))
+
+    @app.route("/responder_data")
+    @login_required
+    def responder_data():
+        reports = DisasterReport.query.filter(DisasterReport.status != 'Resolved').all()
+        data = []
+        for r in reports:
+            team_display = "Pending Assignment"
+            team_start_loc = None
+
+            if r.assigned_team:
+                team = Team.query.filter_by(team_id=r.assigned_team).first()
+                if team:
+                    team_display = f"{team.team_id} ({team.leader})"
+                    team_start_loc = {"lat": team.lat, "lon": team.lon}
+            
+            data.append({
+                "task_id": r.task_id, "disaster_type": r.disaster_type, "location": r.location,
+                "team_location": team_start_loc, "assigned_team": team_display,
+                "status": r.status, "time": r.time_str, "severity": r.severity, "lat": r.lat, "lon": r.lon
+            })
+        return jsonify(data)
+
+    @app.route("/calculate_route")
+    def calculate_route():
+        start_input = request.args.get('start', 'HQ_Malolos')
+        end_input = request.args.get('end', 'Bocaue') 
+        avoid = request.args.get('avoid', '')
+
+        def smart_match(text):
+            if not text: return "HQ_Malolos"
+            for node in NODE_LOCATIONS:
+                if node.lower() in text.lower(): return node
+            return "HQ_Malolos"
+
+        start_node = smart_match(start_input)
+        end_node = smart_match(end_input)
+        
+        if start_node == end_node and start_node in LOCAL_DESTINATIONS:
+            end_node = LOCAL_DESTINATIONS[start_node]
+
+        avoid_nodes = [avoid] if avoid and avoid in NODE_LOCATIONS else []
+        path = a_star_search(start_node, end_node, avoid_nodes=avoid_nodes)
+        
+        if not path: return jsonify({"path": [], "coords": [], "distance": "N/A", "eta": "Blocked"})
+
+        coords = [[NODE_LOCATIONS[node]['lat'], NODE_LOCATIONS[node]['lon']] for node in path]
+        dist_km = sum(heuristic(path[i], path[i+1]) * 111 for i in range(len(path)-1))
+        time_min = int((dist_km / 40) * 60)
+        eta = f"{time_min} mins" if time_min < 60 else f"{time_min//60} hr {time_min%60} mins"
+
+        return jsonify({
+            "path": path, "coords": coords, "distance": f"{dist_km:.2f} km", 
+            "eta": "Local Area" if start_node == end_node else eta
+        })
+
+    return app
+
+def setup_database():
+    app = create_app()
     with app.app_context():
         db.create_all()
-
-        # Create Default Users
-        users_to_create = [
-            {"id": "programmer", "role": "Programmer"},
-            {"id": "admin",      "role": "Admin"},
-            {"id": "operator",   "role": "Operator"},
-            {"id": "responder",  "role": "Responder"}
-        ]
-        for u in users_to_create:
+        users = [{"id": "programmer", "role": "Programmer", "fname": "Dev", "lname": "Admin"}, 
+                 {"id": "admin", "role": "Admin", "fname": "System", "lname": "Admin"}]
+        for u in users:
             if not User.query.filter_by(account_id=u["id"]).first():
-                new_user = User(account_id=u["id"], password="password123", role=u["role"])
-                db.session.add(new_user)
-        
-        # Create Default Teams
-        if not Team.query.first():
-            teams_data = [
-                {"id": "TM-012", "name": "Alpha Squad", "leader": "Sgt. Perez", "role": "Firefighting", "lat": 14.8437, "lon": 120.8113},
-                {"id": "TM-013", "name": "Beta Medical", "leader": "Dr. Cruz", "role": "Medical Aid", "lat": 14.8294, "lon": 120.8872},
-                {"id": "TM-014", "name": "Delta Rescue", "leader": "Lt. Santos", "role": "Search & Rescue", "lat": 14.8867, "lon": 120.8576},
-                {"id": "TM-015", "name": "Echo Relief", "leader": "Mr. Reyes", "role": "Relief Goods", "lat": 14.9507, "lon": 120.9008},
-                {"id": "TM-016", "name": "Zeta Police", "leader": "Capt. Dalisay", "role": "Crowd Control", "lat": 14.7960, "lon": 120.9255},
-            ]
-            for t in teams_data:
-                new_team = Team(team_id=t["id"], name=t["name"], leader=t["leader"], role=t["role"], lat=t["lat"], lon=t["lon"], status="Available")
-                db.session.add(new_team)
-        
+                db.session.add(User(account_id=u["id"], password="password123", role=u["role"], first_name=u["fname"], last_name=u["lname"]))
         db.session.commit()
-
-# --- AUTH ROUTES ---
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        acc_id = request.form.get('account_id')
-        pwd = request.form.get('password')
-        user = User.query.filter_by(account_id=acc_id).first()
-        if user and user.password == pwd:
-            login_user(user)
-            user.last_login = datetime.datetime.now() 
-            db.session.commit()
-            return redirect(url_for('dashboard_view'))
-        else:
-            return render_template('login.html', error="Invalid Credentials")
-    return render_template('login.html')
-
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('login'))
-
-# --- MAIN WEB ROUTES ---
-@app.route("/")
-def home():
-    return redirect(url_for("dashboard_view"))
-
-@app.route("/dashboard")
-@login_required
-def dashboard_view():
-    reports = DisasterReport.query.order_by(DisasterReport.date_submitted.desc()).all()
-    active_count = DisasterReport.query.filter(DisasterReport.status != 'Resolved').count()
-    pending_count = DisasterReport.query.filter_by(status='Pending').count()
-    total_teams = Team.query.count()
-    busy_teams = DisasterReport.query.filter(DisasterReport.status != 'Resolved', DisasterReport.assigned_team != None).count()
-    resources_available = total_teams - busy_teams
-    
-    return render_template("dashboard.html", 
-                           reports=reports, 
-                           active=active_count, 
-                           pending=pending_count, 
-                           resources=resources_available, 
-                           user=current_user)
-
-@app.route("/reports")
-@login_required
-def reports_list():
-    reports = DisasterReport.query.order_by(DisasterReport.date_submitted.desc()).all()
-    view_id = request.args.get('view_id', type=int)
-    selected_report = reports[view_id] if view_id is not None and 0 <= view_id < len(reports) else None
-    return render_template("reports_list.html", reports=reports, selected_report=selected_report, user=current_user)
-
-@app.route("/teams")
-@login_required
-def teams_view():
-    reports = DisasterReport.query.filter(DisasterReport.status != 'Resolved').all()
-    teams_db = Team.query.all()
-    display_teams = []
-    
-    for t in teams_db:
-        active_assignment = DisasterReport.query.filter_by(assigned_team=t.team_id).filter(DisasterReport.status != 'Resolved').first()
-        
-        final_status = "Available"
-        task_str = "-"
-        
-        if active_assignment:
-            final_status = "Busy"
-            task_str = active_assignment.task_id
-        
-        display_teams.append({
-            "id": t.team_id, 
-            "name": t.name, 
-            "leader": t.leader, 
-            "role": t.role, 
-            "status": final_status, 
-            "task": task_str,
-            "last_updated": t.last_updated.strftime('%m-%d-%Y') if t.last_updated else "N/A"
-        })
-        
-    return render_template("teams.html", teams=display_teams, reports=reports, user=current_user)
-
-@app.route("/monitor")
-@login_required
-def monitor_view():
-    return render_template("monitor.html", user=current_user)
-
-@app.route("/profile_settings", methods=["GET", "POST"])
-@login_required
-def profile_settings():
-    if request.method == "POST":
-        current_user.first_name = request.form.get("first_name")
-        current_user.last_name = request.form.get("last_name")
-        current_user.phone = request.form.get("phone")
-        db.session.commit()
-        return redirect(url_for('profile_settings'))
-    return render_template("profile.html", user=current_user)
-
-# --- REPORT CREATION LOGIC ---
-@app.route("/create_report")
-@login_required
-def create_report_view():
-    count = DisasterReport.query.count()
-    new_task_id = f"TASK-{count + 1:03d}"
-    now = datetime.datetime.now()
-    return render_template("user.html", 
-                           task_id=new_task_id, 
-                           auto_date=now.strftime("%m/%d/%Y"), 
-                           auto_day=now.strftime("%A"), 
-                           auto_time=now.strftime("%I:%M %p"), 
-                           user=current_user)
-
-@app.route("/submit_report", methods=["POST"])
-@login_required
-def submit_report():
-    try:
-        lat = float(request.form.get("lat"))
-        lon = float(request.form.get("lon"))
-    except:
-        return "Invalid Coordinates", 400
-
-    municipality = request.form.get("municipality")
-    street = request.form.get("address")
-    landmark = request.form.get("landmark")
-    
-    full_address_str = f"{street}"
-    if municipality: full_address_str += f", {municipality}"
-    if landmark: full_address_str += f" ({landmark})"
-
-    resources_list = request.form.getlist("resources")
-    constraints_list = request.form.getlist("constraints")
-
-    sev_map = {"Low": 1, "Medium": 3, "High": 5, "Critical": 10}
-
-    new_report = DisasterReport(
-        task_id=request.form.get("task_id"),
-        disaster_type=request.form.get("disaster_type"),
-        severity=request.form.get("severity"),
-        lat=lat,
-        lon=lon,
-        location=municipality,          
-        full_address=full_address_str,  
-        resources=", ".join(resources_list),      
-        constraints=", ".join(constraints_list),  
-        status="Pending",
-        priority=sev_map.get(request.form.get("severity"), 1),
-        date_str=request.form.get("date"),
-        day_str=request.form.get("day"), 
-        time_str=request.form.get("time"),
-        affected=request.form.get("affected"),
-        response_type=request.form.get("response_type"),
-        notes=request.form.get("notes")
-    )
-
-    db.session.add(new_report)
-    db.session.commit()
-    return redirect(url_for("reports_list"))
-
-# --- ACTION ROUTES ---
-@app.route("/save_report_changes", methods=["POST"])
-@login_required
-def save_report_changes():
-    report = DisasterReport.query.get(request.form.get("report_id"))
-    if report:
-        report.status = request.form.get("status")
-        if report.status == "Pending": 
-            report.assigned_team = None 
-        report.notes = request.form.get("notes")
-        db.session.commit()
-    return redirect(url_for('reports_list', view_id=request.form.get("view_id")))
-
-@app.route("/assign_team", methods=["POST"])
-@login_required
-def assign_team():
-    report = DisasterReport.query.filter_by(task_id=request.form.get("task_id")).first()
-    team_id = request.form.get("team_id")
-    
-    if report and team_id:
-        report.assigned_team = team_id
-        report.status = "In Progress"
-        db.session.commit()
-        
-    return redirect(url_for("teams_view"))
-
-# --- API ROUTES ---
-@app.route("/responder_data")
-@login_required
-def responder_data():
-    active_reports = DisasterReport.query.filter(DisasterReport.status != 'Resolved').all()
-    data = []
-    for r in active_reports:
-        data.append({ 
-            "task_id": r.task_id, 
-            "disaster_type": r.disaster_type, 
-            "location": r.full_address or r.location, 
-            "lat": r.lat, 
-            "lon": r.lon, 
-            "severity": r.severity, 
-            "status": r.status,
-            "time": r.time_str if r.time_str else "N/A" # <--- THIS LINE IS THE STATUS MONITORING FIX
-        })
-    return jsonify(data)
-
-@app.route("/get_locations")
-def get_locations():
-    return jsonify({"Malolos": [14.8437, 120.8113], "Hagonoy": [14.8322, 120.7380]}) 
 
 if __name__ == "__main__":
-    setup_system()
-    print("\n" + "="*50)
-    print(f"✅ SYSTEM ONLINE")
-    print(f"🔐 Login: http://127.0.0.1:5000/login")
-    print("="*50 + "\n")
-    app.run(debug=True, host='0.0.0.0')
+    setup_database()
+    app = create_app()
+    try: host_name = socket.gethostname(); local_ip = socket.gethostbyname(host_name)
+    except: local_ip = "127.0.0.1"
+    print("\n" + "="*60)
+    print(f"🚀 SYSTEM ONLINE (SINGLE PORT)")
+    print(f"   ➤ PC Access:     http://127.0.0.1:5000/login")
+    print(f"   ➤ Mobile Access: http://{local_ip}:5000/login")
+    print("="*60 + "\n")
+    app.run(debug=True, host='0.0.0.0', port=5000)

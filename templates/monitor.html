@@ -5,9 +5,14 @@
     <title>Monitor Routing</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
-    
     <style>
-        :root { --primary-red: #d90429; --sidebar-bg: #e0e0e0; --header-gray: #ccc; --border-color: #333; }
+        :root { 
+            --primary-red: #d90429; 
+            --sidebar-bg: #e0e0e0; 
+            --panel-header-bg: #d9d9d9;
+            --input-bg: #d0d0d0; 
+            --border-color: #333;
+        }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background-color: #f4f4f4; }
         
         /* HEADER */
@@ -22,23 +27,22 @@
         .nav-item { padding: 15px 25px; color: #333; cursor: pointer; display: flex; align-items: center; gap: 15px; text-decoration: none; font-size: 1rem; font-weight: 500; transition: 0.2s; border-left: 5px solid transparent; }
         .nav-item:hover { background: #d0d0d0; }
         .nav-item.active { background: #ccc; border-left-color: #333; font-weight: 700; }
-        .icon { width: 20px; text-align: center; }
-
+        
         /* CONTENT */
         .content { flex: 1; padding: 25px; overflow-y: auto; background: #fff; display: flex; flex-direction: column; gap: 20px; }
 
         /* --- MONITOR LAYOUT (CSS GRID) --- */
         .monitor-grid { 
             display: grid; 
-            grid-template-columns: 2fr 1fr; /* Map takes 2/3, Details takes 1/3 */
+            grid-template-columns: 2fr 1fr; 
             gap: 20px; 
-            height: 500px; /* Fixed height for the upper section */
+            height: 600px; 
         }
         
         /* LEFT: MAP */
         .map-container { 
             border: 1px solid #333; 
-            border-radius: 5px; 
+            border-radius: 6px; 
             position: relative; 
             overflow: hidden; 
         }
@@ -47,47 +51,58 @@
         /* RIGHT: DETAILS PANEL */
         .details-panel { 
             border: 1px solid #333; 
-            border-radius: 5px; 
+            border-radius: 6px; 
             background: #fff; 
             display: flex; 
             flex-direction: column; 
             overflow: hidden;
         }
+        
+        /* Panel Header */
         .panel-header { 
-            background: #d9d9d9; 
+            background: var(--panel-header-bg); 
             padding: 12px 15px; 
             border-bottom: 1px solid #333; 
             font-weight: 700; 
+            font-size: 1.1rem;
             display: flex; justify-content: space-between; 
-            color: #333;
+            color: #222;
         }
+        .task-label { font-size: 0.9rem; color: #555; font-weight: 600; align-self: center; }
+
+        /* Panel Body */
         .panel-body { 
-            padding: 20px; 
+            padding: 15px 20px; 
             overflow-y: auto; 
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 15px; /* Spacing between elements */
+            gap: 8px; 
         }
         
-        /* Text Info Rows */
-        .info-row { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 8px; font-size: 0.9rem; }
-        .info-label { font-weight: 500; color: #666; }
-        .info-val { font-weight: 600; color: #333; text-align: right; }
+        h3 { margin: 0; font-size: 1rem; font-weight: 700; color: #222; padding-bottom: 5px; }
+        
+        .info-row { 
+            display: flex; justify-content: space-between; 
+            border-bottom: 1px solid #999; 
+            padding: 8px 0; 
+            font-size: 0.9rem; 
+        }
+        .info-label { font-weight: 500; color: #333; }
+        .info-val { font-weight: 400; color: #333; text-align: right; }
 
-        /* Input Fields in Panel */
-        .input-group { margin-bottom: 5px; }
-        .input-group label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 5px; color: #333; }
+        .input-group { margin-top: 5px; }
+        .input-group label { 
+            display: block; font-weight: 500; font-size: 0.9rem; 
+            margin-bottom: 4px; color: #333; 
+        }
         .input-group input { 
-            width: 100%; padding: 10px; border: 1px solid #333; border-radius: 4px; 
-            background: #d9d9d9; font-size: 0.9rem; box-sizing: border-box; 
+            width: 100%; padding: 10px; 
+            border: 1px solid #333; border-radius: 5px; 
+            background: var(--input-bg); 
+            font-size: 0.9rem; box-sizing: border-box; 
+            color: #000;
         }
-        
-        .btn-reroute { 
-            background: #d94343; color: white; border: none; padding: 10px 0; border-radius: 20px; 
-            font-weight: bold; cursor: pointer; margin-top: 10px; width: 100px; align-self: center;
-        }
-        .btn-reroute:hover { background: #b00220; }
 
         /* BOTTOM TABLE */
         .table-container { border: 1px solid #333; border-radius: 5px; overflow: hidden; background: white; }
@@ -99,8 +114,9 @@
         
         .btn-view { padding: 4px 12px; border: 1px solid #333; background: #fff; border-radius: 4px; font-size: 0.85rem; cursor: pointer; color: #333; }
         .btn-view:hover { background: #f0f0f0; }
-
-        /* Hide Routing Text Box on Map */
+        
+        .hidden { display: none !important; }
+        /* Hide routing instructions box */
         .leaflet-routing-container { display: none !important; }
     </style>
 </head>
@@ -117,6 +133,11 @@
             <a href="/reports" class="nav-item"><span class="icon"></span> Reports</a>
             <a href="/teams" class="nav-item"><span class="icon"></span> Teams & Resources</a>
             <a href="/monitor" class="nav-item active"><span class="icon"></span> Monitor Routing</a>
+            
+            {% if user.role == 'Admin' %}
+            <a href="/manage_users" class="nav-item"><span class="icon"></span> Manage Users</a>
+            {% endif %}
+
             <a href="/profile_settings" class="nav-item"><span class="icon"></span> Profile Settings</a>
         </div>
         
@@ -130,19 +151,22 @@
                 <div class="details-panel">
                     <div class="panel-header">
                         <span>Route Details</span>
-                        <span id="d-id">TASK-00X</span>
+                        <span class="task-label" id="d-id">TASK-ID</span>
                     </div>
                     <div class="panel-body">
-                        <div style="font-weight:bold; font-size: 1.1rem; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 10px;" id="d-team">
-                            TM-XXX
+                        <h3 id="d-team">Pending Assignment</h3>
+                        
+                        <div id="active-details" class="hidden">
+                            <div class="info-row"><span class="info-label">Disaster Type</span><span class="info-val" id="d-type">-</span></div>
+                            <div class="info-row"><span class="info-label">Severity Level</span><span class="info-val" id="d-sev">-</span></div>
+                            <div class="info-row"><span class="info-label">Assigned Task</span><span class="info-val" id="d-task">Response</span></div>
+                        </div>
+
+                        <div class="info-row" style="border-bottom: 2px solid #999; margin-bottom: 10px;">
+                            <span class="info-label">Status</span><span class="info-val" id="d-stat">-</span>
                         </div>
                         
-                        <div class="info-row"><span class="info-label">Disaster Type</span><span class="info-val" id="d-type">-</span></div>
-                        <div class="info-row"><span class="info-label">Severity Level</span><span class="info-val" id="d-sev">-</span></div>
-                        <div class="info-row"><span class="info-label">Assigned Task</span><span class="info-val" id="d-task">-</span></div>
-                        <div class="info-row"><span class="info-label">Status</span><span class="info-val" id="d-stat">-</span></div>
-                        
-                        <div class="input-group" style="margin-top: 10px;">
+                        <div class="input-group">
                             <label>Location</label>
                             <input type="text" id="d-loc" readonly>
                         </div>
@@ -154,9 +178,7 @@
                             <label>Estimated Time Traveled (ETA)</label>
                             <input type="text" id="d-eta" readonly>
                         </div>
-
-                        <button class="btn-reroute">Re-route</button>
-                    </div>
+                        </div>
                 </div>
             </div>
 
@@ -167,7 +189,7 @@
                             <th>Task ID</th><th>Team</th><th>Location</th><th>Status</th><th>Priority</th><th>Timestamp</th><th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="table_body">
                         <tr><td colspan="7" style="text-align:center">Loading data...</td></tr>
                     </tbody>
                 </table>
@@ -179,102 +201,118 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
     <script>
-        // --- 1. INITIALIZE MAP (LOCKED BOUNDS) ---
+        // --- 1. INITIALIZE MAP WITH ZOOM RESTRICTIONS ---
         var map = L.map('map', {
-            minZoom: 9,             
-            maxBounds: [            
-                [10.0, 115.0],      
-                [20.0, 128.0]       
-            ]
-        }).setView([14.8437, 120.8113], 11);
+            minZoom: 11, // Prevent zooming out beyond this level (province level)
+            maxZoom: 18
+        }).setView([14.8437, 120.8113], 12);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         
-        var routingControl;
-        const HQ_COORDS = [14.8437, 120.8113];
+        let routingControl = null;
+        let markers = [];
+        let activeData = null;
 
-        // --- 2. FETCH DATA ---
-        fetch('/responder_data').then(res => res.json()).then(data => {
-            let tbody = document.querySelector('tbody');
-            tbody.innerHTML = "";
-            
-            if(data.length === 0) {
-                tbody.innerHTML = "<tr><td colspan='7' style='text-align:center'>No active tasks.</td></tr>";
-                return;
-            }
-
-            data.forEach((row, index) => {
-                let tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${row.task_id}</td>
-                    <td>TM-012${index}</td> 
-                    <td>${row.location}</td>
-                    <td>${row.status}</td>
-                    <td>${row.severity}</td>
-                    <td>${row.time}</td> <td><button class="btn-view" onclick="loadRoute(${index})">👁 View</button></td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            window.allReports = data;
-            if(data.length > 0) loadRoute(0);
-        });
-
-        // --- 3. LOAD ROUTE LOGIC ---
-        function loadRoute(index) {
-            let r = window.allReports[index];
-            
-            // Update Sidebar
-            document.getElementById('d-id').innerText = r.task_id;
-            document.getElementById('d-team').innerText = `TM-012${index} (Alpha)`;
-            document.getElementById('d-type').innerText = r.disaster_type;
-            document.getElementById('d-sev').innerText = r.severity;
-            document.getElementById('d-task').innerText = "Response"; 
-            document.getElementById('d-stat').innerText = r.status;
-            document.getElementById('d-loc').value = r.location;
-
-            // Update Map
-            if (routingControl) map.removeControl(routingControl);
-            
-            routingControl = L.Routing.control({
-                waypoints: [
-                    L.latLng(HQ_COORDS),
-                    L.latLng(r.lat, r.lon)
-                ],
-                show: false,
-                // DISABLE DRAGGING AND ADDING POINTS
-                draggableWaypoints: false, 
-                addWaypoints: false,      
-                routeWhileDragging: false,
-                lineOptions: { styles: [{color: 'blue', opacity: 0.7, weight: 6}] },
-                createMarker: function(i, wp, nWps) {
-                    var color = (i === 0) ? 'green' : 'red';
-                    var label = (i === 0) ? 'A' : 'B';
-                    // Ensure markers themselves are not draggable
-                    return L.marker(wp.latLng, {
-                        draggable: false, 
-                        icon: L.divIcon({
-                            className: 'custom-icon',
-                            html: `<div style="background:${color};color:white;width:24px;height:24px;border-radius:50%;text-align:center;line-height:24px;font-weight:bold;box-shadow:0 2px 5px rgba(0,0,0,0.3);">${label}</div>`
-                        })
-                    });
-                }
-            }).addTo(map);
-
-            routingControl.on('routesfound', function(e) {
-                var summary = e.routes[0].summary;
-                document.getElementById('d-dist').value = (summary.totalDistance / 1000).toFixed(2) + " km";
+        function loadData() {
+            fetch('/responder_data').then(res => res.json()).then(data => {
+                const tbody = document.getElementById('table_body');
+                tbody.innerHTML = '';
                 
-                var min = Math.round(summary.totalTime / 60);
-                if(min > 60) {
-                    var h = Math.floor(min/60);
-                    var m = min % 60;
-                    document.getElementById('d-eta').value = h + " hr " + m + " mins";
-                } else {
-                    document.getElementById('d-eta').value = min + " minutes";
+                if(data.length === 0) {
+                    tbody.innerHTML = "<tr><td colspan='7' style='text-align:center'>No active tasks.</td></tr>";
+                    return;
                 }
+
+                data.forEach((row) => {
+                    let tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row.task_id}</td>
+                        <td>${row.assigned_team}</td> 
+                        <td>${row.location}</td>
+                        <td>${row.status}</td>
+                        <td>${row.severity}</td>
+                        <td>${row.time}</td>
+                        <td><button class="btn-view" onclick='viewRoute(${JSON.stringify(row)})'>👁 View</button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
             });
         }
+
+        function viewRoute(data) {
+            activeData = data;
+            
+            // 1. Sidebar UI Updates
+            document.getElementById('d-id').innerText = data.task_id;
+            document.getElementById('d-stat').innerText = data.status;
+            document.getElementById('d-loc').value = data.location;
+            
+            const isPending = (!data.team_location || data.assigned_team === "Pending Assignment");
+            
+            if (isPending) {
+                document.getElementById('d-team').innerText = "Pending Assignment";
+                document.getElementById('active-details').classList.add('hidden');
+                document.getElementById('d-dist').value = "";
+                document.getElementById('d-eta').value = "";
+            } else {
+                document.getElementById('d-team').innerText = data.assigned_team;
+                document.getElementById('active-details').classList.remove('hidden');
+                document.getElementById('d-type').innerText = data.disaster_type;
+                document.getElementById('d-sev').innerText = data.severity;
+            }
+
+            // 2. Map Clean up
+            if (routingControl) {
+                map.removeControl(routingControl);
+                routingControl = null;
+            }
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+
+            // 3. Always show Destination Marker
+            if(data.lat && data.lon) {
+                if(isPending) {
+                    let m = L.marker([data.lat, data.lon]).addTo(map).bindPopup("<b>Target:</b> " + data.location);
+                    markers.push(m);
+                    map.setView([data.lat, data.lon], 13);
+                    return;
+                }
+            }
+
+            // 4. Calculate Route
+            if (!isPending && data.team_location && data.lat && data.lon) {
+                routingControl = L.Routing.control({
+                    waypoints: [
+                        L.latLng(data.team_location.lat, data.team_location.lon),
+                        L.latLng(data.lat, data.lon)
+                    ],
+                    routeWhileDragging: false,
+                    addWaypoints: false,
+                    draggableWaypoints: false,
+                    fitSelectedRoutes: true,
+                    show: false,
+                    createMarker: function(i, wp, nWps) {
+                        if (i === 0) {
+                            return L.circleMarker(wp.latLng, {color: 'green', radius: 8, fillOpacity:1}).bindPopup("<b>Team:</b> " + data.assigned_team);
+                        } else {
+                            return L.marker(wp.latLng).bindPopup("<b>Target:</b> " + data.location);
+                        }
+                    },
+                    lineOptions: {
+                        styles: [{color: 'blue', opacity: 0.7, weight: 5}]
+                    }
+                }).addTo(map);
+
+                routingControl.on('routesfound', function(e) {
+                    var r = e.routes[0];
+                    document.getElementById('d-dist').value = (r.summary.totalDistance / 1000).toFixed(2) + " km";
+                    document.getElementById('d-eta').value = Math.round(r.summary.totalTime / 60) + " mins";
+                });
+            }
+        }
+
+        loadData();
+        setInterval(loadData, 5000); 
     </script>
 </body>
 </html>

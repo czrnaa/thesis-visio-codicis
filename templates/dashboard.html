@@ -27,101 +27,47 @@
         /* CONTENT */
         .content { flex: 1; padding: 25px; overflow-y: auto; background: #fff; display: flex; flex-direction: column; gap: 20px; }
 
-        /* --- 1. STATUS CARDS --- */
+        /* STATS CARDS */
         .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
         .stat-card { background: #d9d9d9; border: 1px solid #333; padding: 15px 20px; border-radius: 5px; }
         .stat-header { font-weight: 600; font-size: 0.95rem; color: #333; margin-bottom: 5px; }
         .stat-number { font-size: 2.5rem; font-weight: bold; color: #333; line-height: 1; display: block; margin-bottom: 5px; }
         .stat-desc { font-size: 0.8rem; color: #555; }
 
-        /* --- 2. MIDDLE TABLE --- */
-        .table-container { 
-            border: 1px solid #333; 
-            border-radius: 5px; 
-            background: white; 
-            max-height: 250px;
-            overflow-y: auto;
-            position: relative;
-        }
-
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            font-size: 0.9rem; 
-        }
-
-        /* Sticky Header Logic */
-        thead th {
-            position: sticky;
-            top: 0;
-            background-color: #d9d9d9;
-            z-index: 2;
-            border-bottom: 1px solid #333;
-            padding: 12px 15px;
-            text-align: left;
-            font-weight: 600;
-            color: #333;
-            /* REMOVED VERTICAL LINE: border-right: 1px solid #999; */
-        }
-
-        td { 
-            padding: 10px 15px; 
-            border-bottom: 1px solid #eee; 
-            color: #333;
-            /* REMOVED VERTICAL LINE: border-right: 1px solid #eee; */
-        }
+        /* TABLE */
+        .table-container { border: 1px solid #333; border-radius: 5px; background: white; max-height: 250px; overflow-y: auto; position: relative; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        thead th { position: sticky; top: 0; background-color: #d9d9d9; z-index: 2; border-bottom: 1px solid #333; padding: 12px 15px; text-align: left; font-weight: 600; color: #333; }
+        td { padding: 10px 15px; border-bottom: 1px solid #eee; color: #333; }
         
-        /* Column Widths */
-        .col-id { width: 15%; } 
-        .col-loc { width: 25%; } 
-        .col-prio { width: 10%; } 
-        .col-stat { width: 15%; } 
-        .col-team { width: 15%; } 
-        .col-date { width: 20%; }
+        .col-id { width: 15%; } .col-loc { width: 25%; } .col-prio { width: 10%; } .col-stat { width: 15%; } .col-team { width: 15%; } .col-date { width: 20%; }
 
-        /* --- 3. BOTTOM OVERVIEW SECTION --- */
+        /* OVERVIEW SECTION */
         .overview-container { border: 1px solid #333; border-radius: 5px; background: #fff; display: flex; flex-direction: column; }
         .overview-header { background: #d9d9d9; border-bottom: 1px solid #333; padding: 10px; display: flex; justify-content: center; align-items: center; gap: 30px; font-weight: 700; font-size: 1rem; }
         .nav-arrow { cursor: pointer; font-size: 1.2rem; user-select: none; font-weight: bold; padding: 0 10px; }
         .nav-arrow:hover { color: var(--primary-red); }
 
-        /* GRID: Left 45%, Right 55% */
         .overview-body { padding: 20px; display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 30px; }
-
         .field-group { margin-bottom: 10px; }
         .field-label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 3px; }
         .field-input { width: 100%; padding: 8px; border: 1px solid #333; border-radius: 4px; background: #d9d9d9; font-size: 0.9rem; box-sizing: border-box; }
         .field-input.white { background: #fff; } 
         .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 
-        /* MAP BOX STYLING */
+        /* MAP */
         .map-wrapper { position: relative; width: 100%; height: 200px; }
-        #dashboard-map { 
-            width: 100%; height: 100%; 
-            border: 1px solid #333; border-radius: 5px; 
-            z-index: 1; background: #e0e0e0; 
-        }
+        #dashboard-map { width: 100%; height: 100%; border: 1px solid #333; border-radius: 5px; z-index: 1; background: #e0e0e0; }
         
-        /* RED PLUS BUTTON */
-        .btn-expand-map {
-            position: absolute; bottom: 10px; right: 10px;
-            width: 30px; height: 30px;
-            background-color: #d94343; color: white;
-            border-radius: 50%; border: 2px solid white;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.2rem; font-weight: bold; cursor: pointer;
-            z-index: 1000; text-decoration: none;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-        }
+        .btn-expand-map { position: absolute; bottom: 10px; right: 10px; width: 30px; height: 30px; background-color: #d94343; color: white; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold; cursor: pointer; z-index: 1000; text-decoration: none; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
         .btn-expand-map:hover { background-color: #b00220; transform: scale(1.1); }
-
-        /* Hide Routing Text Box */
+        
+        /* Hide Routing Text */
         .leaflet-routing-container { display: none !important; }
 
         .footer-action { padding: 15px; display: flex; justify-content: center; }
         .btn-view-more { background: #d94343; color: white; border: none; padding: 10px 40px; border-radius: 20px; font-weight: bold; cursor: pointer; text-decoration: none; font-size: 0.9rem; }
         .btn-view-more:hover { background: #b00220; }
-
     </style>
 </head>
 <body>
@@ -137,6 +83,9 @@
             <a href="/reports" class="nav-item"><span class="icon"></span> Reports</a>
             <a href="/teams" class="nav-item"><span class="icon"></span> Teams & Resources</a>
             <a href="/monitor" class="nav-item"><span class="icon"></span> Monitor Routing</a>
+            {% if user.role == 'Admin' %}
+            <a href="/manage_users" class="nav-item"><span class="icon"></span> Manage Users</a>
+            {% endif %}
             <a href="/profile_settings" class="nav-item"><span class="icon"></span> Profile Settings</a>
         </div>
         
@@ -207,11 +156,11 @@
 
                         <div class="row-2" style="margin-top: 15px;">
                             <div class="field-group"><label class="field-label">Task ID</label><input class="field-input" id="ov-id" readonly></div>
-                            <div class="field-group"><label class="field-label">Distance</label><input class="field-input" id="ov-dist" readonly value="Calculating..."></div>
+                            <div class="field-group"><label class="field-label">Distance</label><input class="field-input" id="ov-dist" readonly value="-"></div>
                         </div>
                         <div class="row-2">
                             <div class="field-group"><label class="field-label">Assigned Team</label><input class="field-input" id="ov-team" readonly></div>
-                            <div class="field-group"><label class="field-label">ETA (Est.)</label><input class="field-input" id="ov-eta" readonly value="Calculating..."></div>
+                            <div class="field-group"><label class="field-label">ETA (Est.)</label><input class="field-input" id="ov-eta" readonly value="-"></div>
                         </div>
                     </div>
                 </div>
@@ -227,6 +176,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
     <script>
+        // --- DATA INJECTION FROM FLASK ---
         const reports = [
             {% for r in reports %}
             {
@@ -242,20 +192,23 @@
                 note: "{{ r.notes }}",
                 stat: "{{ r.status }}",
                 team: "{{ r.assigned_team if r.assigned_team else 'None' }}",
-                full_add: "{{ r.full_address }}"
+                full_add: "{{ r.full_address }}",
+                // Coordinates of the assigned team (if any)
+                team_lat: {{ r.team_coords.lat if r.team_coords else 'null' }},
+                team_lon: {{ r.team_coords.lon if r.team_coords else 'null' }}
             },
             {% endfor %}
         ];
 
         let currentIndex = 0;
         let map, routingControl;
+        let markers = [];
         const HQ_COORDS = [14.8437, 120.8113]; 
 
         function initMap() {
             map = L.map('dashboard-map', {
                 minZoom: 9,  
-                maxZoom: 18,
-                maxBounds: [[5.0, 115.0], [21.0, 127.0]]
+                maxZoom: 18
             }).setView(HQ_COORDS, 11);
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
@@ -265,6 +218,7 @@
             if (reports.length === 0) { document.getElementById('ov-title').innerText = "No Reports Available"; return; }
             const r = reports[currentIndex];
             
+            // 1. Update Text Fields
             document.getElementById('ov-title').innerText = r.id + " Report Overview";
             document.getElementById('ov-loc').value = r.full_add || r.loc;
             document.getElementById('ov-type').value = r.type;
@@ -277,57 +231,50 @@
             document.getElementById('ov-team').value = r.team;
             document.getElementById('btn-view-link').href = "/reports?view_id=" + r.index;
 
+            // 2. Clear Old Map Layers
             if (routingControl) {
                 map.removeControl(routingControl);
                 routingControl = null;
             }
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
 
-            routingControl = L.Routing.control({
-                waypoints: [
-                    L.latLng(HQ_COORDS[0], HQ_COORDS[1]),
-                    L.latLng(r.lat, r.lon)
-                ],
-                routeWhileDragging: false,
-                addWaypoints: false,
-                draggableWaypoints: false,
-                fitSelectedRoutes: false,
-                show: false,
-                lineOptions: {
-                    styles: [{color: 'blue', opacity: 0.7, weight: 5}]
-                },
-                createMarker: function(i, wp, nWps) {
-                    var color = (i === 0) ? 'green' : 'red';
-                    var label = (i === 0) ? 'A' : 'B';
-                    return L.marker(wp.latLng, {
-                        icon: L.divIcon({
-                            className: 'custom-icon',
-                            html: `<div style="background:${color};color:white;width:24px;height:24px;border-radius:50%;text-align:center;line-height:24px;font-weight:bold;box-shadow:0 2px 5px rgba(0,0,0,0.3);">${label}</div>`
-                        })
-                    });
-                }
-            }).addTo(map);
+            // 3. Always add Destination Marker
+            let targetMarker = L.marker([r.lat, r.lon]).addTo(map).bindPopup("<b>Target:</b> " + r.loc);
+            markers.push(targetMarker);
+            
+            // 4. ROUTING LOGIC:
+            // Only draw route if we have a team assigned AND we have their coordinates
+            if (r.team !== "None" && r.team_lat !== null) {
+                routingControl = L.Routing.control({
+                    waypoints: [
+                        L.latLng(r.team_lat, r.team_lon), // START: Team's actual location
+                        L.latLng(r.lat, r.lon)            // END: Incident location
+                    ],
+                    routeWhileDragging: false,
+                    addWaypoints: false,
+                    draggableWaypoints: false,
+                    fitSelectedRoutes: true, // This zooms the map to show the whole route
+                    show: false,
+                    lineOptions: { styles: [{color: 'blue', opacity: 0.7, weight: 5}] },
+                    createMarker: function(i, wp, nWps) {
+                        if (i === 0) return L.circleMarker(wp.latLng, {color: 'green', radius: 8, fillOpacity:1}).bindPopup("<b>Team:</b> " + r.team);
+                        return null; // End marker exists
+                    }
+                }).addTo(map);
 
-            routingControl.on('routesfound', function(e) {
-                var summary = e.routes[0].summary;
-                var distKm = (summary.totalDistance / 1000).toFixed(2);
-                document.getElementById('ov-dist').value = distKm + " km";
-
-                var minutes = Math.round(summary.totalTime / 60);
-                if (minutes < 60) {
-                    document.getElementById('ov-eta').value = minutes + " mins";
-                } else {
-                    var h = Math.floor(minutes / 60);
-                    var m = minutes % 60;
-                    document.getElementById('ov-eta').value = h + " hr " + m + " mins";
-                }
-
-                var bounds = L.latLngBounds([HQ_COORDS, [r.lat, r.lon]]);
-                map.fitBounds(bounds, {
-                    padding: [50, 50],
-                    maxZoom: 13, 
-                    animate: true
+                routingControl.on('routesfound', function(e) {
+                    var summary = e.routes[0].summary;
+                    document.getElementById('ov-dist').value = (summary.totalDistance / 1000).toFixed(2) + " km";
+                    var min = Math.round(summary.totalTime / 60);
+                    document.getElementById('ov-eta').value = min < 60 ? min + " mins" : Math.floor(min/60) + " hr " + (min%60) + " mins";
                 });
-            });
+            } else {
+                // If no team, center on target and clear stats
+                map.setView([r.lat, r.lon], 13);
+                document.getElementById('ov-dist').value = r.team === "None" ? "Pending Team" : "Locating Team...";
+                document.getElementById('ov-eta').value = "-";
+            }
         }
 
         function nextReport() { if (reports.length > 0) { currentIndex = (currentIndex + 1) % reports.length; updateDisplay(); } }
