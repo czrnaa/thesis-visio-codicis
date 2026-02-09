@@ -25,7 +25,6 @@ It also supports multiple user roles with role-specific permissions.
 - **Dashboard:** Overview of active, pending, and resolved disaster reports.
 - **Report Management:** Create, edit, and track disaster reports.
 - **Team Management:** Monitor team availability, assignments, and statuses.
-- **Real-Time Monitoring:** Live data feed for responders.
 - **Profile Settings:** Update user details like name and phone.
 - **Severity-Based Prioritization:** Automatic priority assignment based on severity.
 
