@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>System Analytics</title>
+    <style>
+        :root { --primary-red: #d90429; --sidebar-bg: #e0e0e0; --header-gray: #ccc; --border-color: #333; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background-color: #f4f4f4; }
+        
+        /* HEADER */
+        .top-bar { background-color: var(--primary-red); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; height: 60px; box-sizing: border-box; }
+        .top-bar h2 { margin: 0; font-size: 1.3rem; font-weight: 600; }
+        .user-profile { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
+        .user-circle { width: 32px; height: 32px; background: #ddd; border-radius: 50%; }
+        
+        /* LAYOUT */
+        .main-container { display: flex; flex: 1; height: calc(100vh - 60px); }
+        .sidebar { width: 260px; background: var(--sidebar-bg); border-right: 1px solid #ccc; display: flex; flex-direction: column; padding-top: 10px; }
+        .nav-item { padding: 15px 25px; color: #333; cursor: pointer; display: flex; align-items: center; gap: 15px; text-decoration: none; font-size: 1rem; font-weight: 500; transition: 0.2s; border-left: 5px solid transparent; }
+        .nav-item:hover { background: #d0d0d0; }
+        .nav-item.active { background: #ccc; border-left-color: #333; font-weight: 700; }
+        .icon { width: 20px; text-align: center; }
+
+        /* CONTENT */
+        .content { flex: 1; padding: 30px; overflow-y: auto; background: #fff; display: flex; flex-direction: column; gap: 20px; }
+
+        .page-title { font-size: 1.5rem; font-weight: 700; color: #333; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+
+        /* ANALYTICS TABLE */
+        .table-container { border: 1px solid #333; border-radius: 5px; overflow: hidden; background: white; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        thead { background: #d9d9d9; border-bottom: 2px solid #333; }
+        th, td { padding: 15px; text-align: left; border-right: 1px solid #999; }
+        th:last-child, td:last-child { border-right: none; }
+        td { border-bottom: 1px solid #eee; }
+        
+        th { font-weight: 700; color: #222; text-transform: uppercase; font-size: 0.8rem; }
+        
+        .tech-font { font-family: 'Courier New', monospace; font-weight: bold; color: #006600; }
+        .node-count { background: #e0e0e0; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <h2>Disaster Response Logistics Platform</h2>
+        <div class="user-profile"><span>{{ user.account_id }}</span><div class="user-circle"></div></div>
+    </div>
+    
+    <div class="main-container">
+        <div class="sidebar">
+            <a href="/dashboard" class="nav-item"><span class="icon"></span> Dashboard</a>
+            <a href="/reports" class="nav-item"><span class="icon"></span> Reports</a>
+            {% if user.role != 'Responder' %}
+            <a href="/teams" class="nav-item"><span class="icon"></span> Teams & Resources</a>
+            {% endif %}
+            <a href="/monitor" class="nav-item"><span class="icon"></span> Monitor Routing</a>
+            <a href="/analytics" class="nav-item active"><span class="icon"></span> System Analytics</a>
+            {% if user.role == 'Admin' %}
+            <a href="/manage_users" class="nav-item"><span class="icon"></span> Manage Users</a>
+            {% endif %}
+            <a href="/profile_settings" class="nav-item"><span class="icon"></span> Profile Settings</a>
+        </div>
+        
+        <div class="content">
+            <div class="page-title">System Analytics</div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th>Task ID</th>
+                            <th>Target Location</th>
+                            <th>Nodes Explored</th>
+                            <th>Execution Time</th>
+                            <th>Est. Arrival (ETA)</th>
+                            <th>Path Distance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stats-body">
+                        <tr><td colspan="7" style="text-align:center; padding: 20px;">Computing analytics...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function loadStats() {
+            fetch('/analytics_data')
+                .then(res => res.json())
+                .then(data => {
+                    const tbody = document.getElementById('stats-body');
+                    tbody.innerHTML = '';
+                    
+                    if(data.length === 0) {
+                        tbody.innerHTML = "<tr><td colspan='7' style='text-align:center; padding: 20px;'>No active route calculations.</td></tr>";
+                        return;
+                    }
+
+                    data.forEach(row => {
+                        let tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${row.num}</td>
+                            <td><strong>${row.task_id}</strong></td>
+                            <td>${row.location}</td>
+                            <td><span class="node-count">${row.nodes}</span></td>
+                            <td class="tech-font">${row.time}</td>
+                            <td>${row.eta}</td>
+                            <td>${row.dist}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                });
+        }
+
+        loadStats();
+        setInterval(loadStats, 3000); // Refresh every 3 seconds
+    </script>
+</body>
+</html>

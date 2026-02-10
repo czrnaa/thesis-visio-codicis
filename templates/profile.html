@@ -107,7 +107,11 @@
         <div class="sidebar">
             <a href="/dashboard" class="nav-item"><span class="icon"></span> Dashboard</a>
             <a href="/reports" class="nav-item"><span class="icon"></span> Reports</a>
+            
+            {% if user.role != 'Responder' %}
             <a href="/teams" class="nav-item"><span class="icon"></span> Teams & Resources</a>
+            {% endif %}
+            
             <a href="/monitor" class="nav-item"><span class="icon"></span> Monitor Routing</a>
             
             {% if user.role == 'Admin' %}

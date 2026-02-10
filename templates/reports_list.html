@@ -71,7 +71,11 @@
         <div class="sidebar">
             <a href="/dashboard" class="nav-item"><span class="icon"></span> Dashboard</a>
             <a href="/reports" class="nav-item active"><span class="icon"></span> Reports</a>
+            
+            {% if user.role != 'Responder' %}
             <a href="/teams" class="nav-item"><span class="icon"></span> Teams & Resources</a>
+            {% endif %}
+            
             <a href="/monitor" class="nav-item"><span class="icon"></span> Monitor Routing</a>
             {% if user.role == 'Admin' %}
             <a href="/manage_users" class="nav-item"><span class="icon"></span> Manage Users</a>
@@ -118,7 +122,7 @@
                                 <td class="col-stat">{{ r.status }}</td>
                                 <td class="col-team">{{ r.assigned_team if r.assigned_team else '-' }}</td>
                                 <td class="col-act">
-                                    <a href="/reports?view_id={{ loop.index0 }}" class="btn-view">👁 View</a>
+                                    <a href="/reports?view_id={{ loop.index0 }}" class="btn-view">View</a>
                                 </td>
                             </tr>
                             {% else %}
@@ -154,7 +158,7 @@
                             <div class="row-2">
                                 <div class="form-group"><label>Task ID</label><input type="text" value="{{ selected_report.task_id }}" readonly></div>
                                 <div class="form-group"><label>Disaster Type*</label>
-                                    <select name="disaster_type" class="editable-field" disabled>
+                                    <select name="disaster_type" class="editable-field admin-only" disabled>
                                         <option selected>{{ selected_report.disaster_type }}</option>
                                         <option>Fire</option><option>Flood</option><option>Typhoon</option>
                                     </select>
@@ -162,7 +166,7 @@
                             </div>
                             
                             <div class="form-group"><label>Severity Level*</label>
-                                <select name="severity" class="editable-field" disabled>
+                                <select name="severity" class="editable-field admin-only" disabled>
                                     <option selected>{{ selected_report.severity }}</option>
                                     <option>Low</option><option>Medium</option><option>High</option><option>Critical</option>
                                 </select>
@@ -170,13 +174,13 @@
 
                             <div class="row-2">
                                 <div class="form-group"><label>Response Type*</label>
-                                    <select name="response_type" class="editable-field" disabled>
+                                    <select name="response_type" class="editable-field admin-only" disabled>
                                         <option selected>{{ selected_report.response_type }}</option>
                                         <option>Rescue</option><option>Evacuation</option><option>Medical</option>
                                     </select>
                                 </div>
                                 <div class="form-group"><label>Estimated Number of People Affected*</label>
-                                    <select name="affected" class="editable-field" disabled>
+                                    <select name="affected" class="editable-field admin-only" disabled>
                                         <option selected>{{ selected_report.affected }}</option>
                                         <option>1-10</option><option>11-50</option><option>50-100</option>
                                     </select>
@@ -244,8 +248,12 @@
         function enableEditMode() {
             document.getElementById('btn-edit').style.display = 'none';
             document.getElementById('btn-save').style.display = 'inline-block';
+            const userRole = "{{ user.role }}";
             const editableFields = document.querySelectorAll('.editable-field');
             editableFields.forEach(field => {
+                if (userRole === 'Responder' && field.classList.contains('admin-only')) {
+                    return; 
+                }
                 field.disabled = false;
             });
         }

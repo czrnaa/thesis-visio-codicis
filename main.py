@@ -3,19 +3,17 @@ import socket
 import math
 import heapq
 import os
+import time  # <--- Added for System Analytics
 import requests 
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from models import db, DisasterReport, Team, User
 
 # ==========================================
-#  GLOBAL SETTINGS STORE
+#  GLOBAL SETTINGS & DATA
 # ==========================================
 USER_SETTINGS = {}
 
-# ==========================================
-#  GLOBAL MAP DATA
-# ==========================================
 NODE_LOCATIONS = {
     "HQ_Malolos":            {"lat": 14.8437, "lon": 120.8113},
     "Paombong":              {"lat": 14.8322, "lon": 120.7890},
@@ -61,32 +59,35 @@ LOCAL_DESTINATIONS = {
     "San Miguel": "San Miguel (Viola St)"
 }
 
-# ==========================================
-#  A* ALGORITHM LOGIC
-# ==========================================
 def heuristic(node1, node2):
     if node1 not in NODE_LOCATIONS or node2 not in NODE_LOCATIONS: return float('inf')
     x1, y1 = NODE_LOCATIONS[node1]['lat'], NODE_LOCATIONS[node1]['lon']
     x2, y2 = NODE_LOCATIONS[node2]['lat'], NODE_LOCATIONS[node2]['lon']
     return math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
 
+# --- UPDATED A* (Returns Stats) ---
 def a_star_search(start, goal, avoid_nodes=[]):
-    if start not in NODE_LOCATIONS or goal not in NODE_LOCATIONS: return None
+    if start not in NODE_LOCATIONS or goal not in NODE_LOCATIONS: return None, 0
+    
     open_set = []
     heapq.heappush(open_set, (0, start))
     came_from = {}
     g_score = {node: float('inf') for node in NODE_LOCATIONS}; g_score[start] = 0
     f_score = {node: float('inf') for node in NODE_LOCATIONS}; f_score[start] = heuristic(start, goal)
     
+    nodes_explored_count = 0
+
     while open_set:
         current_cost, current = heapq.heappop(open_set)
+        nodes_explored_count += 1
+
         if current == goal:
             path = []
             while current in came_from:
                 path.append(current)
                 current = came_from[current]
             path.append(start)
-            return path[::-1] 
+            return path[::-1], nodes_explored_count
         
         if current in GRAPH_CONNECTIONS:
             for neighbor in GRAPH_CONNECTIONS[current]:
@@ -98,7 +99,7 @@ def a_star_search(start, goal, avoid_nodes=[]):
                     f_score[neighbor] = g_score[neighbor] + heuristic(neighbor, goal)
                     if neighbor not in [i[1] for i in open_set]:
                         heapq.heappush(open_set, (f_score[neighbor], neighbor))
-    return None
+    return None, nodes_explored_count
 
 def get_address_from_coords(lat, lon):
     try:
@@ -131,14 +132,13 @@ def create_app():
     @login_manager.user_loader
     def load_user(user_id): return User.query.get(int(user_id))
 
-    # --- HELPER: Identify Responder's Team ---
     def get_responder_team():
         if current_user.role == "Responder":
             full_name = f"{current_user.first_name} {current_user.last_name}"
             return Team.query.filter_by(leader=full_name).first()
         return None
 
-    # --- AUTH ROUTES ---
+    # --- ROUTES ---
     @app.route('/login', methods=['GET', 'POST'])
     def login():
         if request.method == 'POST':
@@ -158,7 +158,6 @@ def create_app():
         logout_user()
         return redirect(url_for('login'))
 
-    # --- WEB ROUTES ---
     @app.route("/")
     def home(): return redirect(url_for("dashboard_view"))
 
@@ -166,19 +165,12 @@ def create_app():
     @login_required
     def dashboard_view():
         show_all = USER_SETTINGS.get(current_user.id, {}).get('show_routes', False)
-        
-        # --- ROLE BASED FILTERING ---
         if current_user.role == "Responder":
             team = get_responder_team()
-            if team:
-                # Show ONLY reports assigned to this responder's team
-                reports_db = DisasterReport.query.filter_by(assigned_team=team.team_id).order_by(DisasterReport.date_submitted.desc()).all()
-            else:
-                reports_db = []
+            reports_db = DisasterReport.query.filter_by(assigned_team=team.team_id).order_by(DisasterReport.date_submitted.desc()).all() if team else []
         else:
-            # Show ALL reports for Admin/Operator/Programmer
             reports_db = DisasterReport.query.order_by(DisasterReport.date_submitted.desc()).all()
-
+        
         reports_display = []
         for r in reports_db:
             r_dict = {
@@ -193,36 +185,25 @@ def create_app():
                 t = Team.query.filter_by(team_id=r.assigned_team).first()
                 if t: r_dict['team_coords'] = {'lat': t.lat, 'lon': t.lon}
             reports_display.append(r_dict)
-
-        return render_template("dashboard.html", 
-            reports=reports_display,
-            active=DisasterReport.query.filter(DisasterReport.status != 'Resolved').count(),
-            pending=DisasterReport.query.filter_by(status='Pending').count(),
-            resources=Team.query.filter_by(status='Available').count(), 
-            user=current_user,
-            show_all_routes=show_all)
+        
+        return render_template("dashboard.html", reports=reports_display, user=current_user, show_all_routes=show_all)
 
     @app.route("/reports")
     @login_required
     def reports_list():
         view_id = request.args.get('view_id', type=int)
-        
-        # --- ROLE BASED FILTERING ---
         if current_user.role == "Responder":
             team = get_responder_team()
-            if team:
-                reports = DisasterReport.query.filter_by(assigned_team=team.team_id).order_by(DisasterReport.date_submitted.desc()).all()
-            else:
-                reports = []
+            reports = DisasterReport.query.filter_by(assigned_team=team.team_id).order_by(DisasterReport.date_submitted.desc()).all() if team else []
         else:
             reports = DisasterReport.query.order_by(DisasterReport.date_submitted.desc()).all()
-
         selected = reports[view_id] if view_id is not None and 0 <= view_id < len(reports) else None
         return render_template("reports_list.html", reports=reports, selected_report=selected, user=current_user)
 
     @app.route("/teams")
     @login_required
     def teams_view():
+        if current_user.role == "Responder": return redirect(url_for('dashboard_view'))
         reports = DisasterReport.query.filter(DisasterReport.status != 'Resolved').all()
         teams_db = Team.query.all()
         display_teams = []
@@ -243,6 +224,55 @@ def create_app():
     def monitor_view():
         show_all = USER_SETTINGS.get(current_user.id, {}).get('show_routes', False)
         return render_template("monitor.html", user=current_user, show_all_routes=show_all)
+
+    # --- NEW: SYSTEM ANALYTICS VIEW ---
+    @app.route("/analytics")
+    @login_required
+    def analytics_view():
+        if current_user.role != "Programmer": return redirect(url_for('dashboard_view'))
+        return render_template("analytics.html", user=current_user)
+
+    # --- NEW: SYSTEM ANALYTICS DATA API ---
+    @app.route("/analytics_data")
+    @login_required
+    def analytics_data():
+        if current_user.role != "Programmer": return jsonify([])
+        reports = DisasterReport.query.filter(DisasterReport.status != 'Resolved').all()
+        data = []
+        
+        for i, r in enumerate(reports):
+            # Calculate A* Stats for this specific report's route (HQ -> Incident)
+            start_node = "HQ_Malolos"
+            end_node = r.location # Assumes location name matches Node name
+            
+            if end_node not in NODE_LOCATIONS: end_node = "Bocaue" # Fallback
+
+            t_start = time.time()
+            path, nodes = a_star_search(start_node, end_node)
+            t_end = time.time()
+            exec_time = round((t_end - t_start) * 1000, 3) # ms
+
+            # Calculate Distance
+            dist = 0
+            if path:
+                deg_dist = 0
+                for j in range(len(path) - 1):
+                    deg_dist += heuristic(path[j], path[j+1])
+                dist = round(deg_dist * 111, 2) # KM
+            
+            eta = f"{math.ceil(dist)} mins" if path else "N/A"
+
+            data.append({
+                "num": i + 1,
+                "task_id": r.task_id,
+                "location": r.location,
+                "nodes": nodes,
+                "time": f"{exec_time} ms",
+                "eta": eta,
+                "dist": f"{dist} km"
+            })
+            
+        return jsonify(data)
 
     @app.route("/profile_settings", methods=["GET", "POST"])
     @login_required
@@ -266,7 +296,6 @@ def create_app():
         current_setting = USER_SETTINGS.get(current_user.id, {}).get('show_routes', False)
         return render_template("profile.html", user=current_user, show_routes=current_setting)
 
-    # --- ADMIN ROUTES ---
     @app.route("/manage_users")
     @login_required
     def manage_users():
@@ -282,9 +311,15 @@ def create_app():
             if u.role == "Responder":
                 full_name = f"{u.first_name} {u.last_name}"
                 team = Team.query.filter_by(leader=full_name).first()
-                if team: db.session.delete(team)
+                if team:
+                    active_jobs = DisasterReport.query.filter_by(assigned_team=team.team_id).filter(DisasterReport.status != 'Resolved').all()
+                    for job in active_jobs:
+                        job.assigned_team = None
+                        job.status = "Pending"
+                    db.session.delete(team)
             db.session.delete(u) 
             db.session.commit()
+            flash(f"✅ User deleted. Active tasks reset.", "success")
         return redirect(url_for('manage_users'))
 
     @app.route('/register', methods=['GET', 'POST'])
@@ -332,11 +367,9 @@ def create_app():
         next_rsp, _ = get_next_details("RSP")
         return render_template('register.html', user=current_user, next_opt=next_opt, next_rsp=next_rsp)
 
-    # --- REPORT & API ROUTES ---
     @app.route("/create_report")
     @login_required
     def create_report_view():
-        # BLOCK RESPONDERS
         if current_user.role == "Responder": return redirect(url_for('dashboard_view'))
         now = datetime.datetime.now()
         return render_template("user.html", task_id=f"TASK-{DisasterReport.query.count() + 1:03d}", 
@@ -345,7 +378,6 @@ def create_app():
     @app.route("/submit_report", methods=["POST"])
     @login_required
     def submit_report():
-        # BLOCK RESPONDERS
         if current_user.role == "Responder": return redirect(url_for('dashboard_view'))
         try: lat, lon = float(request.form.get("lat")), float(request.form.get("lon"))
         except: return "Invalid Coordinates", 400
@@ -375,10 +407,10 @@ def create_app():
                 r.assigned_team = None 
             r.status = new_status
             r.notes = request.form.get("notes")
-            r.disaster_type = request.form.get("disaster_type")
-            r.severity = request.form.get("severity")
-            r.response_type = request.form.get("response_type")
-            r.affected = request.form.get("affected")
+            if request.form.get("disaster_type"): r.disaster_type = request.form.get("disaster_type")
+            if request.form.get("severity"): r.severity = request.form.get("severity")
+            if request.form.get("response_type"): r.response_type = request.form.get("response_type")
+            if request.form.get("affected"): r.affected = request.form.get("affected")
             db.session.commit()
             if new_status == request.form.get("status"):
                 flash("✅ Report details updated successfully.", "success")
@@ -387,7 +419,6 @@ def create_app():
     @app.route("/assign_team", methods=["POST"])
     @login_required
     def assign_team():
-        # BLOCK RESPONDERS
         if current_user.role == "Responder": return redirect(url_for('dashboard_view'))
         team_id = request.form.get("team_id")
         task_id = request.form.get("task_id")
@@ -404,8 +435,7 @@ def create_app():
     def responder_data():
         if current_user.role == "Responder":
             team = get_responder_team()
-            if team: reports = DisasterReport.query.filter_by(assigned_team=team.team_id).filter(DisasterReport.status != 'Resolved').all()
-            else: reports = []
+            reports = DisasterReport.query.filter_by(assigned_team=team.team_id).filter(DisasterReport.status != 'Resolved').all() if team else []
         else:
             reports = DisasterReport.query.filter(DisasterReport.status != 'Resolved').all()
         data = []
@@ -431,9 +461,12 @@ def create_app():
         avoid = request.args.get('avoid', '')
         start_node, end_node = start_input, end_input
         if start_node == end_node and start_node in LOCAL_DESTINATIONS: end_node = LOCAL_DESTINATIONS[start_node]
-        path = a_star_search(start_node, end_node, avoid_nodes=[avoid] if avoid else [])
-        if not path: return jsonify({"path": [], "coords": [], "distance": "N/A", "eta": "Blocked"})
+        
+        path, nodes_explored = a_star_search(start_node, end_node, avoid_nodes=[avoid] if avoid else [])
+        
+        if not path: return jsonify({"path": [], "coords": [], "distance": "N/A", "eta": "Blocked", "stats": {"nodes": 0, "time_ms": 0}})
         coords = [[NODE_LOCATIONS[node]['lat'], NODE_LOCATIONS[node]['lon']] for node in path]
+        
         return jsonify({"path": path, "coords": coords, "distance": "N/A", "eta": "N/A"})
 
     return app

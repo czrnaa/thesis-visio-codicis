@@ -19,31 +19,31 @@
         .nav-item.active { background: #ccc; border-left-color: #333; font-weight: 700; }
         .icon { width: 20px; text-align: center; }
 
-        .content { flex: 1; padding: 30px; overflow-y: auto; background: #fff; display: flex; flex-direction: column; gap: 30px; }
+        .content { flex: 1; padding: 30px; overflow-y: auto; background: #fff; display: flex; flex-direction: column; gap: 25px; }
 
-        .table-container { border: 1px solid var(--border-color); border-radius: 5px; overflow: hidden; margin-bottom: 10px; }
-        table { width: 100%; border-collapse: collapse; background: white; font-size: 0.9rem; }
-        thead { background-color: var(--header-gray); border-bottom: 2px solid var(--border-color); }
-        th { padding: 12px 15px; text-align: left; font-weight: 600; color: #333; }
-        td { padding: 12px 15px; border-bottom: 1px solid #ccc; color: #333; }
-        tr:last-child td { border-bottom: none; }
+        /* TABLE STYLE */
+        .table-container { border: 1px solid var(--border-color); border-radius: 5px; background: white; margin-bottom: 25px; }
+        .table-header { background-color: var(--header-gray); border-bottom: 2px solid var(--border-color); padding-right: 15px; }
+        .table-scroll { max-height: 300px; overflow-y: auto; padding-right: 2px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; table-layout: fixed; }
+        th, td { padding: 12px 15px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        td { border-bottom: 1px solid #ccc; }
+        th:last-child, td:last-child { border-right: none; }
+        
+        .col-tid { width: 15%; } .col-ldr { width: 20%; } .col-loc { width: 25%; } .col-tsk { width: 15%; } .col-av { width: 15%; } .col-dt { width: 10%; }
+        .col-act { width: 10%; text-align: center; }
 
-        .status-Available { color: green; font-weight: 600; }
-        .status-Busy { color: red; font-weight: 600; }
-        .status-En-Route { color: orange; font-weight: 600; }
+        .status-available { color: green; font-weight: bold; }
+        .status-busy { color: orange; font-weight: bold; }
 
-        .btn-action { padding: 5px 15px; border: 1px solid #333; background: white; border-radius: 4px; cursor: pointer; font-size: 0.85rem; text-decoration: none; color: #333; display: inline-block; }
-        .btn-action:hover { background: #f0f0f0; }
-        .btn-assign { background: #ffffcc; border: 1px solid #999; } 
-        .row-selected { background-color: #ffff99 !important; }
+        .btn-assign { background-color: #d94343; color: white; border: 1px solid #333; padding: 5px 15px; border-radius: 4px; font-weight: bold; cursor: pointer; text-decoration: none; font-size: 0.85rem; }
+        .btn-assign:hover { background-color: #b00220; }
 
-        .assignment-wrapper { display: block; margin-top: 15px; padding-left: 5px; }
-        .assignment-bar { display: flex; gap: 15px; align-items: center; }
-        .assignment-bar select { padding: 10px; width: 300px; border: 1px solid #333; border-radius: 4px; background: #e0e0e0; font-size: 0.9rem; }
-
-        .btn-confirm { background-color: #ccc; color: white; border: none; padding: 10px 25px; border-radius: 4px; font-weight: bold; cursor: not-allowed; font-size: 0.9rem; }
-        .btn-confirm:not(:disabled) { background-color: #d94343; cursor: pointer; }
-        .btn-confirm:not(:disabled):hover { background-color: #b00220; }
+        /* ASSIGN FORM */
+        .assign-bar { display: flex; gap: 10px; margin-top: 10px; align-items: center; }
+        select { padding: 8px; border: 1px solid #333; border-radius: 4px; background: #e0e0e0; min-width: 200px; }
+        .btn-confirm { background-color: #ccc; color: white; border: none; padding: 8px 20px; border-radius: 4px; font-weight: bold; cursor: not-allowed; }
+        .btn-confirm.active { background-color: #d94343; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -57,99 +57,109 @@
         <div class="sidebar">
             <a href="/dashboard" class="nav-item"><span class="icon"></span> Dashboard</a>
             <a href="/reports" class="nav-item"><span class="icon"></span> Reports</a>
-            <a href="/teams" class="nav-item active"><span class="icon"></span> Teams & Resources</a>
-            <a href="/monitor" class="nav-item"><span class="icon"></span> Monitor Routing</a>
             
+            {% if user.role != 'Responder' %}
+            <a href="/teams" class="nav-item active"><span class="icon"></span> Teams & Resources</a>
+            {% endif %}
+            
+            <a href="/monitor" class="nav-item"><span class="icon"></span> Monitor Routing</a>
             {% if user.role == 'Admin' %}
             <a href="/manage_users" class="nav-item"><span class="icon"></span> Manage Users</a>
             {% endif %}
-
             <a href="/profile_settings" class="nav-item"><span class="icon"></span> Profile Settings</a>
         </div>
         
         <div class="content">
             
             <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Team ID</th>
-                            <th>Squad Leader</th>
-                            <th>Location</th> <th>Assigned Task</th>
-                            <th>Availability</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for t in teams %}
-                        <tr>
-                            <td>{{ t.id }}</td>
-                            <td>{{ t.leader }}</td>
-                            <td>{{ t.location }}</td> <td>{{ t.task if t.task != '-' else 'None' }}</td>
-                            <td class="status-{{ t.status }}">{{ t.status }}</td>
-                            <td>{{ t.last_updated if t.last_updated else 'MM-DD-YYYY' }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-            <form action="/assign_team" method="POST" id="assignForm">
-                <input type="hidden" name="task_id" id="selected_task_id">
-                
-                <div class="table-container">
+                <div class="table-header">
                     <table>
                         <thead>
                             <tr>
-                                <th>Task ID</th><th>Team ID</th><th>Location</th><th>Assigned Task</th><th>Availability</th><th>Actions</th>
+                                <th class="col-tid">Team ID</th>
+                                <th class="col-ldr">Squad Leader</th>
+                                <th class="col-loc">Location</th>
+                                <th class="col-tsk">Assigned Task</th>
+                                <th class="col-av">Availability</th>
+                                <th class="col-dt">Date</th>
                             </tr>
                         </thead>
+                    </table>
+                </div>
+                <div class="table-scroll">
+                    <table>
                         <tbody>
-                            {% for r in reports %}
-                            <tr id="row-{{ r.task_id }}">
-                                <td>{{ r.task_id }}</td>
-                                <td>{{ r.assigned_team if r.assigned_team else '-' }}</td>
-                                <td>{{ r.location }}</td>
-                                <td>{{ r.disaster_type }}</td>
-                                
-                                <td>
-                                    {% if r.status == "Pending" %}
-                                        <span style="color: green;">Available</span>
-                                    {% elif r.status == "In Progress" %}
-                                        <span style="color: orange;">In Progress</span>
-                                    {% else %}
-                                        <span style="color: red;">Busy</span>
-                                    {% endif %}
+                            {% for team in teams %}
+                            <tr>
+                                <td class="col-tid">{{ team.id }}</td>
+                                <td class="col-ldr">{{ team.leader }}</td>
+                                <td class="col-loc">{{ team.location }}</td>
+                                <td class="col-tsk">{{ team.task }}</td>
+                                <td class="col-av">
+                                    <span class="{% if team.status == 'Available' %}status-available{% else %}status-busy{% endif %}">
+                                        {{ team.status }}
+                                    </span>
                                 </td>
-
-                                <td>
-                                    {% if r.status == "Pending" %}
-                                        <button type="button" class="btn-action btn-assign" onclick="selectTask('{{ r.task_id }}')">Assign</button>
-                                    {% else %}
-                                        <a href="/reports?view_id={{ loop.index0 }}" class="btn-action">View</a>
-                                    {% endif %}
-                                </td>
+                                <td class="col-dt">{{ team.last_updated }}</td>
                             </tr>
-                            {% else %}
-                            <tr><td colspan="6" style="text-align:center;">No active tasks found.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+            </div>
 
-                <div class="assignment-wrapper">
-                    <div class="assignment-bar">
-                        <select name="team_id" id="teamSelect" disabled>
-                            <option value="">-- Select Available Team --</option>
-                            {% for t in teams %}
-                                {% if t.status == "Available" %}
-                                <option value="{{ t.id }}">{{ t.id }} - {{ t.leader }} ({{ t.location }})</option>
-                                {% endif %}
-                            {% endfor %}
-                        </select>
-                        <button type="submit" id="confirmBtn" class="btn-confirm" disabled>Confirm</button>
-                    </div>
+            <div class="table-container">
+                <div class="table-header">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="col-tid">Task ID</th>
+                                <th class="col-ldr">Team ID</th>
+                                <th class="col-loc">Location</th>
+                                <th class="col-tsk">Assigned Task</th>
+                                <th class="col-av">Availability</th>
+                                <th class="col-act">Actions</th>
+                            </tr>
+                        </thead>
+                    </table>
                 </div>
+                <div class="table-scroll">
+                    <table>
+                        <tbody>
+                            {% for r in reports %}
+                            <tr>
+                                <td class="col-tid">{{ r.task_id }}</td>
+                                <td class="col-ldr">{{ r.assigned_team if r.assigned_team else '-' }}</td>
+                                <td class="col-loc">{{ r.location }}</td>
+                                <td class="col-tsk">{{ r.disaster_type }}</td>
+                                <td class="col-av"><span class="status-busy">{{ r.status }}</span></td>
+                                <td class="col-act">
+                                    {% if r.status == 'Pending' %}
+                                    <button class="btn-assign" onclick="selectTask('{{ r.task_id }}')">Assign</button>
+                                    {% else %}
+                                    <span style="color:#999; font-size:0.85rem;">Assigned</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="6" style="text-align:center; padding: 20px;">No pending tasks.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <form action="/assign_team" method="POST" id="assignForm" class="assign-bar">
+                <input type="hidden" name="task_id" id="selected_task_id">
+                <select name="team_id" id="team_select" onchange="checkSelection()">
+                    <option value="">-- Select Available Team --</option>
+                    {% for team in teams %}
+                        {% if team.status == 'Available' %}
+                        <option value="{{ team.id }}">{{ team.id }} - {{ team.leader }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+                <button type="submit" id="btn-confirm" class="btn-confirm" disabled>Confirm</button>
             </form>
 
         </div>
@@ -157,12 +167,23 @@
 
     <script>
         function selectTask(taskId) {
-            document.querySelectorAll('tbody tr').forEach(row => { row.classList.remove('row-selected'); });
-            let selectedRow = document.getElementById('row-' + taskId);
-            if (selectedRow) { selectedRow.classList.add('row-selected'); }
             document.getElementById('selected_task_id').value = taskId;
-            document.getElementById('teamSelect').disabled = false;
-            document.getElementById('confirmBtn').disabled = false;
+            // Highlight row logic could go here
+            checkSelection();
+        }
+
+        function checkSelection() {
+            const task = document.getElementById('selected_task_id').value;
+            const team = document.getElementById('team_select').value;
+            const btn = document.getElementById('btn-confirm');
+            
+            if (task && team) {
+                btn.disabled = false;
+                btn.classList.add('active');
+            } else {
+                btn.disabled = true;
+                btn.classList.remove('active');
+            }
         }
     </script>
 </body>

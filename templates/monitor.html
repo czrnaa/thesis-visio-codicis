@@ -27,7 +27,8 @@
         .nav-item { padding: 15px 25px; color: #333; cursor: pointer; display: flex; align-items: center; gap: 15px; text-decoration: none; font-size: 1rem; font-weight: 500; transition: 0.2s; border-left: 5px solid transparent; }
         .nav-item:hover { background: #d0d0d0; }
         .nav-item.active { background: #ccc; border-left-color: #333; font-weight: 700; }
-        
+        .icon { width: 20px; text-align: center; }
+
         /* CONTENT */
         .content { flex: 1; padding: 25px; overflow-y: auto; background: #fff; display: flex; flex-direction: column; gap: 20px; }
 
@@ -131,9 +132,16 @@
         <div class="sidebar">
             <a href="/dashboard" class="nav-item"><span class="icon"></span> Dashboard</a>
             <a href="/reports" class="nav-item"><span class="icon"></span> Reports</a>
+            
+            {% if user.role != 'Responder' %}
             <a href="/teams" class="nav-item"><span class="icon"></span> Teams & Resources</a>
+            {% endif %}
+            
             <a href="/monitor" class="nav-item active"><span class="icon"></span> Monitor Routing</a>
             
+            {% if user.role == 'Programmer' %}
+            <a href="/analytics" class="nav-item"><span class="icon"></span> System Analytics</a>
+            {% endif %}
             {% if user.role == 'Admin' %}
             <a href="/manage_users" class="nav-item"><span class="icon"></span> Manage Users</a>
             {% endif %}
