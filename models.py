@@ -65,3 +65,21 @@ class User(db.Model, UserMixin):
     phone = db.Column(db.String(20), default="09XX XXX XXXX")
     status = db.Column(db.String(20), default="Active")
     last_login = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+class RoadConstraint(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    node_name = db.Column(db.String(100), nullable=False)  # e.g., "Plaridel"
+    reason = db.Column(db.String(255)) # e.g., "Heavy Flooding"
+    is_active = db.Column(db.Boolean, default=True)
+    timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+# --- TABLE 5: ROUTE & REROUTE LOGS ---
+class RouteLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    task_id = db.Column(db.String(20), nullable=True)      # The task this route belongs to
+    origin = db.Column(db.String(100), nullable=False)     # 'From' destination
+    destination = db.Column(db.String(100), nullable=False)# 'To' destination
+    new_distance = db.Column(db.Float, nullable=True)      # New distance length
+    reason = db.Column(db.String(255), nullable=True)      # Reason/Type of Constraint
+    status = db.Column(db.String(50), nullable=False)      # "Success" or "Error"
+    timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow) # Time triggered

@@ -25,9 +25,10 @@
         .content { flex: 1; padding: 30px; overflow-y: auto; background: #fff; display: flex; flex-direction: column; gap: 20px; }
 
         .page-title { font-size: 1.5rem; font-weight: 700; color: #333; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+        .section-title { font-size: 1.2rem; font-weight: 600; color: #d90429; margin-top: 10px; margin-bottom: -10px;}
 
         /* ANALYTICS TABLE */
-        .table-container { border: 1px solid #333; border-radius: 5px; overflow: hidden; background: white; }
+        .table-container { border: 1px solid #333; border-radius: 5px; overflow: hidden; background: white; margin-bottom: 20px;}
         table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
         thead { background: #d9d9d9; border-bottom: 2px solid #333; }
         th, td { padding: 15px; text-align: left; border-right: 1px solid #999; }
@@ -38,6 +39,9 @@
         
         .tech-font { font-family: 'Courier New', monospace; font-weight: bold; color: #006600; }
         .node-count { background: #e0e0e0; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+        
+        .status-success { color: #006600; font-weight: bold; }
+        .status-error { color: #d90429; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -63,8 +67,9 @@
         </div>
         
         <div class="content">
-            <div class="page-title">System Analytics</div>
+            <div class="page-title">System Analytics & Logs</div>
 
+            <div class="section-title">A* Algorithm Performance</div>
             <div class="table-container">
                 <table>
                     <thead>
@@ -83,10 +88,32 @@
                     </tbody>
                 </table>
             </div>
+
+            <div class="section-title">Routing & Detour Logs</div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">Log ID</th>
+                            <th>Task ID</th>
+                            <th>Time Triggered</th>
+                            <th>From &rarr; To</th>
+                            <th>New Distance</th>
+                            <th>Reason / Constraint</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log_table_body">
+                        <tr><td colspan="7" style="text-align:center; padding: 20px;">Fetching system logs...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
         </div>
     </div>
 
     <script>
+        // --- 1. Fetch Algorithm Performance Data ---
         function loadStats() {
             fetch('/analytics_data')
                 .then(res => res.json())
@@ -112,11 +139,47 @@
                         `;
                         tbody.appendChild(tr);
                     });
-                });
+                })
+                .catch(err => console.error("Error loading stats:", err));
         }
 
+        // --- 2. Fetch System Routing Logs ---
+        function loadLogs() {
+            fetch('/api/routing_logs')
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.getElementById('log_table_body');
+                tbody.innerHTML = '';
+                
+                if(data.length === 0) {
+                    tbody.innerHTML = "<tr><td colspan='7' style='text-align:center; padding: 20px;'>No logs found in the database.</td></tr>";
+                    return;
+                }
+
+                data.forEach((log) => {
+                    let statusClass = log.status.toLowerCase().includes('success') ? 'status-success' : 'status-error';
+                    let tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${log.id}</td>
+                        <td><strong>${log.task_id}</strong></td>
+                        <td class="tech-font">${log.timestamp}</td>
+                        <td>${log.origin} &rarr; ${log.destination}</td>
+                        <td>${log.new_distance}</td>
+                        <td>${log.reason}</td>
+                        <td class="${statusClass}">${log.status}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            })
+            .catch(err => console.error("Error loading logs:", err));
+        }
+
+        // Initialize and set refresh intervals
         loadStats();
-        setInterval(loadStats, 3000); // Refresh every 3 seconds
+        loadLogs();
+        
+        setInterval(loadStats, 3000); // Refresh stats every 3 seconds
+        setInterval(loadLogs, 5000);  // Refresh logs every 5 seconds
     </script>
 </body>
 </html>

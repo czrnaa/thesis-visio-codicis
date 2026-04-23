@@ -37,7 +37,7 @@
             display: grid; 
             grid-template-columns: 2fr 1fr; 
             gap: 20px; 
-            height: 600px; 
+            min-height: 650px;
         }
         
         /* LEFT: MAP */
@@ -49,6 +49,18 @@
         }
         #map { width: 100%; height: 100%; background: #e0e0e0; }
 
+
+        <div id="absra-container" class="input-group hidden" style="background: #e8f4f8; padding: 10px; border-left: 4px solid #2980b9; margin-top: 15px; margin-bottom: 10px;">
+                            <label style="display: flex; align-items: center; gap: 8px; margin: 0; cursor: pointer; color: #192a56; font-weight: bold;">
+                                <input type="checkbox" id="toggle-absra" style="width: auto; margin: 0;" onchange="if(activeData) viewRoute(activeData)">
+                                Enable ABSRA Optimization
+                            </label>
+                            <span style="font-size: 0.8rem; color: #555; font-weight: normal; display: block; margin-top: 5px;">Uses Bidirectional Search & Arc-Flags</span>
+                        </div>
+                        
+                        <button id="btn-reroute" class="btn-view hidden" style="margin-top: 15px; width: 100%; background: #2980b9; color: white; border: none; padding: 10px; font-weight: bold;" onclick="triggerAlternativeRoute()">
+                            🔄 Find Alternative Route
+                        </button>
         /* RIGHT: DETAILS PANEL */
         .details-panel { 
             border: 1px solid #333; 
@@ -163,6 +175,7 @@
                     </div>
                     <div class="panel-body">
                         <h3 id="d-team">Pending Assignment</h3>
+                        <div id="reroute-alert" class="alert-box alert-error hidden" style="margin-bottom: 10px; font-size: 0.85rem; padding: 10px;"></div>
                         
                         <div id="active-details" class="hidden">
                             <div class="info-row"><span class="info-label">Disaster Type</span><span class="info-val" id="d-type">-</span></div>
@@ -186,6 +199,18 @@
                             <label>Estimated Time Traveled (ETA)</label>
                             <input type="text" id="d-eta" readonly>
                         </div>
+
+                        <div id="absra-container" class="input-group hidden" style="background: #e8f4f8; padding: 10px; border-left: 4px solid #2980b9; margin-top: 15px; margin-bottom: 10px;">
+                            <label style="display: flex; align-items: center; gap: 8px; margin: 0; cursor: pointer; color: #192a56; font-weight: bold;">
+                                <input type="checkbox" id="toggle-absra" style="width: auto; margin: 0;" onchange="if(activeData) viewRoute(activeData)">
+                                Enable ABSRA Optimization
+                            </label>
+                            <span style="font-size: 0.8rem; color: #555; font-weight: normal; display: block; margin-top: 5px;">Uses Bidirectional Search & Arc-Flags</span>
+                        </div>
+
+                        <button id="btn-reroute" class="btn-view hidden" style="margin-top: 15px; width: 100%; background: #2980b9; color: white; border: none; padding: 10px; font-weight: bold;" onclick="triggerAlternativeRoute()">
+                            🔄 Find Alternative Route
+                        </button>
                         </div>
                 </div>
             </div>
@@ -220,6 +245,7 @@
         let routingControl = null;
         let markers = [];
         let activeData = null;
+        let isAlternativeMode = false;
 
         function loadData() {
             fetch('/responder_data').then(res => res.json()).then(data => {
@@ -248,76 +274,125 @@
         }
 
         function viewRoute(data) {
-            activeData = data;
+        activeData = data;
+        
+        // 1. Sidebar UI Updates
+        document.getElementById('d-id').innerText = data.task_id;
+        document.getElementById('d-stat').innerText = data.status;
+        document.getElementById('d-loc').value = data.location;
+        
+        const isPending = (!data.team_location || data.assigned_team === "Pending Assignment");
+        
+        if (isPending) {
+            document.getElementById('d-team').innerText = "Pending Assignment";
+            document.getElementById('active-details').classList.add('hidden');
+            document.getElementById('d-dist').value = "";
+            document.getElementById('d-eta').value = "";
             
-            // 1. Sidebar UI Updates
-            document.getElementById('d-id').innerText = data.task_id;
-            document.getElementById('d-stat').innerText = data.status;
-            document.getElementById('d-loc').value = data.location;
+            // Safely hide buttons if they exist
+            let absraCont = document.getElementById('absra-container');
+            if(absraCont) absraCont.classList.add('hidden');
+            let btnReroute = document.getElementById('btn-reroute');
+            if(btnReroute) btnReroute.classList.add('hidden');
+        } else {
+            document.getElementById('d-team').innerText = data.assigned_team;
+            document.getElementById('active-details').classList.remove('hidden');
+            document.getElementById('d-type').innerText = data.disaster_type;
+            document.getElementById('d-sev').innerText = data.severity;
             
-            const isPending = (!data.team_location || data.assigned_team === "Pending Assignment");
-            
-            if (isPending) {
-                document.getElementById('d-team').innerText = "Pending Assignment";
-                document.getElementById('active-details').classList.add('hidden');
-                document.getElementById('d-dist').value = "";
-                document.getElementById('d-eta').value = "";
-            } else {
-                document.getElementById('d-team').innerText = data.assigned_team;
-                document.getElementById('active-details').classList.remove('hidden');
-                document.getElementById('d-type').innerText = data.disaster_type;
-                document.getElementById('d-sev').innerText = data.severity;
-            }
-
-            // 2. Map Clean up
-            if (routingControl) {
-                map.removeControl(routingControl);
-                routingControl = null;
-            }
-            markers.forEach(m => map.removeLayer(m));
-            markers = [];
-
-            // 3. Always show Destination Marker
-            if(data.lat && data.lon) {
-                if(isPending) {
-                    let m = L.marker([data.lat, data.lon]).addTo(map).bindPopup("<b>Target:</b> " + data.location);
-                    markers.push(m);
-                    map.setView([data.lat, data.lon], 13);
-                    return;
-                }
-            }
-
-            // 4. Calculate Route
-            if (!isPending && data.team_location && data.lat && data.lon) {
-                routingControl = L.Routing.control({
-                    waypoints: [
-                        L.latLng(data.team_location.lat, data.team_location.lon),
-                        L.latLng(data.lat, data.lon)
-                    ],
-                    routeWhileDragging: false,
-                    addWaypoints: false,
-                    draggableWaypoints: false,
-                    fitSelectedRoutes: true,
-                    show: false,
-                    createMarker: function(i, wp, nWps) {
-                        if (i === 0) {
-                            return L.circleMarker(wp.latLng, {color: 'green', radius: 8, fillOpacity:1}).bindPopup("<b>Team:</b> " + data.assigned_team);
-                        } else {
-                            return L.marker(wp.latLng).bindPopup("<b>Target:</b> " + data.location);
-                        }
-                    },
-                    lineOptions: {
-                        styles: [{color: 'blue', opacity: 0.7, weight: 5}]
-                    }
-                }).addTo(map);
-
-                routingControl.on('routesfound', function(e) {
-                    var r = e.routes[0];
-                    document.getElementById('d-dist').value = (r.summary.totalDistance / 1000).toFixed(2) + " km";
-                    document.getElementById('d-eta').value = Math.round(r.summary.totalTime / 60) + " mins";
-                });
-            }
+            // Safely show buttons if they exist
+            let absraCont = document.getElementById('absra-container');
+            if(absraCont) absraCont.classList.remove('hidden');
+            let btnReroute = document.getElementById('btn-reroute');
+            if(btnReroute) btnReroute.classList.remove('hidden');
         }
+
+        // 2. Map Clean up
+        if (routingControl) {
+            map.removeControl(routingControl);
+            routingControl = null;
+        }
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
+
+        // 3. Calculate Route
+        if (!isPending && data.team_location && data.lat && data.lon) {
+            
+            // Catch the toggle status safely
+            let useAbsra = false;
+            let absraCheckbox = document.getElementById('toggle-absra');
+            if (absraCheckbox) {
+                useAbsra = absraCheckbox.checked;
+            }
+
+            // Fetch from our Python API
+            fetch(`/calculate_route?task_id=${data.task_id}&team_lat=${data.team_location.lat}&team_lon=${data.team_location.lon}&task_lat=${data.lat}&task_lon=${data.lon}&alternative=${isAlternativeMode}&use_absra=${useAbsra}`)
+            .then(res => res.json())
+            .then(routeData => {
+                let alertBox = document.getElementById('reroute-alert');
+                
+                if (routeData.coords && routeData.coords.length > 0) {
+                    
+                    let waypoints = [];
+                    
+                    if (routeData.coords.length > 2 || (routeData.is_rerouted && routeData.coords.length > 2)) {
+                        waypoints = [
+                            L.latLng(data.team_location.lat, data.team_location.lon),
+                            ...routeData.coords.map(c => L.latLng(c[0], c[1])),       
+                            L.latLng(data.lat, data.lon)                              
+                        ];
+                    } else if (isAlternativeMode) {
+                        let midLat = (data.team_location.lat + data.lat) / 2;
+                        let midLon = (data.team_location.lon + data.lon) / 2 + 0.015;
+                        let detourMkr = L.circleMarker([midLat, midLon], {color: 'blue', radius: 6}).addTo(map);
+                        markers.push(detourMkr);
+                        waypoints = [
+                            L.latLng(data.team_location.lat, data.team_location.lon), 
+                            L.latLng(midLat, midLon),                                 
+                            L.latLng(data.lat, data.lon)                              
+                        ];
+                    } else {
+                        waypoints = [
+                            L.latLng(data.team_location.lat, data.team_location.lon),
+                            L.latLng(data.lat, data.lon)
+                        ];
+                    }
+
+                    routingControl = L.Routing.control({
+                        waypoints: waypoints,
+                        show: false,
+                        lineOptions: { styles: [{color: '#d90429', opacity: 0.8, weight: 6}] },
+                        createMarker: (i, wp, n) => {
+                            if (i === 0) return L.circleMarker(wp.latLng, {color: 'green', radius: 6});
+                            if (i === n - 1) return L.marker(wp.latLng);
+                            return null;
+                        }
+                    }).addTo(map);
+                    
+                    document.getElementById('d-dist').value = routeData.distance;
+                    document.getElementById('d-eta').value = routeData.eta;
+
+                    if (alertBox) {
+                        if (isAlternativeMode && waypoints.length === 3) {
+                            alertBox.classList.remove('hidden');
+                            alertBox.innerHTML = `<strong>⚠️ LOCAL REROUTE:</strong> Navigating side streets.`;
+                        } else if (routeData.is_rerouted) {
+                            alertBox.classList.remove('hidden');
+                            alertBox.innerHTML = `<strong>⚠️ ${routeData.message}</strong>`;
+                        } else {
+                            alertBox.classList.add('hidden');
+                        }
+                    }
+                }
+            })
+            .catch(err => console.error("Routing Error:", err));
+        } else if (data.lat && data.lon) {
+            // Just show the target if pending
+            let m = L.marker([data.lat, data.lon]).addTo(map);
+            markers.push(m);
+            map.setView([data.lat, data.lon], 13);
+        }
+    }
 
         loadData();
         setInterval(loadData, 5000); 

@@ -7,7 +7,7 @@ import time  # <--- Added for System Analytics
 import requests 
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from models import db, DisasterReport, Team, User
+from models import db, DisasterReport, Team, User, RouteLog, RoadConstraint
 
 # ==========================================
 #  GLOBAL SETTINGS & DATA
@@ -454,22 +454,156 @@ def create_app():
             })
         return jsonify(data)
 
+    @app.route("/api/update_location", methods=["POST"])
+    @login_required
+    def update_location():
+        # Only Responders should be updating their field location
+        if current_user.role != "Responder":
+            return jsonify({"error": "Unauthorized"}), 403
+            
+        data = request.get_json()
+        team = get_responder_team()
+        
+        if team and 'lat' in data and 'lon' in data:
+            team.lat = float(data['lat'])
+            team.lon = float(data['lon'])
+            team.last_updated = datetime.datetime.utcnow()
+            db.session.commit()
+            return jsonify({"status": "success", "message": "Position updated."})
+            
+        return jsonify({"error": "Failed to update position"}), 400
+
+    @app.route("/api/add_constraint", methods=["POST"])
+    @login_required
+    def add_constraint():
+        if current_user.role == "Responder":
+            return jsonify({"error": "Unauthorized"}), 403
+            
+        data = request.get_json()
+        node = data.get("node")
+        reason = data.get("reason", "Road Blocked")
+        
+        if node in NODE_LOCATIONS:
+            # Check if it already exists
+            existing = RoadConstraint.query.filter_by(node_name=node, is_active=True).first()
+            if not existing:
+                new_const = RoadConstraint(node_name=node, reason=reason, is_active=True)
+                db.session.add(new_const)
+                db.session.commit()
+                return jsonify({"status": "success", "message": f"Constraint added: {node} is blocked."})
+            return jsonify({"status": "info", "message": "Node is already blocked."})
+            
+        return jsonify({"status": "error", "message": "Invalid node location."}), 400
+
     @app.route("/calculate_route")
     def calculate_route():
-        start_input = request.args.get('start', 'HQ_Malolos')
-        end_input = request.args.get('end', 'Bocaue') 
-        avoid = request.args.get('avoid', '')
-        start_node, end_node = start_input, end_input
-        if start_node == end_node and start_node in LOCAL_DESTINATIONS: end_node = LOCAL_DESTINATIONS[start_node]
+        avoid_param = request.args.get('avoid', '')
+        task_id = request.args.get('task_id', 'Manual') 
+        want_alternative = request.args.get('alternative', 'false').lower() == 'true'
+
         
-        path, nodes_explored = a_star_search(start_node, end_node, avoid_nodes=[avoid] if avoid else [])
+        use_absra = request.args.get('use_absra', 'false').lower() == 'true'
+        print(f"*** ABSRA Toggle is set to: {use_absra} ***") 
+   
         
-        if not path: return jsonify({"path": [], "coords": [], "distance": "N/A", "eta": "Blocked", "stats": {"nodes": 0, "time_ms": 0}})
+        # --- DYNAMIC START/END LOCATION MATCHING ---
+        team_lat = request.args.get('team_lat')
+        team_lon = request.args.get('team_lon')
+        task_lat = request.args.get('task_lat')
+        task_lon = request.args.get('task_lon')
+
+        start_node = request.args.get('start', 'HQ_Malolos')
+        end_node = request.args.get('end', 'Bocaue')
+
+        # Find the closest defined Node to the Team's current GPS
+        if team_lat and team_lon:
+            t_lat, t_lon = float(team_lat), float(team_lon)
+            start_node = min(NODE_LOCATIONS.keys(), key=lambda k: math.hypot(NODE_LOCATIONS[k]['lat'] - t_lat, NODE_LOCATIONS[k]['lon'] - t_lon))
+            
+        # Find the closest defined Node to the Task's GPS
+        if task_lat and task_lon:
+            t_lat, t_lon = float(task_lat), float(task_lon)
+            end_node = min(NODE_LOCATIONS.keys(), key=lambda k: math.hypot(NODE_LOCATIONS[k]['lat'] - t_lat, NODE_LOCATIONS[k]['lon'] - t_lon))
+        # ------------------------------------------------
+        
+        if start_node == end_node and start_node in LOCAL_DESTINATIONS: 
+            end_node = LOCAL_DESTINATIONS[start_node]
+
+        active_constraints = RoadConstraint.query.filter_by(is_active=True).all()
+        avoid_nodes = [c.node_name for c in active_constraints]
+        if avoid_param and avoid_param not in avoid_nodes:
+            avoid_nodes.append(avoid_param)
+
+        # 1. Calculate Baseline / Primary Route
+        baseline_path, _ = a_star_search(start_node, end_node, avoid_nodes=[])
+        baseline_dist = 0.0
+        if baseline_path:
+            b_deg = sum(heuristic(baseline_path[j], baseline_path[j+1]) for j in range(len(baseline_path) - 1))
+            baseline_dist = round(b_deg * 111, 2)
+
+        # --- ALTERNATIVE PATH GENERATOR ---
+        if want_alternative and baseline_path and len(baseline_path) > 2:
+            middle_node = baseline_path[len(baseline_path) // 2]
+            if middle_node not in avoid_nodes:
+                avoid_nodes.append(middle_node)
+        # ---------------------------------------
+            
+        # 2. Calculate Actual Route (With constraints / alternative blocks)
+        path, nodes_explored = a_star_search(start_node, end_node, avoid_nodes=avoid_nodes)
+        
+        # ERROR HANDLING
+        if not path:
+            failed_log = RouteLog(task_id=task_id, origin=start_node, destination=end_node, new_distance=0.0, reason=", ".join(avoid_nodes), status="Error")
+            db.session.add(failed_log)
+            db.session.commit()
+            return jsonify({"path": [], "coords": [], "distance": "N/A", "eta": "Blocked", "is_rerouted": False, "message": "Error: Destination unreachable due to closures."})
+        
+        deg_dist = sum(heuristic(path[j], path[j+1]) for j in range(len(path) - 1))
+        dist_km = round(deg_dist * 111, 2)
+        
+        is_rerouted = (path != baseline_path) or want_alternative
+        message = f"REROUTED (Alternative): Avoiding {', '.join(avoid_nodes)}. Added {round(dist_km - baseline_dist, 2)} km." if is_rerouted else "Optimal Route Found."
+        
+        # LOGGING
+        success_log = RouteLog(task_id=task_id, origin=start_node, destination=end_node, new_distance=dist_km, reason="Alternative Route" if want_alternative else "Standard Route", status="Success")
+        db.session.add(success_log)
+        db.session.commit()
+        
         coords = [[NODE_LOCATIONS[node]['lat'], NODE_LOCATIONS[node]['lon']] for node in path]
         
-        return jsonify({"path": path, "coords": coords, "distance": "N/A", "eta": "N/A"})
+        # This is the vital return statement that was missing!
+        return jsonify({
+            "path": path, "coords": coords, "distance": f"{dist_km} km", "eta": f"{math.ceil(dist_km)} mins",
+            "is_rerouted": is_rerouted, "original_distance": f"{baseline_dist} km", "message": message
+        })
+
+    @app.route("/api/routing_logs")
+    def api_routing_logs():
+        try:
+            # Fetch the 50 most recent logs from the database, newest first
+            logs = RouteLog.query.order_by(RouteLog.id.desc()).limit(50).all()
+            
+            log_data = []
+            for log in logs:
+                log_data.append({
+                    "id": log.id,
+                    "task_id": getattr(log, 'task_id', 'N/A'),
+                    "origin": log.origin,
+                    "destination": log.destination,
+                    "new_distance": f"{log.new_distance} km",
+                    "reason": log.reason,
+                    "status": log.status,
+                    "timestamp": getattr(log, 'timestamp', getattr(log, 'created_at', 'N/A')) 
+                })
+            return jsonify(log_data)
+        except Exception as e:
+            print(f"Error fetching logs: {e}")
+            return jsonify([])
+    # ======================================
 
     return app
+
+
 
 def setup_database():
     app = create_app()

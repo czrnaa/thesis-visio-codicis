@@ -101,6 +101,39 @@
         }
         
         setInterval(fetchReports, 3000); fetchReports();
+
+        // --- REAL-TIME POSITION UPDATER ---
+        function updateGPSPosition() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const payload = {
+                            lat: position.coords.latitude,
+                            lon: position.coords.longitude
+                        };
+                        
+                        // Send current coordinates to the Flask backend
+                        fetch('/api/update_location', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify(payload)
+                        })
+                        .then(res => res.json())
+                        .then(data => console.log("GPS Sync:", data.message))
+                        .catch(err => console.error("GPS Sync Failed", err));
+                    },
+                    (error) => {
+                        console.warn("GPS tracking disabled or unavailable.");
+                    },
+                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                );
+            }
+        }
+
+        // Ping the server with the new location every 15 seconds
+        setInterval(updateGPSPosition, 15000);
+        // Fire once immediately on load
+        updateGPSPosition();
     </script>
 </body>
 </html>
