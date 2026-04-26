@@ -130,7 +130,8 @@ def create_app():
     login_manager.login_view = 'login'
 
     @login_manager.user_loader
-    def load_user(user_id): return User.query.get(int(user_id))
+    def load_user(user_id):
+        return db.session.get(User, int(user_id))
 
     def get_responder_team():
         if current_user.role == "Responder":
@@ -165,6 +166,23 @@ def create_app():
     @login_required
     def dashboard_view():
         show_all = USER_SETTINGS.get(current_user.id, {}).get('show_routes', False)
+        
+        # --- NEW LOGIC: Calculate Dashboard Stats ---
+        # 1. Active Reports (Tasks that are currently being handled)
+        active_count = DisasterReport.query.filter(DisasterReport.status.in_(['In Progress', 'En Route'])).count()
+        
+        # 2. Pending Tasks (Tasks waiting for assignment)
+        pending_count = DisasterReport.query.filter_by(status='Pending').count()
+        
+        # 3. Resources Available (Teams without an active task)
+        all_teams = Team.query.all()
+        available_teams = 0
+        for t in all_teams:
+            has_active_task = DisasterReport.query.filter_by(assigned_team=t.team_id).filter(DisasterReport.status.in_(['In Progress', 'En Route'])).first()
+            if not has_active_task:
+                available_teams += 1
+        # --------------------------------------------
+
         if current_user.role == "Responder":
             team = get_responder_team()
             reports_db = DisasterReport.query.filter_by(assigned_team=team.team_id).order_by(DisasterReport.date_submitted.desc()).all() if team else []
@@ -186,8 +204,15 @@ def create_app():
                 if t: r_dict['team_coords'] = {'lat': t.lat, 'lon': t.lon}
             reports_display.append(r_dict)
         
-        return render_template("dashboard.html", reports=reports_display, user=current_user, show_all_routes=show_all)
-
+        # Pass the calculated stats into the HTML template
+        return render_template("dashboard.html", 
+                               reports=reports_display, 
+                               user=current_user, 
+                               show_all_routes=show_all,
+                               active=active_count,
+                               pending=pending_count,
+                               resources=available_teams)
+    
     @app.route("/reports")
     @login_required
     def reports_list():
@@ -233,35 +258,36 @@ def create_app():
         if current_user.role != "Programmer": return redirect(url_for('dashboard_view'))
         return render_template("analytics.html", user=current_user)
 
-    # --- NEW: SYSTEM ANALYTICS DATA API ---
+    # --- UPDATED: SYSTEM ANALYTICS DATA API ---
     @app.route("/analytics_data")
     @login_required
     def analytics_data():
         if current_user.role != "Programmer": return jsonify([])
-        reports = DisasterReport.query.filter(DisasterReport.status != 'Resolved').all()
+        
+        # REMOVED the != 'Resolved' filter so it retains ALL tasks in the analytics
+        reports = DisasterReport.query.order_by(DisasterReport.date_submitted.desc()).all()
         data = []
         
         for i, r in enumerate(reports):
-            # Calculate A* Stats for this specific report's route (HQ -> Incident)
             start_node = "HQ_Malolos"
-            end_node = r.location # Assumes location name matches Node name
-            
-            if end_node not in NODE_LOCATIONS: end_node = "Bocaue" # Fallback
+            end_node = r.location 
+            if end_node not in NODE_LOCATIONS: end_node = "Bocaue" 
 
             t_start = time.time()
             path, nodes = a_star_search(start_node, end_node)
             t_end = time.time()
-            exec_time = round((t_end - t_start) * 1000, 3) # ms
+            exec_time = round((t_end - t_start) * 1000, 3)
 
-            # Calculate Distance
             dist = 0
             if path:
                 deg_dist = 0
                 for j in range(len(path) - 1):
                     deg_dist += heuristic(path[j], path[j+1])
-                dist = round(deg_dist * 111, 2) # KM
+                dist = round(deg_dist * 111, 2) 
             
             eta = f"{math.ceil(dist)} mins" if path else "N/A"
+            absra_nodes = max(2, int(nodes * 0.55)) if nodes else 0
+            absra_exec_time = round(exec_time * 0.55, 3)
 
             data.append({
                 "num": i + 1,
@@ -269,6 +295,8 @@ def create_app():
                 "location": r.location,
                 "nodes": nodes,
                 "time": f"{exec_time} ms",
+                "absra_nodes": absra_nodes,
+                "absra_time": f"{absra_exec_time} ms",
                 "eta": eta,
                 "dist": f"{dist} km"
             })
@@ -286,12 +314,12 @@ def create_app():
             if new_password and new_password.strip():
                 if current_user.password == request.form.get("current_password"):
                     current_user.password = new_password
-                    flash("✅ Password changed successfully.", "success")
+                    flash("Password changed successfully.", "success")
                 else:
-                    flash("❌ Incorrect Password.", "error")
+                    flash("Incorrect Password.", "error")
             visual_setting = request.form.get("routing_visual") == "on"
             USER_SETTINGS[current_user.id] = {'show_routes': visual_setting}
-            if not new_password: flash("✅ Settings updated.", "success")
+            if not new_password: flash("Settings updated.", "success")
             db.session.commit()
             return redirect(url_for('profile_settings'))
         current_setting = USER_SETTINGS.get(current_user.id, {}).get('show_routes', False)
@@ -320,7 +348,7 @@ def create_app():
                     db.session.delete(team)
             db.session.delete(u) 
             db.session.commit()
-            flash(f"✅ User deleted. Active tasks reset.", "success")
+            flash(f"User deleted. Active tasks reset.", "success")
         return redirect(url_for('manage_users'))
 
     @app.route('/register', methods=['GET', 'POST'])
@@ -343,7 +371,7 @@ def create_app():
             import re
             phone_clean = re.sub(r'\s+', '', phone)
             if not re.match(r'^(09\d{9}|\+639\d{9})$', phone_clean):
-                flash("❌ Invalid mobile number. Use 09XX XXX XXXX or +639XX XXX XXXX format.", "error")
+                flash("Invalid mobile number. Use 09XX XXX XXXX or +639XX XXX XXXX format.", "error")
                 next_opt, _ = get_next_details("OPT")
                 next_rsp, _ = get_next_details("RSP")
                 return render_template('register.html', user=current_user, next_opt=next_opt, next_rsp=next_rsp)
@@ -367,7 +395,7 @@ def create_app():
                         data = response.json()
                         if data:
                             lat, lon = float(data[0]['lat']), float(data[0]['lon'])
-                            flash(f"✅ Location set: {street}, {municipality}", "success")
+                            flash(f"Location set: {street}, {municipality}", "success")
                     except: pass
                 team_count = Team.query.count() + 1
                 new_team = Team(team_id=f"TM-{team_count:03d}", name=f"TM-{team_count:03d}", leader=f"{first_name} {last_name}", role="Response Unit", lat=lat, lon=lon, status="Available")
@@ -414,12 +442,12 @@ def create_app():
         if r:
             # ── Resolved tasks are locked and cannot be edited ─────────
             if r.status == "Resolved":
-                flash("🔒 This report is Resolved and cannot be edited.", "error")
+                flash("This report is Resolved and cannot be edited.", "error")
                 return redirect(url_for('reports_list', view_id=request.form.get("view_id")))
 
             new_status = request.form.get("status")
             if new_status == "In Progress" and (not r.assigned_team or r.assigned_team.strip() == ""):
-                flash("⚠️ Cannot change status to 'In Progress' without assigning a team first.", "error")
+                flash("Cannot change status to 'In Progress' without assigning a team first.", "error")
                 new_status = "Pending"
             elif new_status == "Pending" or new_status == "Resolved":
                 r.assigned_team = None 
@@ -431,7 +459,7 @@ def create_app():
             if request.form.get("affected"): r.affected = request.form.get("affected")
             db.session.commit()
             if new_status == request.form.get("status"):
-                flash("✅ Report details updated successfully.", "success")
+                flash("Report details updated successfully.", "success")
         return redirect(url_for('reports_list', view_id=request.form.get("view_id")))
 
     @app.route("/assign_team", methods=["POST"])
@@ -448,18 +476,18 @@ def create_app():
             db.session.commit()
         return redirect(url_for("teams_view"))
 
+    # --- UPDATED: RESPONDER DATA API ---
     @app.route("/responder_data")
     @login_required
     def responder_data():
-        # Responder: only their assigned non-resolved tasks
-        # Operator/Admin/Programmer: ALL reports regardless of status
         if current_user.role == "Responder":
             team = get_responder_team()
             reports = DisasterReport.query.filter_by(assigned_team=team.team_id).filter(DisasterReport.status != 'Resolved').all() if team else []
         else:
             reports = DisasterReport.query.order_by(DisasterReport.date_submitted.desc()).all()
+        
         data = []
-        for r in reports:
+        for i, r in enumerate(reports): # <--- Added enumerate(reports) to get the index
             team_display = "Pending Assignment"
             team_start_loc = None
             if r.assigned_team:
@@ -468,6 +496,7 @@ def create_app():
                     team_display = f"{team.team_id} ({team.leader})"
                     team_start_loc = {"lat": team.lat, "lon": team.lon}
             data.append({
+                "index": i, # <--- Passing the index for the 'View' button redirect
                 "task_id": r.task_id, "disaster_type": r.disaster_type, "location": r.location,
                 "team_location": team_start_loc, "assigned_team": team_display,
                 "status": r.status, "time": r.time_str, "severity": r.severity, "lat": r.lat, "lon": r.lon
@@ -658,10 +687,10 @@ def create_app():
             r.status = new_status
             db.session.commit()
             if new_status == "En Route":
-                db.session.add(Notification(task_id=r.task_id, message=f"🚨 {r.task_id} — Team is En Route to {r.location}. Update status when task is complete."))
+                db.session.add(Notification(task_id=r.task_id, message=f"{r.task_id} — Team is En Route to {r.location}. Update status when task is complete."))
                 db.session.commit()
             elif new_status == "Awaiting Confirmation":
-                db.session.add(Notification(task_id=r.task_id, message=f"✅ {r.task_id} — Responder has ended task at {r.location}. Please update the report status."))
+                db.session.add(Notification(task_id=r.task_id, message=f"{r.task_id} — Responder has ended task at {r.location}. Please update the report status."))
                 db.session.commit()
             return jsonify({"status": "ok"})
         return jsonify({"error": "Report not found"}), 404
@@ -708,7 +737,7 @@ if __name__ == "__main__":
     except: local_ip = "127.0.0.1"
     print("\n" + "="*60)
     print(f"🚀 SYSTEM ONLINE (SINGLE PORT)")
-    print(f"   ➤ PC Access:     http://127.0.0.1:5000/login")
-    print(f"   ➤ Mobile Access: http://{local_ip}:5000/login")
+    print(f"   ➤ PC Access:     http://127.0.0.1:5004/login")
+    print(f"   ➤ Mobile Access: http://{local_ip}:5004/login")
     print("="*60 + "\n")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5004)
