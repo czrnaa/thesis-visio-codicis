@@ -223,7 +223,8 @@ def create_app():
     @login_required
     def monitor_view():
         show_all = USER_SETTINGS.get(current_user.id, {}).get('show_routes', False)
-        return render_template("monitor.html", user=current_user, show_all_routes=show_all)
+        can_reroute = current_user.role in ("Programmer", "Responder")
+        return render_template("monitor.html", user=current_user, show_all_routes=show_all, can_reroute=can_reroute)
 
     # --- NEW: SYSTEM ANALYTICS VIEW ---
     @app.route("/analytics")
@@ -623,7 +624,7 @@ if __name__ == "__main__":
     except: local_ip = "127.0.0.1"
     print("\n" + "="*60)
     print(f"🚀 SYSTEM ONLINE (SINGLE PORT)")
-    print(f"   ➤ PC Access:     http://127.0.0.1:5000/login")
-    print(f"   ➤ Mobile Access: http://{local_ip}:5000/login")
+    print(f"   ➤ PC Access:     http://127.0.0.1:5004/login")
+    print(f"   ➤ Mobile Access: http://{local_ip}:5004/login")
     print("="*60 + "\n")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5004)

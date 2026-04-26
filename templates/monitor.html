@@ -40,6 +40,8 @@
             min-height: 650px;
         }
         
+        #map { width: 100%; height: 100%; background: #e0e0e0; }
+
         /* LEFT: MAP */
         .map-container { 
             border: 1px solid #333; 
@@ -47,20 +49,7 @@
             position: relative; 
             overflow: hidden; 
         }
-        #map { width: 100%; height: 100%; background: #e0e0e0; }
 
-
-        <div id="absra-container" class="input-group hidden" style="background: #e8f4f8; padding: 10px; border-left: 4px solid #2980b9; margin-top: 15px; margin-bottom: 10px;">
-                            <label style="display: flex; align-items: center; gap: 8px; margin: 0; cursor: pointer; color: #192a56; font-weight: bold;">
-                                <input type="checkbox" id="toggle-absra" style="width: auto; margin: 0;" onchange="if(activeData) viewRoute(activeData)">
-                                Enable ABSRA Optimization
-                            </label>
-                            <span style="font-size: 0.8rem; color: #555; font-weight: normal; display: block; margin-top: 5px;">Uses Bidirectional Search & Arc-Flags</span>
-                        </div>
-                        
-                        <button id="btn-reroute" class="btn-view hidden" style="margin-top: 15px; width: 100%; background: #2980b9; color: white; border: none; padding: 10px; font-weight: bold;" onclick="triggerAlternativeRoute()">
-                            🔄 Find Alternative Route
-                        </button>
         /* RIGHT: DETAILS PANEL */
         .details-panel { 
             border: 1px solid #333; 
@@ -134,6 +123,8 @@
     </style>
 </head>
 <body>
+    <!-- Role flag for JS — rendered server-side -->
+    <span id="can-reroute-flag" data-value="{% if can_reroute %}true{% else %}false{% endif %}" style="display:none;"></span>
 
     <div class="top-bar">
         <h2>Disaster Response Logistics Platform</h2>
@@ -200,40 +191,39 @@
                             <input type="text" id="d-eta" readonly>
                         </div>
 
-                        <div id="absra-container" class="input-group hidden" style="background: #e8f4f8; padding: 10px; border-left: 4px solid #2980b9; margin-top: 15px; margin-bottom: 10px;">
-                            <label style="display: flex; align-items: center; gap: 8px; margin: 0; cursor: pointer; color: #192a56; font-weight: bold;">
-                                <input type="checkbox" id="toggle-absra" style="width: auto; margin: 0;" onchange="if(activeData) viewRoute(activeData)">
+                        <!-- ABSRA toggle: Programmer & Responder only -->
+                        <div id="absra-container" class="hidden" style="background:#e8f4f8;padding:10px;border-left:4px solid #2980b9;margin-top:15px;margin-bottom:10px;border-radius:0 4px 4px 0;">
+                            <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;color:#192a56;font-weight:bold;font-size:0.9rem;">
+                                <input type="checkbox" id="toggle-absra" style="width:auto;margin:0;" onchange="if(activeData) viewRoute(activeData)">
                                 Enable ABSRA Optimization
                             </label>
-                            <span style="font-size: 0.8rem; color: #555; font-weight: normal; display: block; margin-top: 5px;">Uses Bidirectional Search & Arc-Flags</span>
+                            <span style="font-size:0.8rem;color:#555;font-weight:normal;display:block;margin-top:5px;">Uses Bidirectional Search &amp; Arc-Flags</span>
                         </div>
 
-                        <button id="btn-reroute" class="btn-view hidden" style="margin-top: 15px; width: 100%; background: #2980b9; color: white; border: none; padding: 10px; font-weight: bold;" onclick="triggerAlternativeRoute()">
+                        <!-- Start Route: opens GPS navigation -->
+                        <button id="btn-start" class="hidden" style="margin-top:10px;width:100%;background:#27ae60;color:white;border:none;padding:10px;font-weight:bold;font-size:0.92rem;border-radius:4px;cursor:pointer;" onclick="startRoute()">
+                            ▶ Start Route
+                        </button>
+
+                        <!-- Reroute: find alternative path -->
+                        <button id="btn-reroute" class="hidden" style="margin-top:8px;width:100%;background:#2980b9;color:white;border:none;padding:10px;font-weight:bold;font-size:0.92rem;border-radius:4px;cursor:pointer;" onclick="triggerAlternativeRoute()">
                             🔄 Find Alternative Route
                         </button>
+
+                        <!-- Read-only notice for Admin and Operator -->
+                        <div id="readonly-notice" class="hidden" style="background:#f9f9f9;border:1px dashed #ccc;border-radius:4px;padding:8px 12px;font-size:0.8rem;color:#888;margin-top:10px;text-align:center;">
+                            Route is being monitored. Rerouting is available to Programmer and Responder only.
+                        </div>
+
                         </div>
                 </div>
-            </div>
-
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Task ID</th><th>Team</th><th>Location</th><th>Status</th><th>Priority</th><th>Timestamp</th><th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table_body">
-                        <tr><td colspan="7" style="text-align:center">Loading data...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-
-        </div>
-    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
     <script>
+        // ── Role flag (read from server-rendered data attribute) ──────────
+        const CAN_REROUTE = document.getElementById('can-reroute-flag').dataset.value === 'true';
+
         // --- 1. INITIALIZE MAP WITH ZOOM RESTRICTIONS ---
         var map = L.map('map', {
             minZoom: 11, // Prevent zooming out beyond this level (province level)
@@ -246,6 +236,35 @@
         let markers = [];
         let activeData = null;
         let isAlternativeMode = false;
+
+
+        // ── SHOW/HIDE action buttons based on role ────────────────────────
+        function showActionButtons(show) {
+            var absraCont  = document.getElementById('absra-container');
+            var btnReroute = document.getElementById('btn-reroute');
+            var btnStart   = document.getElementById('btn-start');
+            var notice     = document.getElementById('readonly-notice');
+            if (CAN_REROUTE) {
+                if (absraCont)  absraCont.classList.toggle('hidden',  !show);
+                if (btnReroute) btnReroute.classList.toggle('hidden', !show);
+                if (btnStart)   btnStart.classList.toggle('hidden',   !show);
+            } else {
+                if (notice) notice.classList.toggle('hidden', !show);
+            }
+        }
+
+        function startRoute() {
+            if (!activeData || !CAN_REROUTE) return;
+            if (activeData.lat && activeData.lon) {
+                window.open('https://www.google.com/maps/dir/?api=1&destination=' + activeData.lat + ',' + activeData.lon, '_blank');
+            }
+        }
+
+        function triggerAlternativeRoute() {
+            if (!activeData) return;
+            isAlternativeMode = true;
+            viewRoute(activeData);
+        }
 
         function loadData() {
             fetch('/responder_data').then(res => res.json()).then(data => {
@@ -290,21 +309,14 @@
             document.getElementById('d-eta').value = "";
             
             // Safely hide buttons if they exist
-            let absraCont = document.getElementById('absra-container');
-            if(absraCont) absraCont.classList.add('hidden');
-            let btnReroute = document.getElementById('btn-reroute');
-            if(btnReroute) btnReroute.classList.add('hidden');
+            showActionButtons(false);
         } else {
             document.getElementById('d-team').innerText = data.assigned_team;
             document.getElementById('active-details').classList.remove('hidden');
             document.getElementById('d-type').innerText = data.disaster_type;
             document.getElementById('d-sev').innerText = data.severity;
             
-            // Safely show buttons if they exist
-            let absraCont = document.getElementById('absra-container');
-            if(absraCont) absraCont.classList.remove('hidden');
-            let btnReroute = document.getElementById('btn-reroute');
-            if(btnReroute) btnReroute.classList.remove('hidden');
+            showActionButtons(true);
         }
 
         // 2. Map Clean up
