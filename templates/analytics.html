@@ -24,13 +24,22 @@
         /* CONTENT */
         .content { flex: 1; padding: 30px; overflow-y: auto; background: #fff; display: flex; flex-direction: column; gap: 20px; }
 
-        .page-title { font-size: 1.5rem; font-weight: 700; color: #333; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
-        .section-title { font-size: 1.2rem; font-weight: 600; color: #d90429; margin-top: 10px; margin-bottom: -10px;}
+        .page-title { flex-shrink: 0; font-size: 1.5rem; font-weight: 700; color: #333; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+        .section-title { flex-shrink: 0; font-size: 1.2rem; font-weight: 600; color: #d90429; margin-top: 10px; margin-bottom: -10px;}
 
         /* ANALYTICS TABLE */
-        .table-container { border: 1px solid #333; border-radius: 5px; overflow: hidden; background: white; margin-bottom: 20px;}
+        .table-container { 
+            flex-shrink: 0; /* Prevents flexbox from crushing the tables! */
+            border: 1px solid #333; 
+            border-radius: 5px; 
+            background: white; 
+            margin-bottom: 20px; 
+            max-height: 350px; 
+            overflow-y: auto; 
+        }
+        .table-container thead { position: sticky; top: 0; z-index: 5; background: #d9d9d9; }
         table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-        thead { background: #d9d9d9; border-bottom: 2px solid #333; }
+        thead { border-bottom: 2px solid #333; }
         th, td { padding: 15px; text-align: left; border-right: 1px solid #999; }
         th:last-child, td:last-child { border-right: none; }
         td { border-bottom: 1px solid #eee; }
@@ -48,7 +57,10 @@
 
     <div class="top-bar">
         <h2>Disaster Response Logistics Platform</h2>
-        <div class="user-profile"><span>{{ user.account_id }}</span><div class="user-circle"></div></div>
+        <div class="user-profile">
+            <span style="font-weight: 600;">{{ user.account_id }}</span>
+            <img src="{{ url_for('static', filename='assets/person_profile.svg') }}" alt="Profile" class="user-circle" style="object-fit: cover; background: white;">
+        </div>
     </div>
     
     <div class="main-container">
@@ -71,7 +83,17 @@
 
             <div class="section-title">A* Algorithm Performance</div>
             <div class="table-container">
-                <table>
+                <div id="stats-empty" style="text-align:center; padding: 50px 20px; background:#fff; display: block;">
+                    <div style="display:flex; flex-direction:column; align-items:center; opacity:0.9;">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px;">
+                            <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
+                            <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" stroke="#d90429"></path>
+                        </svg>
+                        <span style="color: #222; font-size: 1.15rem; font-weight: 700; margin-bottom: 4px;">No Data Available</span>
+                        <span style="color: #777; font-size: 0.9rem;">Data will be shown once it's available.</span>
+                    </div>
+                </div>
+                <table id="stats-table" style="display: none;">
                     <thead>
                         <tr>
                             <th style="width: 50px;">#</th>
@@ -83,15 +105,51 @@
                             <th>Path Distance</th>
                         </tr>
                     </thead>
-                    <tbody id="stats-body">
-                        <tr><td colspan="7" style="text-align:center; padding: 20px;">Computing analytics...</td></tr>
-                    </tbody>
+                    <tbody id="stats-body"></tbody>
+                </table>
+            </div>
+
+            <div class="section-title">ABSRA Optimization Performance</div>
+            <div class="table-container">
+                <div id="absra-empty" style="text-align:center; padding: 50px 20px; background:#fff; display: block;">
+                    <div style="display:flex; flex-direction:column; align-items:center; opacity:0.9;">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px;">
+                            <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
+                            <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" stroke="#d90429"></path>
+                        </svg>
+                        <span style="color: #222; font-size: 1.15rem; font-weight: 700; margin-bottom: 4px;">No Data Available</span>
+                        <span style="color: #777; font-size: 0.9rem;">Data will be shown once it's available.</span>
+                    </div>
+                </div>
+                <table id="absra-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th>Task ID</th>
+                            <th>Target Location</th>
+                            <th>Nodes Explored (ABSRA)</th>
+                            <th>Execution Time (ABSRA)</th>
+                            <th>Est. Arrival (ETA)</th>
+                            <th>Path Distance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="absra-body"></tbody>
                 </table>
             </div>
 
             <div class="section-title">Routing & Detour Logs</div>
             <div class="table-container">
-                <table>
+                <div id="log-empty" style="text-align:center; padding: 50px 20px; background:#fff; display: block;">
+                    <div style="display:flex; flex-direction:column; align-items:center; opacity:0.9;">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px;">
+                            <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
+                            <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" stroke="#d90429"></path>
+                        </svg>
+                        <span style="color: #222; font-size: 1.15rem; font-weight: 700; margin-bottom: 4px;">No Data Available</span>
+                        <span style="color: #777; font-size: 0.9rem;">Data will be shown once it's available.</span>
+                    </div>
+                </div>
+                <table id="log-table" style="display: none;">
                     <thead>
                         <tr>
                             <th style="width: 60px;">Log ID</th>
@@ -103,9 +161,7 @@
                             <th>Status</th>
                         </tr>
                     </thead>
-                    <tbody id="log_table_body">
-                        <tr><td colspan="7" style="text-align:center; padding: 20px;">Fetching system logs...</td></tr>
-                    </tbody>
+                    <tbody id="log_table_body"></tbody>
                 </table>
             </div>
 
@@ -113,18 +169,78 @@
     </div>
 
     <script>
-        // --- 1. Fetch Algorithm Performance Data ---
+        // --- 1. Fetch Active Reports ---
+        function loadActiveReports() {
+            fetch('/api/all_monitor_reports')
+            .then(res => {
+                if (!res.ok) throw new Error("HTTP error");
+                return res.json();
+            })
+            .then(data => {
+                const emptyUI = document.getElementById('active-reports-empty');
+                const tableUI = document.getElementById('active-reports-table');
+                const tbody = document.getElementById('active-reports-body');
+                tbody.innerHTML = '';
+                
+                if(!data || data.length === 0) {
+                    emptyUI.style.display = 'block';
+                    tableUI.style.display = 'none';
+                    return;
+                }
+                
+                emptyUI.style.display = 'none';
+                tableUI.style.display = 'table';
+                
+                data.forEach(r => {
+                    let tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><strong>${r.task_id}</strong></td>
+                        <td>${r.location}</td>
+                        <td><span style="background:#eef; padding:2px 8px; border-radius:10px; font-weight:bold;">${r.status}</span></td>
+                        <td>${r.disaster_type}</td>
+                        <td>${r.severity}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            })
+            .catch(err => {
+                console.error("Error loading active reports:", err);
+                document.getElementById('active-reports-empty').style.display = 'block';
+                document.getElementById('active-reports-table').style.display = 'none';
+            });
+        }
+
+        // --- 2. Fetch Algorithm Performance Data (A* & ABSRA) ---
         function loadStats() {
             fetch('/analytics_data')
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) throw new Error("HTTP error");
+                    return res.json();
+                })
                 .then(data => {
-                    const tbody = document.getElementById('stats-body');
-                    tbody.innerHTML = '';
+                    const statsEmpty = document.getElementById('stats-empty');
+                    const statsTable = document.getElementById('stats-table');
+                    const statsBody = document.getElementById('stats-body');
                     
-                    if(data.length === 0) {
-                        tbody.innerHTML = "<tr><td colspan='7' style='text-align:center; padding: 20px;'>No active route calculations.</td></tr>";
+                    const absraEmpty = document.getElementById('absra-empty');
+                    const absraTable = document.getElementById('absra-table');
+                    const absraBody = document.getElementById('absra-body');
+                    
+                    statsBody.innerHTML = '';
+                    absraBody.innerHTML = '';
+                    
+                    if(!data || data.length === 0) {
+                        statsEmpty.style.display = 'block';
+                        statsTable.style.display = 'none';
+                        absraEmpty.style.display = 'block';
+                        absraTable.style.display = 'none';
                         return;
                     }
+
+                    statsEmpty.style.display = 'none';
+                    statsTable.style.display = 'table';
+                    absraEmpty.style.display = 'none';
+                    absraTable.style.display = 'table';
 
                     data.forEach(row => {
                         let tr = document.createElement('tr');
@@ -137,24 +253,51 @@
                             <td>${row.eta}</td>
                             <td>${row.dist}</td>
                         `;
-                        tbody.appendChild(tr);
+                        statsBody.appendChild(tr);
+
+                        let trAbsra = document.createElement('tr');
+                        trAbsra.innerHTML = `
+                            <td>${row.num}</td>
+                            <td><strong>${row.task_id}</strong></td>
+                            <td>${row.location}</td>
+                            <td><span class="node-count" style="background:#cce5ff; color:#004085;">${row.absra_nodes || 'N/A'}</span></td>
+                            <td class="tech-font" style="color:#004085;">${row.absra_time || 'N/A'}</td>
+                            <td>${row.eta}</td>
+                            <td>${row.dist}</td>
+                        `;
+                        absraBody.appendChild(trAbsra);
                     });
                 })
-                .catch(err => console.error("Error loading stats:", err));
+                .catch(err => {
+                    console.error("Error loading stats:", err);
+                    document.getElementById('stats-empty').style.display = 'block';
+                    document.getElementById('stats-table').style.display = 'none';
+                    document.getElementById('absra-empty').style.display = 'block';
+                    document.getElementById('absra-table').style.display = 'none';
+                });
         }
 
-        // --- 2. Fetch System Routing Logs ---
+        // --- 3. Fetch System Routing Logs ---
         function loadLogs() {
             fetch('/api/routing_logs')
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error("HTTP error");
+                return res.json();
+            })
             .then(data => {
+                const emptyUI = document.getElementById('log-empty');
+                const tableUI = document.getElementById('log-table');
                 const tbody = document.getElementById('log_table_body');
                 tbody.innerHTML = '';
                 
-                if(data.length === 0) {
-                    tbody.innerHTML = "<tr><td colspan='7' style='text-align:center; padding: 20px;'>No logs found in the database.</td></tr>";
+                if(!data || data.length === 0) {
+                    emptyUI.style.display = 'block';
+                    tableUI.style.display = 'none';
                     return;
                 }
+
+                emptyUI.style.display = 'none';
+                tableUI.style.display = 'table';
 
                 data.forEach((log) => {
                     let statusClass = log.status.toLowerCase().includes('success') ? 'status-success' : 'status-error';
@@ -171,15 +314,21 @@
                     tbody.appendChild(tr);
                 });
             })
-            .catch(err => console.error("Error loading logs:", err));
+            .catch(err => {
+                console.error("Error loading logs:", err);
+                document.getElementById('log-empty').style.display = 'block';
+                document.getElementById('log-table').style.display = 'none';
+            });
         }
 
         // Initialize and set refresh intervals
+        loadActiveReports();
         loadStats();
         loadLogs();
         
-        setInterval(loadStats, 3000); // Refresh stats every 3 seconds
-        setInterval(loadLogs, 5000);  // Refresh logs every 5 seconds
+        setInterval(loadActiveReports, 5000); 
+        setInterval(loadStats, 3000); 
+        setInterval(loadLogs, 5000);  
     </script>
 </body>
 </html>

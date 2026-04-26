@@ -37,7 +37,9 @@
             display: grid; 
             grid-template-columns: 2fr 1fr; 
             gap: 20px; 
-            min-height: 650px;
+            height: 48vh; /* Reduced height to leave room for the table */
+            min-height: 380px;
+            flex-shrink: 0; /* Prevents squishing */
         }
         
         #map { width: 100%; height: 100%; background: #e0e0e0; }
@@ -107,10 +109,17 @@
         }
 
         /* BOTTOM TABLE */
-        .table-container { border: 1px solid #333; border-radius: 5px; overflow: hidden; background: white; max-height: 320px; overflow-y: auto; }
-        .table-container thead { position: sticky; top: 0; z-index: 5; }
+        .table-container { 
+            border: 1px solid #333; 
+            border-radius: 5px; 
+            background: white; 
+            flex: 1; /* Automatically stretches to fill remaining bottom space */
+            min-height: 250px; /* Guarantees the table is always visible */
+            overflow-y: auto; 
+        }
+        .table-container thead { position: sticky; top: 0; z-index: 5; background: #d9d9d9; }
         table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-        thead { background: #d9d9d9; border-bottom: 1px solid #333; }
+        thead { border-bottom: 1px solid #333; }
         th, td { padding: 12px 15px; text-align: left; border-right: 1px solid #999; }
         th:last-child, td:last-child { border-right: none; }
         td { border-bottom: 1px solid #eee; }
@@ -127,15 +136,16 @@
     </style>
 </head>
 <body>
-    <!-- Role flag for JS — rendered server-side -->
     <span id="can-reroute-flag" data-value="{% if can_reroute %}true{% else %}false{% endif %}" style="display:none;"></span>
 
     <div class="top-bar">
         <h2>Disaster Response Logistics Platform</h2>
         <div style="display:flex;align-items:center;gap:14px;">
             <div style="position:relative;display:inline-block;">
-                <button id="notif-bell-btn" onclick="toggleNotifDropdown()" style="background:none;border:none;color:white;font-size:1.3rem;cursor:pointer;padding:0 4px;position:relative;">
-                    🔔<span id="notif-count" style="display:none;position:absolute;top:-4px;right:-4px;background:#ffc107;color:#333;border-radius:50%;width:18px;height:18px;font-size:0.65rem;font-weight:700;align-items:center;justify-content:center;">0</span>
+                <button id="notif-bell-btn" onclick="toggleNotifDropdown()" style="background:none;border:none;color:white;cursor:pointer;padding:4px;position:relative;display:flex;align-items:center;justify-content:center;">
+                    <img src="{{ url_for('static', filename='assets/bell_notif.svg') }}" alt="Notifications" style="width: 22px; height: 22px;">
+                    
+                    <span id="notif-count" style="display:none;position:absolute;top:-2px;right:-6px;background:#ffc107;color:#333;border-radius:50%;width:18px;height:18px;font-size:0.65rem;font-weight:700;align-items:center;justify-content:center;">0</span>
                 </button>
                 <div id="notif-dropdown" style="display:none;position:absolute;right:0;top:38px;width:320px;background:white;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.18);z-index:9999;overflow:hidden;">
                     <div style="background:#192a56;color:white;padding:10px 14px;font-weight:700;font-size:0.9rem;display:flex;justify-content:space-between;align-items:center;">
@@ -145,7 +155,10 @@
                     <div id="notif-list"><div style="padding:20px;text-align:center;color:#aaa;font-size:0.85rem;">No new notifications</div></div>
                 </div>
             </div>
-            <div class="user-profile"><span>{{ user.account_id }}</span><div class="user-circle"></div></div>
+            <div class="user-profile">
+                <span style="font-weight: 600;">{{ user.account_id }}</span>
+                <img src="{{ url_for('static', filename='assets/person_profile.svg') }}" alt="Profile" class="user-circle" style="object-fit: cover; background: white;">
+            </div>
         </div>
     </div>
     
@@ -209,7 +222,6 @@
                             <input type="text" id="d-eta" readonly>
                         </div>
 
-                        <!-- ABSRA toggle: Programmer & Responder only -->
                         <div id="absra-container" class="hidden" style="background:#e8f4f8;padding:10px;border-left:4px solid #2980b9;margin-top:15px;margin-bottom:10px;border-radius:0 4px 4px 0;">
                             <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;color:#192a56;font-weight:bold;font-size:0.9rem;">
                                 <input type="checkbox" id="toggle-absra" style="width:auto;margin:0;" checked onchange="onAbsraToggle()">
@@ -218,27 +230,21 @@
                             <span style="font-size:0.8rem;color:#555;font-weight:normal;display:block;margin-top:5px;" id="absra-desc">Uses Bidirectional Search &amp; Arc-Flags</span>
                         </div>
 
-                        <!-- Start Route: opens GPS navigation -->
                         <button id="btn-start" class="hidden" style="margin-top:10px;width:100%;background:#27ae60;color:white;border:none;padding:10px;font-weight:bold;font-size:0.92rem;border-radius:4px;cursor:pointer;" onclick="startRoute()">
                             ▶ Start Route
                         </button>
 
-                        <!-- Reroute: find alternative path -->
                         <button id="btn-reroute" class="hidden" style="margin-top:8px;width:100%;background:#2980b9;color:white;border:none;padding:10px;font-weight:bold;font-size:0.92rem;border-radius:4px;cursor:pointer;" onclick="triggerAlternativeRoute()">
-                            🔄 Find Alternative Route
+                            Re-route
                         </button>
 
-                        <!-- Read-only notice for Admin and Operator -->
                         <div id="readonly-notice" class="hidden" style="background:#f9f9f9;border:1px dashed #ccc;border-radius:4px;padding:8px 12px;font-size:0.8rem;color:#888;margin-top:10px;text-align:center;">
-                            Route is being monitored. Rerouting is available to Responder only.
+                            Route is being monitored.
                         </div>
 
                         </div>
                 </div>
-            </div><!-- /.monitor-grid -->
-
-            <!-- ── ACTIVE REPORTS TABLE ───────────────────────────────── -->
-            <div style="font-size:1rem;font-weight:700;color:#222;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #d90429;">Active Reports</div>
+            </div><div style="font-size:1rem;font-weight:700;color:#222;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #d90429;">Active Reports</div>
             <div class="table-container">
                 <table>
                     <thead>
@@ -258,10 +264,7 @@
                 </table>
             </div>
 
-        </div><!-- /.content -->
-    </div><!-- /.main-container -->
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        </div></div><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
     <script>
         // ── Role flag ─────────────────────────────────────────────────────
@@ -275,11 +278,11 @@
             const cont = document.getElementById('absra-container');
             if (cb.checked) {
                 lbl.textContent = 'ABSRA Optimization: ON';
-                desc.textContent = 'Uses Bidirectional Search & Arc-Flags';
+                desc.textContent = '(Default) Bidirectional A* Search & Arc-Flags';
                 cont.style.borderLeftColor = '#2980b9'; cont.style.background = '#e8f4f8';
             } else {
                 lbl.textContent = 'ABSRA Optimization: OFF';
-                desc.textContent = 'Falling back to standard A* algorithm';
+                desc.textContent = 'Standard A* algorithm';
                 cont.style.borderLeftColor = '#e67e22'; cont.style.background = '#fef9f0';
             }
             if (activeData) viewRoute(activeData);
@@ -371,7 +374,7 @@
 
             // ── DONE state: grey, disabled ─────────────────────────────
             if (status.indexOf('awaiting') !== -1 || status.indexOf('resolved') !== -1) {
-                btn.innerHTML = '✓ Task Completed';
+                btn.innerHTML = 'Task Completed';
                 btn.style.background = '#95a5a6';
                 btn.style.cursor = 'not-allowed';
                 btn.style.opacity = '0.85';
@@ -383,7 +386,7 @@
             // ── EN ROUTE state: red, pulsing ──────────────────────────
             if (enRouteTasks[activeData.task_id] || status.indexOf('en route') !== -1 || status.indexOf('enroute') !== -1) {
                 enRouteTasks[activeData.task_id] = true;  // sync local state from server
-                btn.innerHTML = '🛑 End Task';
+                btn.innerHTML = 'End Task';
                 btn.style.background = '#d90429';
                 btn.style.cursor = 'pointer';
                 btn.style.opacity = '1';
@@ -445,113 +448,83 @@
             viewRoute(activeData);
         }
 
+        // Check URL for an auto-load task (from Reports page)
+        let autoTaskId = new URLSearchParams(window.location.search).get('task_id');
         function loadData() {
             fetch('/responder_data')
-                .then(function(res) {
-                    if (!res.ok) throw new Error('HTTP ' + res.status);
-                    return res.json();
-                })
-                .then(function(rows) {
-                    console.log('[Monitor] Reports received:', rows.length, rows);
+                .then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+                .then(rows => {
                     const tbody = document.getElementById('table_body');
-                    if (!tbody) { console.error('[Monitor] No #table_body element'); return; }
-                    // Clear safely
+                    if (!tbody) return;
                     while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
 
                     if (!rows.length) {
-                        const tr = document.createElement('tr');
-                        const td = document.createElement('td');
-                        td.colSpan = 7;
-                        td.style.textAlign = 'center';
-                        td.style.padding = '20px';
-                        td.style.color = '#888';
-                        td.textContent = 'No reports found.';
-                        tr.appendChild(td);
-                        tbody.appendChild(tr);
+                        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#888;">No reports found.</td></tr>';
                         return;
                     }
 
-                    rows.forEach(function(row) {
-                        try {
-                            const tr = document.createElement('tr');
-                            tr.style.cursor = 'pointer';
+                    rows.forEach(row => {
+                        const tr = document.createElement('tr');
+                        tr.style.cursor = 'pointer';
+                        
+                        // Triggers route on row click
+                        tr.onclick = function() {
+                            document.querySelectorAll('#table_body tr').forEach(r => r.style.background = '');
+                            tr.style.background = '#eaf4fb';
+                            document.querySelector('.monitor-grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            viewRoute(row);
+                        };
 
-                            // Task ID cell
-                            const tdId = document.createElement('td');
-                            const strong = document.createElement('strong');
-                            strong.textContent = row.task_id || '—';
-                            tdId.appendChild(strong);
-                            tr.appendChild(tdId);
+                        const unassigned = !row.team_location || row.assigned_team === 'Pending Assignment';
+                        let s = (row.status || '').toLowerCase(), bg = '#fff3cd', fg = '#856404';
+                        if (s.indexOf('progress') !== -1 || s.indexOf('route') !== -1) { bg = '#d4edda'; fg = '#155724'; }
+                        if (s.indexOf('awaiting') !== -1) { bg = '#cce5ff'; fg = '#004085'; }
+                        if (s.indexOf('resolved') !== -1) { bg = '#e2e3e5'; fg = '#383d41'; }
 
-                            // Team cell
-                            const tdTeam = document.createElement('td');
-                            const unassigned = !row.team_location || row.assigned_team === 'Pending Assignment';
-                            if (unassigned) {
-                                tdTeam.innerHTML = '<span style="color:#bbb;font-style:italic;">— Unassigned</span>';
-                            } else {
-                                tdTeam.textContent = row.assigned_team || '—';
-                            }
-                            tr.appendChild(tdTeam);
+                        let sev = (row.severity || '').toLowerCase(), sevColor = '#555';
+                        if (sev.indexOf('high') !== -1 || sev.indexOf('critical') !== -1) sevColor = '#c0392b';
+                        else if (sev.indexOf('medium') !== -1) sevColor = '#e67e22';
+                        else if (sev.indexOf('low') !== -1) sevColor = '#27ae60';
 
-                            // Location
-                            const tdLoc = document.createElement('td');
-                            tdLoc.textContent = row.location || '—';
-                            tr.appendChild(tdLoc);
-
-                            // Status badge
-                            const tdStat = document.createElement('td');
-                            const s = (row.status || '').toLowerCase();
-                            let bg = '#fff3cd', fg = '#856404';
-                            if (s.indexOf('progress') !== -1 || s.indexOf('route') !== -1) { bg = '#d4edda'; fg = '#155724'; }
-                            if (s.indexOf('awaiting') !== -1) { bg = '#cce5ff'; fg = '#004085'; }
-                            if (s.indexOf('resolved') !== -1) { bg = '#e2e3e5'; fg = '#383d41'; }
-                            const badge = document.createElement('span');
-                            badge.style.cssText = 'display:inline-block;padding:2px 10px;border-radius:12px;font-size:0.78rem;font-weight:600;background:' + bg + ';color:' + fg + ';';
-                            badge.textContent = row.status || '—';
-                            tdStat.appendChild(badge);
-                            tr.appendChild(tdStat);
-
-                            // Severity
-                            const tdSev = document.createElement('td');
-                            const sev = (row.severity || '').toLowerCase();
-                            if (sev.indexOf('high') !== -1 || sev.indexOf('critical') !== -1) tdSev.style.cssText = 'color:#c0392b;font-weight:700;';
-                            else if (sev.indexOf('medium') !== -1) tdSev.style.cssText = 'color:#e67e22;font-weight:700;';
-                            else if (sev.indexOf('low') !== -1)    tdSev.style.cssText = 'color:#27ae60;font-weight:700;';
-                            else tdSev.style.color = '#555';
-                            tdSev.textContent = row.severity || '—';
-                            tr.appendChild(tdSev);
-
-                            // Time reported
-                            const tdTime = document.createElement('td');
-                            tdTime.textContent = row.time || '—';
-                            tr.appendChild(tdTime);
-
-                            // Action button
-                            const tdAct = document.createElement('td');
-                            const btn = document.createElement('button');
-                            btn.className = 'btn-view';
-                            btn.textContent = '👁 View';
-                            // Bind data via closure — no string injection
-                            (function(rowData, btnEl) {
-                                btn.addEventListener('click', function() {
-                                    document.querySelectorAll('#table_body tr').forEach(function(r) { r.style.background = ''; });
-                                    btnEl.closest('tr').style.background = '#eaf4fb';
-                                    document.querySelector('.monitor-grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                    viewRoute(rowData);
-                                });
-                            })(row, btn);
-                            tdAct.appendChild(btn);
-                            tr.appendChild(tdAct);
-
-                            tbody.appendChild(tr);
-                        } catch (e) {
-                            console.error('[Monitor] Failed to render row:', row, e);
-                        }
+                        tr.innerHTML = `
+                            <td><strong>${row.task_id || '—'}</strong></td>
+                            <td>${unassigned ? '<span style="color:#bbb;font-style:italic;">— Unassigned</span>' : row.assigned_team}</td>
+                            <td>${row.location || '—'}</td>
+                            <td><span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:0.78rem;font-weight:600;background:${bg};color:${fg};">${row.status || '—'}</span></td>
+                            <td style="color:${sevColor};font-weight:700;">${row.severity || '—'}</td>
+                            <td>${row.time || '—'}</td>
+                        `;
+                        
+                        const tdAct = document.createElement('td');
+                        const btn = document.createElement('button');
+                        btn.className = 'btn-view';
+                        btn.innerHTML = 'View Route';
+                        
+                        // Triggers route on Action button click (without redirecting)
+                        btn.onclick = function(e) {
+                            e.stopPropagation(); 
+                            document.querySelectorAll('#table_body tr').forEach(r => r.style.background = '');
+                            tr.style.background = '#eaf4fb';
+                            document.querySelector('.monitor-grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            viewRoute(row);
+                        };
+                        
+                        tdAct.appendChild(btn);
+                        tr.appendChild(tdAct);
+                        tbody.appendChild(tr);
                     });
+
+                    // Auto-load route if coming from Reports page
+                    if (autoTaskId) {
+                        const targetRow = rows.find(r => r.task_id === autoTaskId);
+                        if (targetRow) {
+                            viewRoute(targetRow);
+                        }
+                        // Clear to prevent it from re-focusing every 5 seconds on refresh
+                        autoTaskId = null; 
+                    }
                 })
-                .catch(function(err) {
-                    console.error('[Monitor] loadData failed:', err);
-                });
+                .catch(err => console.error('[Monitor] loadData failed:', err));
         }
 
         function viewRoute(data) {

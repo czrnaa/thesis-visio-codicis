@@ -25,17 +25,33 @@
         .icon { width: 20px; text-align: center; }
 
         /* CONTENT */
-        .content { flex: 1; padding: 25px; overflow-y: auto; background: #fff; display: flex; flex-direction: column; gap: 20px; }
+        .content { 
+            flex: 1; 
+            padding: 15px 25px; 
+            overflow-y: auto; 
+            background: #fff; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px; 
+        }
 
         /* STATS CARDS */
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; flex-shrink: 0; }
         .stat-card { background: #d9d9d9; border: 1px solid #333; padding: 15px 20px; border-radius: 5px; }
         .stat-header { font-weight: 600; font-size: 0.95rem; color: #333; margin-bottom: 5px; }
         .stat-number { font-size: 2.5rem; font-weight: bold; color: #333; line-height: 1; display: block; margin-bottom: 5px; }
         .stat-desc { font-size: 0.8rem; color: #555; }
 
         /* TABLE */
-        .table-container { border: 1px solid #333; border-radius: 5px; background: white; max-height: 250px; overflow-y: auto; position: relative; }
+        .table-container { 
+            border: 1px solid #333; 
+            border-radius: 5px; 
+            background: white; 
+            flex: 1; /* Automatically takes all available middle space */
+            min-height: 120px; 
+            overflow-y: auto; 
+            position: relative; 
+        }
         table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
         thead th { position: sticky; top: 0; background-color: #d9d9d9; z-index: 2; border-bottom: 1px solid #333; padding: 12px 15px; text-align: left; font-weight: 600; color: #333; }
         td { padding: 10px 15px; border-bottom: 1px solid #eee; color: #333; }
@@ -43,12 +59,19 @@
         .col-id { width: 15%; } .col-loc { width: 25%; } .col-prio { width: 10%; } .col-stat { width: 15%; } .col-team { width: 15%; } .col-date { width: 20%; }
 
         /* OVERVIEW SECTION */
-        .overview-container { border: 1px solid #333; border-radius: 5px; background: #fff; display: flex; flex-direction: column; }
+        .overview-container { 
+            border: 1px solid #333; 
+            border-radius: 5px; 
+            background: #fff; 
+            display: flex; 
+            flex-direction: column; 
+            flex-shrink: 0; /* Ensures bottom map won't squish */
+        }
         .overview-header { background: #d9d9d9; border-bottom: 1px solid #333; padding: 10px; display: flex; justify-content: center; align-items: center; gap: 30px; font-weight: 700; font-size: 1rem; }
         .nav-arrow { cursor: pointer; font-size: 1.2rem; user-select: none; font-weight: bold; padding: 0 10px; }
         .nav-arrow:hover { color: var(--primary-red); }
 
-        .overview-body { padding: 20px; display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 30px; }
+        .overview-body { padding: 15px 20px; display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 25px; }
         .field-group { margin-bottom: 10px; }
         .field-label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 3px; }
         .field-input { width: 100%; padding: 8px; border: 1px solid #333; border-radius: 4px; background: #d9d9d9; font-size: 0.9rem; box-sizing: border-box; }
@@ -56,17 +79,15 @@
         .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 
         /* MAP */
-        .map-wrapper { position: relative; width: 100%; height: 200px; }
+        .map-wrapper { position: relative; width: 100%; height: 160px; } /* Slimmer height */
         #dashboard-map { width: 100%; height: 100%; border: 1px solid #333; border-radius: 5px; z-index: 1; background: #e0e0e0; }
         
         .btn-expand-map { position: absolute; bottom: 10px; right: 10px; width: 30px; height: 30px; background-color: #d94343; color: white; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold; cursor: pointer; z-index: 1000; text-decoration: none; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
         .btn-expand-map:hover { background-color: #b00220; transform: scale(1.1); }
-        
-        /* Hide Routing Text */
         .leaflet-routing-container { display: none !important; }
 
-        .footer-action { padding: 15px; display: flex; justify-content: center; }
-        .btn-view-more { background: #d94343; color: white; border: none; padding: 10px 40px; border-radius: 20px; font-weight: bold; cursor: pointer; text-decoration: none; font-size: 0.9rem; }
+        .footer-action { padding: 8px; display: flex; justify-content: center; }
+        .btn-view-more { background: #d94343; color: white; border: none; padding: 8px 40px; border-radius: 20px; font-weight: bold; cursor: pointer; text-decoration: none; font-size: 0.9rem; }
         .btn-view-more:hover { background: #b00220; }
     </style>
 </head>
@@ -74,18 +95,19 @@
 
     <div class="top-bar">
         <h2>Disaster Response Logistics Platform</h2>
-        <div class="user-profile"><span>{{ user.account_id }}</span><div class="user-circle"></div></div>
+        <div class="user-profile">
+            <span style="font-weight: 600;">{{ user.account_id }}</span>
+            <img src="{{ url_for('static', filename='assets/person_profile.svg') }}" alt="Profile" class="user-circle" style="object-fit: cover; background: white;">
+        </div>
     </div>
     
     <div class="main-container">
         <div class="sidebar">
             <a href="/dashboard" class="nav-item active"><span class="icon"></span> Dashboard</a>
             <a href="/reports" class="nav-item"><span class="icon"></span> Reports</a>
-            
             {% if user.role != 'Responder' %}
             <a href="/teams" class="nav-item"><span class="icon"></span> Teams & Resources</a>
             {% endif %}
-            
             <a href="/monitor" class="nav-item"><span class="icon"></span> Monitor Routing</a>
             {% if user.role == 'Admin' %}
             <a href="/manage_users" class="nav-item"><span class="icon"></span> Manage Users</a>
@@ -181,28 +203,27 @@
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
     <script>
         // --- DATA INJECTION FROM FLASK ---
-        const reports = [
-            {% for r in reports %}
-            {
-                index: {{ loop.index0 }},
-                id: "{{ r.task_id }}",
-                loc: "{{ r.location }}",
-                lat: {{ r.lat }},
-                lon: {{ r.lon }},
-                type: "{{ r.disaster_type }}",
-                sev: "{{ r.severity }}",
-                res: "{{ r.resources }}",
-                con: "{{ r.constraints }}",
-                note: "{{ r.notes }}",
-                stat: "{{ r.status }}",
-                team: "{{ r.assigned_team if r.assigned_team else 'None' }}",
-                full_add: "{{ r.full_address }}",
-                // Coordinates of the assigned team (if any)
-                team_lat: {{ r.team_coords.lat if r.team_coords else 'null' }},
-                team_lon: {{ r.team_coords.lon if r.team_coords else 'null' }}
-            },
-            {% endfor %}
-        ];
+        const reports = [];
+
+        /* {% for r in reports %} */
+        reports.push({
+            index: parseInt("{{ loop.index0 }}"),
+            id: "{{ r.task_id }}",
+            loc: "{{ r.location }}",
+            lat: parseFloat("{{ r.lat }}"),
+            lon: parseFloat("{{ r.lon }}"),
+            type: "{{ r.disaster_type }}",
+            sev: "{{ r.severity }}",
+            res: "{{ r.resources }}",
+            con: "{{ r.constraints }}",
+            note: "{{ r.notes }}",
+            stat: "{{ r.status }}",
+            team: "{{ r.assigned_team if r.assigned_team else 'None' }}",
+            full_add: "{{ r.full_address }}",
+            team_lat: parseFloat("{{ r.team_coords.lat if r.team_coords else '' }}"),
+            team_lon: parseFloat("{{ r.team_coords.lon if r.team_coords else '' }}")
+        });
+        /* {% endfor %} */
 
         let currentIndex = 0;
         let map, routingControl;
@@ -222,7 +243,6 @@
             if (reports.length === 0) { document.getElementById('ov-title').innerText = "No Reports Available"; return; }
             const r = reports[currentIndex];
             
-            // 1. Update Text Fields
             document.getElementById('ov-title').innerText = r.id + " Report Overview";
             document.getElementById('ov-loc').value = r.full_add || r.loc;
             document.getElementById('ov-type').value = r.type;
@@ -235,7 +255,6 @@
             document.getElementById('ov-team').value = r.team;
             document.getElementById('btn-view-link').href = "/reports?view_id=" + r.index;
 
-            // 2. Clear Old Map Layers
             if (routingControl) {
                 map.removeControl(routingControl);
                 routingControl = null;
@@ -243,27 +262,20 @@
             markers.forEach(m => map.removeLayer(m));
             markers = [];
 
-            // 3. Always add Destination Marker
             let targetMarker = L.marker([r.lat, r.lon]).addTo(map).bindPopup("<b>Target:</b> " + r.loc);
             markers.push(targetMarker);
             
-            // 4. ROUTING LOGIC:
-            // Only draw route if we have a team assigned AND we have their coordinates
-            if (r.team !== "None" && r.team_lat !== null) {
+            if (r.team !== "None" && !isNaN(r.team_lat)) {
                 routingControl = L.Routing.control({
                     waypoints: [
-                        L.latLng(r.team_lat, r.team_lon), // START: Team's actual location
-                        L.latLng(r.lat, r.lon)            // END: Incident location
+                        L.latLng(r.team_lat, r.team_lon),
+                        L.latLng(r.lat, r.lon)            
                     ],
-                    routeWhileDragging: false,
-                    addWaypoints: false,
-                    draggableWaypoints: false,
-                    fitSelectedRoutes: true, // This zooms the map to show the whole route
-                    show: false,
+                    routeWhileDragging: false, addWaypoints: false, draggableWaypoints: false, fitSelectedRoutes: true, show: false,
                     lineOptions: { styles: [{color: 'blue', opacity: 0.7, weight: 5}] },
                     createMarker: function(i, wp, nWps) {
                         if (i === 0) return L.circleMarker(wp.latLng, {color: 'green', radius: 8, fillOpacity:1}).bindPopup("<b>Team:</b> " + r.team);
-                        return null; // End marker exists
+                        return null;
                     }
                 }).addTo(map);
 
@@ -274,7 +286,6 @@
                     document.getElementById('ov-eta').value = min < 60 ? min + " mins" : Math.floor(min/60) + " hr " + (min%60) + " mins";
                 });
             } else {
-                // If no team, center on target and clear stats
                 map.setView([r.lat, r.lon], 13);
                 document.getElementById('ov-dist').value = r.team === "None" ? "Pending Team" : "Locating Team...";
                 document.getElementById('ov-eta').value = "-";

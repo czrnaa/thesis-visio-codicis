@@ -21,9 +21,15 @@
 
         .content { flex: 1; padding: 30px; overflow-y: auto; background: #fff; display: flex; flex-direction: column; gap: 25px; }
 
-        .alert-box { padding: 15px; margin-bottom: 5px; border: 1px solid transparent; border-radius: 4px; font-weight: 500; }
+        /* --- UPDATED FLASH MESSAGE STYLES --- */
+        .flash-container { position: fixed; top: 80px; right: 30px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .alert-box { padding: 15px 40px 15px 20px; border: 1px solid transparent; border-radius: 6px; font-weight: 500; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.15); animation: slideIn 0.3s ease-out forwards; min-width: 250px; }
         .alert-error { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
         .alert-success { color: #155724; background-color: #d4edda; border-color: #c3e6cb; }
+        .close-alert { position: absolute; top: 50%; right: 15px; transform: translateY(-50%); cursor: pointer; font-size: 1.4rem; font-weight: bold; opacity: 0.5; line-height: 1; }
+        .close-alert:hover { opacity: 1; }
+        @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateX(120%); margin-top: -60px; padding: 0; height: 0; border: none; } }
 
         .table-container { border: 1px solid var(--border-color); border-radius: 5px; background: white; display: flex; flex-direction: column; }
         .table-header { background-color: var(--header-gray); border-bottom: 2px solid var(--border-color); padding-right: 15px; }
@@ -64,7 +70,10 @@
 
     <div class="top-bar">
         <h2>Disaster Response Logistics Platform</h2>
-        <div class="user-profile"><span>{{ user.account_id }}</span><div class="user-circle"></div></div>
+        <div class="user-profile">
+            <span style="font-weight: 600;">{{ user.account_id }}</span>
+            <img src="{{ url_for('static', filename='assets/person_profile.svg') }}" alt="Profile" class="user-circle" style="object-fit: cover; background: white;">
+        </div>
     </div>
     
     <div class="main-container">
@@ -85,15 +94,18 @@
         
         <div class="content">
             
+            <div class="flash-container">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
                         <div class="alert-box alert-{{ category }}">
                             {{ message }}
+                            <span class="close-alert" onclick="this.parentElement.style.animation='fadeOut 0.3s forwards'; setTimeout(() => this.parentElement.remove(), 300)">&times;</span>
                         </div>
                     {% endfor %}
                 {% endif %}
             {% endwith %}
+            </div>
 
             <div class="table-container">
                 <div class="table-header">
@@ -239,7 +251,7 @@
                             {% endif %}
                         </div>
                         
-                        <a href="/monitor" class="btn-route">View Route</a>
+                        <a href="/monitor?task_id={{ selected_report.task_id }}" class="btn-route">View Route</a>
                     </div>
                 </div>
             </form>
@@ -261,6 +273,14 @@
                 field.disabled = false;
             });
         }
+
+        // Auto-dismiss alerts after 4 seconds
+        setTimeout(() => {
+            document.querySelectorAll('.alert-box').forEach(alert => {
+                alert.style.animation = 'fadeOut 0.4s forwards';
+                setTimeout(() => alert.remove(), 400);
+            });
+        }, 4000);
     </script>
 </body>
 </html>
