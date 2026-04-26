@@ -73,6 +73,13 @@ class RoadConstraint(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    task_id = db.Column(db.String(20), nullable=False)
+    message = db.Column(db.String(255), nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
 # --- TABLE 5: ROUTE & REROUTE LOGS ---
 class RouteLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)

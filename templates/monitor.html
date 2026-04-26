@@ -107,7 +107,8 @@
         }
 
         /* BOTTOM TABLE */
-        .table-container { border: 1px solid #333; border-radius: 5px; overflow: hidden; background: white; }
+        .table-container { border: 1px solid #333; border-radius: 5px; overflow: hidden; background: white; max-height: 320px; overflow-y: auto; }
+        .table-container thead { position: sticky; top: 0; z-index: 5; }
         table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
         thead { background: #d9d9d9; border-bottom: 1px solid #333; }
         th, td { padding: 12px 15px; text-align: left; border-right: 1px solid #999; }
@@ -120,6 +121,9 @@
         .hidden { display: none !important; }
         /* Hide routing instructions box */
         .leaflet-routing-container { display: none !important; }
+        /* End-Task pulsing */
+        @keyframes pulse-red { 0%,100% { box-shadow:0 0 0 0 rgba(217,4,41,0.5); } 60% { box-shadow:0 0 0 10px rgba(217,4,41,0); } }
+        .btn-end-task { animation: pulse-red 1.4s infinite; }
     </style>
 </head>
 <body>
@@ -128,7 +132,21 @@
 
     <div class="top-bar">
         <h2>Disaster Response Logistics Platform</h2>
-        <div class="user-profile"><span>{{ user.account_id }}</span><div class="user-circle"></div></div>
+        <div style="display:flex;align-items:center;gap:14px;">
+            <div style="position:relative;display:inline-block;">
+                <button id="notif-bell-btn" onclick="toggleNotifDropdown()" style="background:none;border:none;color:white;font-size:1.3rem;cursor:pointer;padding:0 4px;position:relative;">
+                    🔔<span id="notif-count" style="display:none;position:absolute;top:-4px;right:-4px;background:#ffc107;color:#333;border-radius:50%;width:18px;height:18px;font-size:0.65rem;font-weight:700;align-items:center;justify-content:center;">0</span>
+                </button>
+                <div id="notif-dropdown" style="display:none;position:absolute;right:0;top:38px;width:320px;background:white;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.18);z-index:9999;overflow:hidden;">
+                    <div style="background:#192a56;color:white;padding:10px 14px;font-weight:700;font-size:0.9rem;display:flex;justify-content:space-between;align-items:center;">
+                        <span>Notifications</span>
+                        <button onclick="dismissAllNotifs()" style="background:none;border:1px solid rgba(255,255,255,0.4);color:white;font-size:0.75rem;border-radius:4px;padding:2px 8px;cursor:pointer;">Clear all</button>
+                    </div>
+                    <div id="notif-list"><div style="padding:20px;text-align:center;color:#aaa;font-size:0.85rem;">No new notifications</div></div>
+                </div>
+            </div>
+            <div class="user-profile"><span>{{ user.account_id }}</span><div class="user-circle"></div></div>
+        </div>
     </div>
     
     <div class="main-container">
@@ -194,10 +212,10 @@
                         <!-- ABSRA toggle: Programmer & Responder only -->
                         <div id="absra-container" class="hidden" style="background:#e8f4f8;padding:10px;border-left:4px solid #2980b9;margin-top:15px;margin-bottom:10px;border-radius:0 4px 4px 0;">
                             <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;color:#192a56;font-weight:bold;font-size:0.9rem;">
-                                <input type="checkbox" id="toggle-absra" style="width:auto;margin:0;" onchange="if(activeData) viewRoute(activeData)">
-                                Enable ABSRA Optimization
+                                <input type="checkbox" id="toggle-absra" style="width:auto;margin:0;" checked onchange="onAbsraToggle()">
+                                <span id="absra-label">ABSRA Optimization: ON</span>
                             </label>
-                            <span style="font-size:0.8rem;color:#555;font-weight:normal;display:block;margin-top:5px;">Uses Bidirectional Search &amp; Arc-Flags</span>
+                            <span style="font-size:0.8rem;color:#555;font-weight:normal;display:block;margin-top:5px;" id="absra-desc">Uses Bidirectional Search &amp; Arc-Flags</span>
                         </div>
 
                         <!-- Start Route: opens GPS navigation -->
@@ -212,17 +230,107 @@
 
                         <!-- Read-only notice for Admin and Operator -->
                         <div id="readonly-notice" class="hidden" style="background:#f9f9f9;border:1px dashed #ccc;border-radius:4px;padding:8px 12px;font-size:0.8rem;color:#888;margin-top:10px;text-align:center;">
-                            Route is being monitored. Rerouting is available to Programmer and Responder only.
+                            Route is being monitored. Rerouting is available to Responder only.
                         </div>
 
                         </div>
                 </div>
+            </div><!-- /.monitor-grid -->
+
+            <!-- ── ACTIVE REPORTS TABLE ───────────────────────────────── -->
+            <div style="font-size:1rem;font-weight:700;color:#222;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #d90429;">Active Reports</div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Task ID</th>
+                            <th>Assigned Team</th>
+                            <th>Location</th>
+                            <th>Status</th>
+                            <th>Severity</th>
+                            <th>Time Reported</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table_body">
+                        <tr><td colspan="7" style="text-align:center;padding:20px;color:#888;">Loading reports...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div><!-- /.content -->
+    </div><!-- /.main-container -->
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
     <script>
-        // ── Role flag (read from server-rendered data attribute) ──────────
+        // ── Role flag ─────────────────────────────────────────────────────
         const CAN_REROUTE = document.getElementById('can-reroute-flag').dataset.value === 'true';
+
+        // ── ABSRA toggle ──────────────────────────────────────────────────
+        function onAbsraToggle() {
+            const cb = document.getElementById('toggle-absra');
+            const lbl = document.getElementById('absra-label');
+            const desc = document.getElementById('absra-desc');
+            const cont = document.getElementById('absra-container');
+            if (cb.checked) {
+                lbl.textContent = 'ABSRA Optimization: ON';
+                desc.textContent = 'Uses Bidirectional Search & Arc-Flags';
+                cont.style.borderLeftColor = '#2980b9'; cont.style.background = '#e8f4f8';
+            } else {
+                lbl.textContent = 'ABSRA Optimization: OFF';
+                desc.textContent = 'Falling back to standard A* algorithm';
+                cont.style.borderLeftColor = '#e67e22'; cont.style.background = '#fef9f0';
+            }
+            if (activeData) viewRoute(activeData);
+        }
+
+        // ── Notifications ─────────────────────────────────────────────────
+        function toggleNotifDropdown() {
+            const dd = document.getElementById('notif-dropdown');
+            dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+        }
+        document.addEventListener('click', function(e) {
+            const btn = document.getElementById('notif-bell-btn');
+            const dd  = document.getElementById('notif-dropdown');
+            if (btn && dd && !btn.contains(e.target) && !dd.contains(e.target)) dd.style.display = 'none';
+        });
+        function loadNotifications() {
+            fetch('/api/notifications').then(r => r.json()).then(notes => {
+                const badge = document.getElementById('notif-count');
+                const list  = document.getElementById('notif-list');
+                if (!notes.length) {
+                    badge.style.display = 'none';
+                    list.innerHTML = '<div style="padding:20px;text-align:center;color:#aaa;font-size:0.85rem;">No new notifications</div>';
+                    return;
+                }
+                badge.style.display = 'flex'; badge.textContent = notes.length;
+                list.innerHTML = notes.map(n =>
+                    `<div id="notif-${n.id}" style="padding:10px 14px;border-bottom:1px solid #eee;font-size:0.85rem;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;color:#222;">
+                        <span style="flex:1;line-height:1.4;color:#222;font-weight:500;">${n.message}</span>
+                        <span style="font-size:0.72rem;color:#888;white-space:nowrap;font-weight:600;">${n.time}</span>
+                        <button onclick="dismissNotif(${n.id})" style="background:none;border:none;color:#999;cursor:pointer;font-size:1rem;font-weight:bold;padding:0 2px;">✕</button>
+                    </div>`).join('');
+            }).catch(() => {});
+        }
+        function dismissNotif(id) {
+            fetch('/api/dismiss_notification/' + id, { method: 'POST' }).then(() => {
+                const el = document.getElementById('notif-' + id); if (el) el.remove();
+                const rem = document.querySelectorAll('[id^="notif-"]').length;
+                const badge = document.getElementById('notif-count');
+                if (rem === 0) { badge.style.display = 'none'; document.getElementById('notif-list').innerHTML = '<div style="padding:20px;text-align:center;color:#aaa;font-size:0.85rem;">No new notifications</div>'; }
+                else badge.textContent = rem;
+            });
+        }
+        function dismissAllNotifs() {
+            fetch('/api/dismiss_all_notifications', { method: 'POST' }).then(() => {
+                document.getElementById('notif-count').style.display = 'none';
+                document.getElementById('notif-list').innerHTML = '<div style="padding:20px;text-align:center;color:#aaa;font-size:0.85rem;">No new notifications</div>';
+                document.getElementById('notif-dropdown').style.display = 'none';
+            });
+        }
+        loadNotifications();
+        setInterval(loadNotifications, 5000);
 
         // --- 1. INITIALIZE MAP WITH ZOOM RESTRICTIONS ---
         var map = L.map('map', {
@@ -253,10 +361,81 @@
             }
         }
 
+        // Track which task IDs are currently En Route
+        const enRouteTasks = {};
+
+        function syncStartButton() {
+            const btn = document.getElementById('btn-start');
+            if (!btn || !activeData) return;
+            const status = (activeData.status || '').toLowerCase();
+
+            // ── DONE state: grey, disabled ─────────────────────────────
+            if (status.indexOf('awaiting') !== -1 || status.indexOf('resolved') !== -1) {
+                btn.innerHTML = '✓ Task Completed';
+                btn.style.background = '#95a5a6';
+                btn.style.cursor = 'not-allowed';
+                btn.style.opacity = '0.85';
+                btn.disabled = true;
+                btn.classList.remove('btn-end-task');
+                return;
+            }
+
+            // ── EN ROUTE state: red, pulsing ──────────────────────────
+            if (enRouteTasks[activeData.task_id] || status.indexOf('en route') !== -1 || status.indexOf('enroute') !== -1) {
+                enRouteTasks[activeData.task_id] = true;  // sync local state from server
+                btn.innerHTML = '🛑 End Task';
+                btn.style.background = '#d90429';
+                btn.style.cursor = 'pointer';
+                btn.style.opacity = '1';
+                btn.disabled = false;
+                btn.classList.add('btn-end-task');
+                return;
+            }
+
+            // ── NOT STARTED state: green Start Route ──────────────────
+            btn.innerHTML = '▶ Start Route';
+            btn.style.background = '#27ae60';
+            btn.style.cursor = 'pointer';
+            btn.style.opacity = '1';
+            btn.disabled = false;
+            btn.classList.remove('btn-end-task');
+        }
+
         function startRoute() {
             if (!activeData || !CAN_REROUTE) return;
-            if (activeData.lat && activeData.lon) {
-                window.open('https://www.google.com/maps/dir/?api=1&destination=' + activeData.lat + ',' + activeData.lon, '_blank');
+            const btn = document.getElementById('btn-start');
+            if (btn && btn.disabled) return; // safety: ignore clicks when grey
+
+            const taskId = activeData.task_id;
+            const status = (activeData.status || '').toLowerCase();
+
+            // Block if already done
+            if (status.indexOf('awaiting') !== -1 || status.indexOf('resolved') !== -1) return;
+
+            if (!enRouteTasks[taskId]) {
+                // ── START ROUTE ─────────────────────────────────────────
+                enRouteTasks[taskId] = true;
+                activeData.status = 'En Route'; // optimistic local update
+                syncStartButton();
+                fetch('/update_status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task_id: taskId, status: 'En Route' })
+                });
+                if (activeData.lat && activeData.lon) {
+                    map.flyTo([activeData.lat, activeData.lon], 15, { animate: true, duration: 1.2 });
+                }
+            } else {
+                // ── END TASK ────────────────────────────────────────────
+                if (!confirm('End task for ' + taskId + '?\nThis will notify the operator to update the report status.')) return;
+                enRouteTasks[taskId] = false;
+                activeData.status = 'Awaiting Confirmation'; // optimistic local update
+                syncStartButton(); // becomes grey/disabled
+                fetch('/update_status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task_id: taskId, status: 'Awaiting Confirmation' })
+                });
             }
         }
 
@@ -267,33 +446,119 @@
         }
 
         function loadData() {
-            fetch('/responder_data').then(res => res.json()).then(data => {
-                const tbody = document.getElementById('table_body');
-                tbody.innerHTML = '';
-                
-                if(data.length === 0) {
-                    tbody.innerHTML = "<tr><td colspan='7' style='text-align:center'>No active tasks.</td></tr>";
-                    return;
-                }
+            fetch('/responder_data')
+                .then(function(res) {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(function(rows) {
+                    console.log('[Monitor] Reports received:', rows.length, rows);
+                    const tbody = document.getElementById('table_body');
+                    if (!tbody) { console.error('[Monitor] No #table_body element'); return; }
+                    // Clear safely
+                    while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
 
-                data.forEach((row) => {
-                    let tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${row.task_id}</td>
-                        <td>${row.assigned_team}</td> 
-                        <td>${row.location}</td>
-                        <td>${row.status}</td>
-                        <td>${row.severity}</td>
-                        <td>${row.time}</td>
-                        <td><button class="btn-view" onclick='viewRoute(${JSON.stringify(row)})'>👁 View</button></td>
-                    `;
-                    tbody.appendChild(tr);
+                    if (!rows.length) {
+                        const tr = document.createElement('tr');
+                        const td = document.createElement('td');
+                        td.colSpan = 7;
+                        td.style.textAlign = 'center';
+                        td.style.padding = '20px';
+                        td.style.color = '#888';
+                        td.textContent = 'No reports found.';
+                        tr.appendChild(td);
+                        tbody.appendChild(tr);
+                        return;
+                    }
+
+                    rows.forEach(function(row) {
+                        try {
+                            const tr = document.createElement('tr');
+                            tr.style.cursor = 'pointer';
+
+                            // Task ID cell
+                            const tdId = document.createElement('td');
+                            const strong = document.createElement('strong');
+                            strong.textContent = row.task_id || '—';
+                            tdId.appendChild(strong);
+                            tr.appendChild(tdId);
+
+                            // Team cell
+                            const tdTeam = document.createElement('td');
+                            const unassigned = !row.team_location || row.assigned_team === 'Pending Assignment';
+                            if (unassigned) {
+                                tdTeam.innerHTML = '<span style="color:#bbb;font-style:italic;">— Unassigned</span>';
+                            } else {
+                                tdTeam.textContent = row.assigned_team || '—';
+                            }
+                            tr.appendChild(tdTeam);
+
+                            // Location
+                            const tdLoc = document.createElement('td');
+                            tdLoc.textContent = row.location || '—';
+                            tr.appendChild(tdLoc);
+
+                            // Status badge
+                            const tdStat = document.createElement('td');
+                            const s = (row.status || '').toLowerCase();
+                            let bg = '#fff3cd', fg = '#856404';
+                            if (s.indexOf('progress') !== -1 || s.indexOf('route') !== -1) { bg = '#d4edda'; fg = '#155724'; }
+                            if (s.indexOf('awaiting') !== -1) { bg = '#cce5ff'; fg = '#004085'; }
+                            if (s.indexOf('resolved') !== -1) { bg = '#e2e3e5'; fg = '#383d41'; }
+                            const badge = document.createElement('span');
+                            badge.style.cssText = 'display:inline-block;padding:2px 10px;border-radius:12px;font-size:0.78rem;font-weight:600;background:' + bg + ';color:' + fg + ';';
+                            badge.textContent = row.status || '—';
+                            tdStat.appendChild(badge);
+                            tr.appendChild(tdStat);
+
+                            // Severity
+                            const tdSev = document.createElement('td');
+                            const sev = (row.severity || '').toLowerCase();
+                            if (sev.indexOf('high') !== -1 || sev.indexOf('critical') !== -1) tdSev.style.cssText = 'color:#c0392b;font-weight:700;';
+                            else if (sev.indexOf('medium') !== -1) tdSev.style.cssText = 'color:#e67e22;font-weight:700;';
+                            else if (sev.indexOf('low') !== -1)    tdSev.style.cssText = 'color:#27ae60;font-weight:700;';
+                            else tdSev.style.color = '#555';
+                            tdSev.textContent = row.severity || '—';
+                            tr.appendChild(tdSev);
+
+                            // Time reported
+                            const tdTime = document.createElement('td');
+                            tdTime.textContent = row.time || '—';
+                            tr.appendChild(tdTime);
+
+                            // Action button
+                            const tdAct = document.createElement('td');
+                            const btn = document.createElement('button');
+                            btn.className = 'btn-view';
+                            btn.textContent = '👁 View';
+                            // Bind data via closure — no string injection
+                            (function(rowData, btnEl) {
+                                btn.addEventListener('click', function() {
+                                    document.querySelectorAll('#table_body tr').forEach(function(r) { r.style.background = ''; });
+                                    btnEl.closest('tr').style.background = '#eaf4fb';
+                                    document.querySelector('.monitor-grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    viewRoute(rowData);
+                                });
+                            })(row, btn);
+                            tdAct.appendChild(btn);
+                            tr.appendChild(tdAct);
+
+                            tbody.appendChild(tr);
+                        } catch (e) {
+                            console.error('[Monitor] Failed to render row:', row, e);
+                        }
+                    });
+                })
+                .catch(function(err) {
+                    console.error('[Monitor] loadData failed:', err);
                 });
-            });
         }
 
         function viewRoute(data) {
         activeData = data;
+
+        // Sync the Start/End button for this specific task
+        syncStartButton();
         
         // 1. Sidebar UI Updates
         document.getElementById('d-id').innerText = data.task_id;
@@ -330,12 +595,10 @@
         // 3. Calculate Route
         if (!isPending && data.team_location && data.lat && data.lon) {
             
-            // Catch the toggle status safely
-            let useAbsra = false;
-            let absraCheckbox = document.getElementById('toggle-absra');
-            if (absraCheckbox) {
-                useAbsra = absraCheckbox.checked;
-            }
+            // ABSRA ON by default
+            let useAbsra = true;
+            const absraCheckbox = document.getElementById('toggle-absra');
+            if (absraCheckbox) useAbsra = absraCheckbox.checked;
 
             // Fetch from our Python API
             fetch(`/calculate_route?task_id=${data.task_id}&team_lat=${data.team_location.lat}&team_lon=${data.team_location.lon}&task_lat=${data.lat}&task_lon=${data.lon}&alternative=${isAlternativeMode}&use_absra=${useAbsra}`)
@@ -373,6 +636,10 @@
                     routingControl = L.Routing.control({
                         waypoints: waypoints,
                         show: false,
+                        addWaypoints: false,
+                        draggableWaypoints: false,
+                        routeWhileDragging: false,
+                        fitSelectedRoutes: false,
                         lineOptions: { styles: [{color: '#d90429', opacity: 0.8, weight: 6}] },
                         createMarker: (i, wp, n) => {
                             if (i === 0) return L.circleMarker(wp.latLng, {color: 'green', radius: 6});

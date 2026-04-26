@@ -148,8 +148,12 @@
                     <div class="details-header">
                         <span>{{ selected_report.task_id }} Details</span>
                         <div class="header-actions">
-                            <button type="submit" id="btn-save" class="btn-save">Save Changes</button>
-                            <button type="button" id="btn-edit" class="btn-edit" onclick="enableEditMode()">✎ Edit</button>
+                            {% if selected_report.status == 'Resolved' %}
+                                <span style="display:inline-flex;align-items:center;gap:6px;background:#e2e3e5;color:#383d41;padding:6px 14px;border-radius:4px;font-weight:bold;font-size:0.9rem;">🔒 Resolved — Locked</span>
+                            {% else %}
+                                <button type="submit" id="btn-save" class="btn-save">Save Changes</button>
+                                <button type="button" id="btn-edit" class="btn-edit" onclick="enableEditMode()">✎ Edit</button>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -230,7 +234,7 @@
                                 </select>
                             </div>
                             
-                            {% if user.role != 'Responder' %}
+                            {% if user.role != 'Responder' and selected_report.status != 'Resolved' %}
                             <a href="/teams" class="btn-assign" style="margin-top: 20px;">Assign Task</a>
                             {% endif %}
                         </div>

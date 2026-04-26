@@ -7,7 +7,7 @@ import time  # <--- Added for System Analytics
 import requests 
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from models import db, DisasterReport, Team, User, RouteLog, RoadConstraint
+from models import db, DisasterReport, Team, User, RouteLog, RoadConstraint, Notification
 
 # ==========================================
 #  GLOBAL SETTINGS & DATA
@@ -223,7 +223,7 @@ def create_app():
     @login_required
     def monitor_view():
         show_all = USER_SETTINGS.get(current_user.id, {}).get('show_routes', False)
-        can_reroute = current_user.role in ("Programmer", "Responder")
+        can_reroute = current_user.role == "Responder"
         return render_template("monitor.html", user=current_user, show_all_routes=show_all, can_reroute=can_reroute)
 
     # --- NEW: SYSTEM ANALYTICS VIEW ---
@@ -337,10 +337,22 @@ def create_app():
             role = request.form.get('role')
             first_name = request.form.get('first_name')
             last_name = request.form.get('last_name')
+            phone = (request.form.get('phone') or '').strip()
+
+            # ── Phone validation: PH mobile format ─────────────────────
+            import re
+            phone_clean = re.sub(r'\s+', '', phone)
+            if not re.match(r'^(09\d{9}|\+639\d{9})$', phone_clean):
+                flash("❌ Invalid mobile number. Use 09XX XXX XXXX or +639XX XXX XXXX format.", "error")
+                next_opt, _ = get_next_details("OPT")
+                next_rsp, _ = get_next_details("RSP")
+                return render_template('register.html', user=current_user, next_opt=next_opt, next_rsp=next_rsp)
+
             prefix = "OPT" if role == "Operator" else "RSP"
             final_id, id_count = get_next_details(prefix)
             auto_pass = f"password{id_count:03d}"
-            new_user = User(account_id=final_id, password=auto_pass, role=role, first_name=first_name, last_name=last_name)
+            new_user = User(account_id=final_id, password=auto_pass, role=role,
+                            first_name=first_name, last_name=last_name, phone=phone_clean)
             db.session.add(new_user)
             if role == "Responder":
                 municipality = request.form.get('municipality')
@@ -399,7 +411,12 @@ def create_app():
     @login_required
     def save_report_changes():
         r = DisasterReport.query.get(request.form.get("report_id"))
-        if r: 
+        if r:
+            # ── Resolved tasks are locked and cannot be edited ─────────
+            if r.status == "Resolved":
+                flash("🔒 This report is Resolved and cannot be edited.", "error")
+                return redirect(url_for('reports_list', view_id=request.form.get("view_id")))
+
             new_status = request.form.get("status")
             if new_status == "In Progress" and (not r.assigned_team or r.assigned_team.strip() == ""):
                 flash("⚠️ Cannot change status to 'In Progress' without assigning a team first.", "error")
@@ -434,11 +451,13 @@ def create_app():
     @app.route("/responder_data")
     @login_required
     def responder_data():
+        # Responder: only their assigned non-resolved tasks
+        # Operator/Admin/Programmer: ALL reports regardless of status
         if current_user.role == "Responder":
             team = get_responder_team()
             reports = DisasterReport.query.filter_by(assigned_team=team.team_id).filter(DisasterReport.status != 'Resolved').all() if team else []
         else:
-            reports = DisasterReport.query.filter(DisasterReport.status != 'Resolved').all()
+            reports = DisasterReport.query.order_by(DisasterReport.date_submitted.desc()).all()
         data = []
         for r in reports:
             team_display = "Pending Assignment"
@@ -602,6 +621,71 @@ def create_app():
             return jsonify([])
     # ======================================
 
+    @app.route("/api/all_monitor_reports")
+    @login_required
+    def all_monitor_reports():
+        # For Responder: only their team's tasks (excluding resolved)
+        # For everyone else (Operator/Admin/Programmer): ALL reports regardless of status
+        if current_user.role == "Responder":
+            team = get_responder_team()
+            reports = DisasterReport.query.filter_by(assigned_team=team.team_id).filter(DisasterReport.status != 'Resolved').all() if team else []
+        else:
+            reports = DisasterReport.query.order_by(DisasterReport.date_submitted.desc()).all()
+        data = []
+        for r in reports:
+            team_display = "Pending Assignment"
+            team_start_loc = None
+            if r.assigned_team:
+                team = Team.query.filter_by(team_id=r.assigned_team).first()
+                if team:
+                    team_display = f"{team.team_id} ({team.leader})"
+                    team_start_loc = {"lat": team.lat, "lon": team.lon}
+            data.append({
+                "task_id": r.task_id, "disaster_type": r.disaster_type, "location": r.location,
+                "team_location": team_start_loc, "assigned_team": team_display,
+                "status": r.status, "time": r.time_str, "severity": r.severity, "lat": r.lat, "lon": r.lon
+            })
+        return jsonify(data)
+
+    @app.route("/update_status", methods=["POST"])
+    @login_required
+    def update_status():
+        data = request.get_json()
+        task_id = data.get("task_id")
+        new_status = data.get("status")
+        r = DisasterReport.query.filter_by(task_id=task_id).first()
+        if r and new_status:
+            r.status = new_status
+            db.session.commit()
+            if new_status == "En Route":
+                db.session.add(Notification(task_id=r.task_id, message=f"🚨 {r.task_id} — Team is En Route to {r.location}. Update status when task is complete."))
+                db.session.commit()
+            elif new_status == "Awaiting Confirmation":
+                db.session.add(Notification(task_id=r.task_id, message=f"✅ {r.task_id} — Responder has ended task at {r.location}. Please update the report status."))
+                db.session.commit()
+            return jsonify({"status": "ok"})
+        return jsonify({"error": "Report not found"}), 404
+
+    @app.route("/api/notifications")
+    @login_required
+    def api_notifications():
+        notes = Notification.query.filter_by(is_read=False).order_by(Notification.created_at.desc()).limit(20).all()
+        return jsonify([{"id": n.id, "task_id": n.task_id, "message": n.message, "time": n.created_at.strftime("%I:%M %p")} for n in notes])
+
+    @app.route("/api/dismiss_notification/<int:note_id>", methods=["POST"])
+    @login_required
+    def dismiss_notification(note_id):
+        n = Notification.query.get(note_id)
+        if n: n.is_read = True; db.session.commit()
+        return jsonify({"status": "ok"})
+
+    @app.route("/api/dismiss_all_notifications", methods=["POST"])
+    @login_required
+    def dismiss_all_notifications():
+        Notification.query.filter_by(is_read=False).update({"is_read": True})
+        db.session.commit()
+        return jsonify({"status": "ok"})
+
     return app
 
 
@@ -624,7 +708,7 @@ if __name__ == "__main__":
     except: local_ip = "127.0.0.1"
     print("\n" + "="*60)
     print(f"🚀 SYSTEM ONLINE (SINGLE PORT)")
-    print(f"   ➤ PC Access:     http://127.0.0.1:5004/login")
-    print(f"   ➤ Mobile Access: http://{local_ip}:5004/login")
+    print(f"   ➤ PC Access:     http://127.0.0.1:5000/login")
+    print(f"   ➤ Mobile Access: http://{local_ip}:5000/login")
     print("="*60 + "\n")
-    app.run(debug=True, host='0.0.0.0', port=5004)
+    app.run(debug=True, host='0.0.0.0', port=5000)

@@ -127,7 +127,20 @@
                     <span>Register New Account</span>
                 </div>
                 <div class="card-body">
-                    
+
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, msg in messages %}
+                                <div style="padding:10px 14px;border-radius:5px;margin-bottom:15px;font-size:0.9rem;
+                                            background:{{ '#f8d7da' if category=='error' else '#d4edda' }};
+                                            color:{{ '#721c24' if category=='error' else '#155724' }};
+                                            border:1px solid {{ '#f5c6cb' if category=='error' else '#c3e6cb' }};">
+                                    {{ msg }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
                     {% if success_user %}
                     <div class="success-box">
                         <strong>User Created Successfully!</strong><br><br>
@@ -148,6 +161,16 @@
                                 <label>Last Name</label>
                                 <input type="text" name="last_name" placeholder="Doe" required>
                             </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Mobile Number</label>
+                            <input type="tel" name="phone" id="phoneInput"
+                                   placeholder="09XX XXX XXXX"
+                                   pattern="^(09|\+639)\d{2}\s?\d{3}\s?\d{4}$"
+                                   title="Enter a valid PH mobile number (e.g. 0917 123 4567 or +639171234567)"
+                                   required maxlength="15">
+                            <span class="note">Format: 09XX XXX XXXX or +639XX XXX XXXX</span>
                         </div>
 
                         <div class="form-group">
