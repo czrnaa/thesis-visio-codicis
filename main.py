@@ -4,8 +4,12 @@ import math
 import heapq
 import os
 import time  # <--- Added for System Analytics
+import random   # <--- For OTP generation
+import smtplib  # <--- For sending email OTPs
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import requests 
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from models import db, DisasterReport, Team, User, RouteLog, RoadConstraint, Notification
 
@@ -158,6 +162,220 @@ def create_app():
     def logout():
         logout_user()
         return redirect(url_for('login'))
+
+    # ==========================================
+    #  OTP / EMAIL AUTHENTICATION
+    # ==========================================
+    # 🔧 GMAIL SMTP CONFIG — SET THESE TO ENABLE REAL EMAIL DELIVERY
+    # 1. Enable 2-Step Verification on your Gmail: https://myaccount.google.com/security
+    # 2. Generate an App Password: https://myaccount.google.com/apppasswords
+    # 3. Paste the 16-char password below (no spaces).
+    # If left blank, OTPs print to console (demo fallback).
+    GMAIL_USER     = 'vincesantos1188@gmail.com'   # ← your Gmail address
+    GMAIL_APP_PASS = 'vfovbvbdhvihyfrl'        # ← the NEW 16 chars, no spaces
+    def generate_otp():
+        """Generate a random 6-digit OTP."""
+        return f"{random.randint(0, 999999):06d}"
+
+    def mask_email(email):
+        """Mask an email for display: john.doe@gmail.com → j****e@gmail.com"""
+        if not email or '@' not in email:
+            return "your registered email"
+        local, domain = email.split('@', 1)
+        if len(local) <= 2:
+            masked_local = local[0] + '*'
+        else:
+            masked_local = local[0] + '*' * (len(local) - 2) + local[-1]
+        return f"{masked_local}@{domain}"
+
+    def send_otp_email(recipient, otp, purpose="verification"):
+        """
+        Sends OTP via Gmail SMTP. Returns True on success, False otherwise.
+        Always prints to console as a backup so the demo never breaks.
+        """
+        # Always print to console (demo backup)
+        print("=" * 60)
+        print(f"📧 [OTP EMAIL] Purpose: {purpose}")
+        print(f"   To: {recipient}")
+        print(f"   Code: {otp}  (valid for 5 minutes)")
+        print("=" * 60)
+
+        # Skip real send if SMTP not configured
+        if not GMAIL_USER or not GMAIL_APP_PASS:
+            print("   ⚠️  GMAIL_USER / GMAIL_APP_PASS not configured — email not sent.")
+            return False
+
+        try:
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = f'Disaster Logistics — {purpose} OTP'
+            msg['From']    = f'Disaster Logistics Platform <{GMAIL_USER}>'
+            msg['To']      = recipient
+
+            text_body = (
+                f"Your one-time verification code is: {otp}\n\n"
+                f"Purpose: {purpose}\n"
+                f"This code expires in 5 minutes.\n\n"
+                f"If you did not request this code, please ignore this email."
+            )
+
+            html_body = f"""
+            <html><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#f4f4f4;padding:30px;">
+              <div style="max-width:520px;margin:0 auto;background:white;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+                <div style="background:#d90429;color:white;padding:24px;text-align:center;">
+                  <h1 style="margin:0;font-size:1.4rem;">Disaster Response Logistics</h1>
+                </div>
+                <div style="padding:30px;">
+                  <h2 style="color:#333;margin:0 0 12px;">{purpose} Code</h2>
+                  <p style="color:#555;line-height:1.5;">Use the code below to verify this action. It expires in 5 minutes.</p>
+                  <div style="background:#f7f7f7;border:2px dashed #d90429;border-radius:8px;padding:24px;text-align:center;margin:24px 0;">
+                    <span style="font-family:'Courier New',monospace;font-size:2.4rem;font-weight:bold;letter-spacing:8px;color:#d90429;">{otp}</span>
+                  </div>
+                  <p style="color:#888;font-size:0.85rem;line-height:1.5;">
+                    If you did not request this code, you can safely ignore this email — your account is still secure.
+                  </p>
+                </div>
+                <div style="background:#f4f4f4;padding:14px;text-align:center;color:#aaa;font-size:0.75rem;">
+                  Disaster Response Logistics Platform — Automated message, please do not reply.
+                </div>
+              </div>
+            </body></html>
+            """
+
+            msg.attach(MIMEText(text_body, 'plain'))
+            msg.attach(MIMEText(html_body, 'html'))
+
+            with smtplib.SMTP('smtp.gmail.com', 587) as server:
+                server.starttls()
+                server.login(GMAIL_USER, GMAIL_APP_PASS)
+                server.send_message(msg)
+            print(f"   ✅ Email delivered to {recipient}")
+            return True
+        except Exception as e:
+            print(f"   ❌ Email send failed: {e}")
+            return False
+
+    @app.route('/forgot_password', methods=['GET', 'POST'])
+    def forgot_password():
+        if request.method == 'POST':
+            account_id = (request.form.get('account_id') or '').strip().upper()
+            user = User.query.filter_by(account_id=account_id).first()
+            if not user:
+                flash("❌ Account ID not found.", "error")
+                return redirect(url_for('forgot_password'))
+            if not user.email:
+                flash("❌ This account has no registered email. Contact your administrator.", "error")
+                return redirect(url_for('forgot_password'))
+
+            otp = generate_otp()
+            email_ok = send_otp_email(user.email, otp, purpose="Password Reset")
+
+            # For Forgot Password, email MUST send. If it fails, abort.
+            if not email_ok:
+                flash("❌ Unable to send OTP email. Please try again later or contact your administrator.", "error")
+                return redirect(url_for('forgot_password'))
+
+            session['otp_code']       = otp
+            session['otp_user_id']    = user.id
+            session['otp_purpose']    = 'reset_password'
+            session['otp_expires']    = (datetime.datetime.utcnow() + datetime.timedelta(minutes=5)).isoformat()
+            session['otp_email_sent'] = True
+            return redirect(url_for('verify_otp_view'))
+
+        return render_template('forgot_password.html')
+
+    @app.route('/change_password_request')
+    @login_required
+    def change_password_request():
+        """Logged-in user requests OTP to change their own password."""
+        if not current_user.email:
+            flash("❌ No email address on file. Contact your administrator to add one.", "error")
+            return redirect(url_for('profile_settings'))
+
+        otp = generate_otp()
+        session['otp_code']    = otp
+        session['otp_user_id'] = current_user.id
+        session['otp_purpose'] = 'change_password'
+        session['otp_expires'] = (datetime.datetime.utcnow() + datetime.timedelta(minutes=5)).isoformat()
+
+        email_ok = send_otp_email(current_user.email, otp, purpose="Change Password")
+        session['otp_email_sent'] = email_ok
+        return redirect(url_for('verify_otp_view'))
+
+    @app.route('/verify_otp', methods=['GET', 'POST'])
+    def verify_otp_view():
+        # Must have an active OTP session
+        if 'otp_code' not in session or 'otp_user_id' not in session:
+            flash("⚠️ No active verification session. Please start again.", "error")
+            return redirect(url_for('login'))
+
+        user = User.query.get(session['otp_user_id'])
+        if not user:
+            session.pop('otp_code', None); session.pop('otp_user_id', None)
+            flash("❌ Session error. Please try again.", "error")
+            return redirect(url_for('login'))
+
+        # Check expiry
+        try:
+            expires = datetime.datetime.fromisoformat(session.get('otp_expires', ''))
+            if datetime.datetime.utcnow() > expires:
+                session.pop('otp_code', None); session.pop('otp_user_id', None)
+                flash("⏰ OTP expired. Please request a new code.", "error")
+                return redirect(url_for('login'))
+        except Exception:
+            pass
+
+        if request.method == 'POST':
+            entered = (request.form.get('otp') or '').strip()
+            if entered != session.get('otp_code'):
+                flash("❌ Incorrect OTP. Please try again.", "error")
+                return redirect(url_for('verify_otp_view'))
+
+            new_pw = (request.form.get('new_password') or '').strip()
+            confirm = (request.form.get('confirm_password') or '').strip()
+            if not new_pw or len(new_pw) < 6:
+                flash("❌ Password must be at least 6 characters.", "error")
+                return redirect(url_for('verify_otp_view'))
+            if new_pw != confirm:
+                flash("❌ Passwords do not match.", "error")
+                return redirect(url_for('verify_otp_view'))
+
+            # All checks passed — update password
+            user.password = new_pw
+            db.session.commit()
+
+            purpose = session.get('otp_purpose', '')
+            session.pop('otp_code', None)
+            session.pop('otp_user_id', None)
+            session.pop('otp_purpose', None)
+            session.pop('otp_expires', None)
+            session.pop('otp_email_sent', None)
+
+            if purpose == 'reset_password':
+                flash("✅ Password reset successfully. Please log in with your new password.", "success")
+                return redirect(url_for('login'))
+            else:  # change_password
+                flash("✅ Password changed successfully.", "success")
+                return redirect(url_for('profile_settings'))
+
+        # GET — show OTP entry form
+        email_was_sent = session.get('otp_email_sent', False)
+        purpose        = session.get('otp_purpose', '')
+
+        # Forgot-Password flow: NEVER show OTP on screen — must be retrieved from email only.
+        # Change-Password flow: show OTP as fallback only if email failed (demo safety net).
+        show_demo_otp = None
+        if purpose == 'change_password' and not email_was_sent:
+            show_demo_otp = session.get('otp_code')
+
+        return render_template(
+            'verify_otp.html',
+            masked_target=mask_email(user.email),
+            submit_url=url_for('verify_otp_view'),
+            cancel_url=url_for('login') if purpose == 'reset_password' else url_for('profile_settings'),
+            needs_password=True,
+            email_sent=email_was_sent,
+            demo_otp=show_demo_otp
+        )
 
     @app.route("/")
     def home(): return redirect(url_for("dashboard_view"))
@@ -380,6 +598,7 @@ def create_app():
             first_name = request.form.get('first_name')
             last_name = request.form.get('last_name')
             phone = (request.form.get('phone') or '').strip()
+            email = (request.form.get('email') or '').strip().lower()
 
             # ── Phone validation: PH mobile format ─────────────────────
             import re
@@ -390,11 +609,18 @@ def create_app():
                 next_rsp, _ = get_next_details("RSP")
                 return render_template('register.html', user=current_user, next_opt=next_opt, next_rsp=next_rsp)
 
+            # ── Email validation ───────────────────────────────────────
+            if not re.match(r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$', email):
+                flash("❌ Invalid email address.", "error")
+                next_opt, _ = get_next_details("OPT")
+                next_rsp, _ = get_next_details("RSP")
+                return render_template('register.html', user=current_user, next_opt=next_opt, next_rsp=next_rsp)
+
             prefix = "OPT" if role == "Operator" else "RSP"
             final_id, id_count = get_next_details(prefix)
             auto_pass = f"password{id_count:03d}"
             new_user = User(account_id=final_id, password=auto_pass, role=role,
-                            first_name=first_name, last_name=last_name, phone=phone_clean)
+                            first_name=first_name, last_name=last_name, phone=phone_clean, email=email)
             db.session.add(new_user)
             if role == "Responder":
                 municipality = request.form.get('municipality')
@@ -754,7 +980,7 @@ if __name__ == "__main__":
     except: local_ip = "127.0.0.1"
     print("\n" + "="*60)
     print(f"🚀 SYSTEM ONLINE (SINGLE PORT)")
-    print(f"   ➤ PC Access:     http://127.0.0.1:5004/login")
-    print(f"   ➤ Mobile Access: http://{local_ip}:5004/login")
+    print(f"   ➤ PC Access:     http://127.0.0.1:5000/login")
+    print(f"   ➤ Mobile Access: http://{local_ip}:5000/login")
     print("="*60 + "\n")
-    app.run(debug=True, host='0.0.0.0', port=5004)
+    app.run(debug=True, host='0.0.0.0', port=5000)

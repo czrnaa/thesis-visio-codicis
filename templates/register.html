@@ -7,7 +7,7 @@
         :root { --primary-red: #d90429; --sidebar-bg: #e0e0e0; --border-color: #333; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background-color: #f4f4f4; }
         
-        /* --- LAYOUT & SIDEBAR --- */
+        /* --- LAYOUT & SIDEBAR (Your Original Styles) --- */
         .top-bar { background-color: var(--primary-red); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; height: 60px; box-sizing: border-box; }
         .top-bar h2 { margin: 0; font-size: 1.3rem; font-weight: 600; }
         .user-profile { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
@@ -46,7 +46,7 @@
 
         .card-body { padding: 30px; }
 
-        .form-group { margin-bottom: 20px; position: relative; } 
+        .form-group { margin-bottom: 20px; position: relative; } /* Relative for dropdown positioning */
         .form-group label { display: block; font-weight: 600; margin-bottom: 8px; color: #333; }
         .form-group input, .form-group select {
             width: 100%; padding: 10px; border: 1px solid #333; border-radius: 4px;
@@ -66,11 +66,6 @@
         }
         .btn-cancel:hover { color: #333; text-decoration: underline; }
 
-        /* --- ALERT MESSAGES --- */
-        .alert-box { padding: 10px 14px; border-radius: 5px; margin-bottom: 15px; font-size: 0.9rem; border: 1px solid transparent; }
-        .alert-error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
-        .alert-success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
-
         .success-box {
             background-color: #d4edda; color: #155724; padding: 15px; border: 1px solid #c3e6cb;
             border-radius: 5px; margin-bottom: 20px;
@@ -78,7 +73,7 @@
         .pass-display { font-family: monospace; font-size: 1.1rem; font-weight: bold; background: white; padding: 2px 6px; border-radius: 3px; }
         .note { font-size: 0.8rem; color: #666; margin-bottom: 15px; display: block; font-style: italic; }
 
-        /* --- AUTO-SUGGESTION DROPDOWN STYLES --- */
+        /* --- NEW: AUTO-SUGGESTION DROPDOWN STYLES --- */
         .suggestions-list {
             position: absolute;
             top: 100%; left: 0; right: 0;
@@ -109,10 +104,7 @@
 
     <div class="top-bar">
         <h2>Disaster Response Logistics Platform</h2>
-        <div class="user-profile">
-            <span style="font-weight: 600;">{{ user.account_id }}</span>
-            <img src="{{ url_for('static', filename='assets/person_profile.svg') }}" alt="Profile" class="user-circle" style="object-fit: cover; background: white;">
-        </div>
+        <div class="user-profile"><span>{{ user.account_id }}</span><div class="user-circle"></div></div>
     </div>
     
     <div class="main-container">
@@ -139,7 +131,10 @@
                     {% with messages = get_flashed_messages(with_categories=true) %}
                         {% if messages %}
                             {% for category, msg in messages %}
-                                <div class="alert-box alert-{{ category }}">
+                                <div style="padding:10px 14px;border-radius:5px;margin-bottom:15px;font-size:0.9rem;
+                                            background:{{ '#f8d7da' if category=='error' else '#d4edda' }};
+                                            color:{{ '#721c24' if category=='error' else '#155724' }};
+                                            border:1px solid {{ '#f5c6cb' if category=='error' else '#c3e6cb' }};">
                                     {{ msg }}
                                 </div>
                             {% endfor %}
@@ -176,6 +171,14 @@
                                    title="Enter a valid PH mobile number (e.g. 0917 123 4567 or +639171234567)"
                                    required maxlength="15">
                             <span class="note">Format: 09XX XXX XXXX or +639XX XXX XXXX</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" name="email" id="emailInput"
+                                   placeholder="user@example.com"
+                                   required maxlength="120">
+                            <span class="note">Used for password reset OTPs.</span>
                         </div>
 
                         <div class="form-group">

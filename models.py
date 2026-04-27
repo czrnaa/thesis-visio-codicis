@@ -63,6 +63,7 @@ class User(db.Model, UserMixin):
     first_name = db.Column(db.String(50), default="Jane Doe")
     last_name = db.Column(db.String(50), default="Yamada")
     phone = db.Column(db.String(20), default="09XX XXX XXXX")
+    email = db.Column(db.String(120), default="")
     status = db.Column(db.String(20), default="Active")
     last_login = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
