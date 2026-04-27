@@ -74,6 +74,7 @@
         
         <div class="content">
             
+            <div style="font-size:1rem;font-weight:700;color:#222;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #d90429;">Response Teams</div>
             <div class="table-container">
                 <div class="table-header">
                     <table>
@@ -94,7 +95,7 @@
                         <tbody>
                             {% for team in teams %}
                             <tr>
-                                <td class="col-tid">{{ team.id }}</td>
+                                <td class="col-tid"><strong>{{ team.id }}</strong></td>
                                 <td class="col-ldr">{{ team.leader }}</td>
                                 <td class="col-loc">{{ team.location }}</td>
                                 <td class="col-tsk">{{ team.task }}</td>
@@ -111,16 +112,17 @@
                 </div>
             </div>
 
+            <div style="font-size:1rem;font-weight:700;color:#222;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #d90429;">All Master Tasks</div>
             <div class="table-container">
                 <div class="table-header">
                     <table>
                         <thead>
                             <tr>
                                 <th class="col-tid">Task ID</th>
-                                <th class="col-ldr">Team ID</th>
+                                <th class="col-ldr">Assigned Team</th>
                                 <th class="col-loc">Location</th>
-                                <th class="col-tsk">Assigned Task</th>
-                                <th class="col-av">Availability</th>
+                                <th class="col-tsk">Disaster Type</th>
+                                <th class="col-av">Status</th>
                                 <th class="col-act">Actions</th>
                             </tr>
                         </thead>
@@ -128,28 +130,38 @@
                 </div>
                 <div class="table-scroll">
                     <table>
-                        <tbody>
+                        <tbody id="task-table-body">
                             {% for r in reports %}
                             <tr>
-                                <td class="col-tid">{{ r.task_id }}</td>
-                                <td class="col-ldr">{{ r.assigned_team if r.assigned_team else '-' }}</td>
+                                <td class="col-tid"><strong>{{ r.task_id }}</strong></td>
+                                <td class="col-ldr">{{ r.assigned_team if r.assigned_team else '<span style="color:#bbb;font-style:italic;">— Unassigned</span>'|safe }}</td>
                                 <td class="col-loc">{{ r.location }}</td>
                                 <td class="col-tsk">{{ r.disaster_type }}</td>
-                                <td class="col-av"><span class="status-busy">{{ r.status }}</span></td>
+                                <td class="col-av">
+                                    {% if r.status == 'Resolved' %}
+                                        <span style="color:#383d41; background:#e2e3e5; padding:2px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold;">Resolved</span>
+                                    {% elif r.status == 'Pending' or not r.assigned_team %}
+                                        <span style="color:#856404; background:#fff3cd; padding:2px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold;">Pending</span>
+                                    {% else %}
+                                        <span style="color:#155724; background:#d4edda; padding:2px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold;">{{ r.status }}</span>
+                                    {% endif %}
+                                </td>
                                 <td class="col-act">
-                                    {% if r.status == 'Pending' %}
+                                    {% if r.status == 'Resolved' %}
+                                        <span style="color:#28a745; font-size:0.85rem; font-weight:bold;">Done</span>
+                                    {% elif not r.assigned_team or r.status == 'Pending' %}
                                         {% if user.role != 'Admin' %}
-                                        <button class="btn-assign" onclick="selectTask('{{ r.task_id }}')">Assign</button>
+                                        <button class="btn-assign" onclick="selectTask('{{ r.task_id }}', this)">Assign</button>
                                         {% else %}
                                         <span style="color:#999; font-size:0.85rem;">Pending</span>
                                         {% endif %}
                                     {% else %}
-                                    <span style="color:#999; font-size:0.85rem;">Assigned</span>
+                                        <span style="color:#999; font-size:0.85rem;">Assigned</span>
                                     {% endif %}
                                 </td>
                             </tr>
                             {% else %}
-                            <tr><td colspan="6" style="text-align:center; padding: 20px;">No pending tasks.</td></tr>
+                            <tr><td colspan="6" style="text-align:center; padding: 20px;">No tasks found.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -167,7 +179,7 @@
                         {% endif %}
                     {% endfor %}
                 </select>
-                <button type="submit" id="btn-confirm" class="btn-confirm" disabled>Confirm</button>
+                <button type="submit" id="btn-confirm" class="btn-confirm" disabled>Confirm Assignment</button>
             </form>
             {% endif %}
 
@@ -175,8 +187,13 @@
     </div>
 
     <script>
-        function selectTask(taskId) {
+        function selectTask(taskId, btnEl) {
             document.getElementById('selected_task_id').value = taskId;
+            
+            // Highlight row
+            document.querySelectorAll('#task-table-body tr').forEach(function(r) { r.style.background = ''; });
+            if (btnEl) btnEl.closest('tr').style.background = '#eaf4fb';
+            
             checkSelection();
         }
 
