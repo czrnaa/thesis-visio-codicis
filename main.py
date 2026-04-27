@@ -229,19 +229,33 @@ def create_app():
     @login_required
     def teams_view():
         if current_user.role == "Responder": return redirect(url_for('dashboard_view'))
-        reports = DisasterReport.query.filter(DisasterReport.status != 'Resolved').all()
+        
+        # Show ALL reports (including resolved) to perfectly align with Monitor/Analytics
+        reports = DisasterReport.query.order_by(DisasterReport.date_submitted.desc()).all()
         teams_db = Team.query.all()
         display_teams = []
+        
         for t in teams_db:
-            active_assignment = DisasterReport.query.filter_by(assigned_team=t.team_id).filter(DisasterReport.status.in_(['In Progress', 'En Route'])).first()
-            final_status = "Busy" if active_assignment else "Available"
-            task_str = active_assignment.task_id if active_assignment else "-"
+            # A team is "Busy" if they have ANY assigned task that is NOT 'Resolved'
+            active_assignment = DisasterReport.query.filter_by(assigned_team=t.team_id).filter(DisasterReport.status != 'Resolved').first()
+            
+            if active_assignment:
+                final_status = "Busy"
+                task_str = active_assignment.task_id
+            else:
+                final_status = "Available"
+                # Get their most recently completed task to display as history
+                last_completed = DisasterReport.query.filter_by(assigned_team=t.team_id, status='Resolved').order_by(DisasterReport.date_submitted.desc()).first()
+                task_str = f"{last_completed.task_id} (Done)" if last_completed else "-"
+
             location_name = get_address_from_coords(t.lat, t.lon)
+            
             display_teams.append({
                 "id": t.team_id, "leader": t.leader, "location": location_name,
                 "role": t.role, "status": final_status, "task": task_str,
                 "last_updated": t.last_updated.strftime('%m-%d-%Y') if t.last_updated else "N/A"
             })
+            
         return render_template("teams.html", teams=display_teams, reports=reports, user=current_user)
 
     @app.route("/monitor")
@@ -449,8 +463,11 @@ def create_app():
             if new_status == "In Progress" and (not r.assigned_team or r.assigned_team.strip() == ""):
                 flash("Cannot change status to 'In Progress' without assigning a team first.", "error")
                 new_status = "Pending"
-            elif new_status == "Pending" or new_status == "Resolved":
+            
+            # FIXED: Removed the "or new_status == 'Resolved'" so the team isn't erased from history!
+            elif new_status == "Pending":
                 r.assigned_team = None 
+                
             r.status = new_status
             r.notes = request.form.get("notes")
             if request.form.get("disaster_type"): r.disaster_type = request.form.get("disaster_type")
@@ -461,7 +478,7 @@ def create_app():
             if new_status == request.form.get("status"):
                 flash("Report details updated successfully.", "success")
         return redirect(url_for('reports_list', view_id=request.form.get("view_id")))
-
+    
     @app.route("/assign_team", methods=["POST"])
     @login_required
     def assign_team():
