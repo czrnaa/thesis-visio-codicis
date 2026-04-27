@@ -369,29 +369,47 @@
 
         function syncStartButton() {
             const btn = document.getElementById('btn-start');
+            const btnReroute = document.getElementById('btn-reroute');
+            
             if (!btn || !activeData) return;
             const status = (activeData.status || '').toLowerCase();
 
             // ── DONE state: grey, disabled ─────────────────────────────
             if (status.indexOf('awaiting') !== -1 || status.indexOf('resolved') !== -1) {
-                btn.innerHTML = 'Task Completed';
+                btn.innerHTML = '✓ Task Completed';
                 btn.style.background = '#95a5a6';
                 btn.style.cursor = 'not-allowed';
                 btn.style.opacity = '0.85';
                 btn.disabled = true;
                 btn.classList.remove('btn-end-task');
+                
+                // Disable Re-route button
+                if (btnReroute) {
+                    btnReroute.style.background = '#95a5a6';
+                    btnReroute.style.cursor = 'not-allowed';
+                    btnReroute.style.opacity = '0.85';
+                    btnReroute.disabled = true;
+                }
                 return;
             }
 
             // ── EN ROUTE state: red, pulsing ──────────────────────────
             if (enRouteTasks[activeData.task_id] || status.indexOf('en route') !== -1 || status.indexOf('enroute') !== -1) {
-                enRouteTasks[activeData.task_id] = true;  // sync local state from server
-                btn.innerHTML = 'End Task';
+                enRouteTasks[activeData.task_id] = true;  
+                btn.innerHTML = '🛑 End Task';
                 btn.style.background = '#d90429';
                 btn.style.cursor = 'pointer';
                 btn.style.opacity = '1';
                 btn.disabled = false;
                 btn.classList.add('btn-end-task');
+                
+                // Keep Re-route button active
+                if (btnReroute) {
+                    btnReroute.style.background = '#2980b9';
+                    btnReroute.style.cursor = 'pointer';
+                    btnReroute.style.opacity = '1';
+                    btnReroute.disabled = false;
+                }
                 return;
             }
 
@@ -402,6 +420,14 @@
             btn.style.opacity = '1';
             btn.disabled = false;
             btn.classList.remove('btn-end-task');
+            
+            // Keep Re-route button active
+            if (btnReroute) {
+                btnReroute.style.background = '#2980b9';
+                btnReroute.style.cursor = 'pointer';
+                btnReroute.style.opacity = '1';
+                btnReroute.disabled = false;
+            }
         }
 
         function startRoute() {

@@ -188,11 +188,29 @@
 
         function syncRouteButton(taskId) {
             var btn = document.getElementById('btn-route-toggle');
+            var r = currentReports[selectedIndex];
+            var status = (r.status || '').toLowerCase();
+
+            // ── DONE state: grey, disabled ──
+            if (status.indexOf('awaiting') !== -1 || status.indexOf('resolved') !== -1) {
+                btn.textContent = 'Task Completed';
+                btn.className = 'btn-action';
+                btn.style.background = '#95a5a6';
+                btn.style.cursor = 'not-allowed';
+                btn.disabled = true;
+                return;
+            }
+
+            // Reset styles for active tasks
+            btn.style.background = '';
+            btn.style.cursor = 'pointer';
+            btn.disabled = false;
+
             if (enRouteTasks[taskId]) {
-                btn.textContent = '🛑 End Task';
+                btn.textContent = 'End Task';
                 btn.className   = 'btn-action btn-end';
             } else {
-                btn.textContent = '▶ Start Route';
+                btn.textContent = 'Start Route';
                 btn.className   = 'btn-action btn-start';
             }
         }
@@ -200,6 +218,10 @@
         function toggleRoute() {
             if (selectedIndex === null) return;
             var r = currentReports[selectedIndex];
+            
+            // Prevent clicks if completed
+            var status = (r.status || '').toLowerCase();
+            if (status.indexOf('awaiting') !== -1 || status.indexOf('resolved') !== -1) return;
 
             if (!enRouteTasks[r.task_id]) {
                 enRouteTasks[r.task_id] = true;
