@@ -188,6 +188,17 @@
                         <button id="btn-reroute" class="hidden" style="margin-top:8px;width:100%;background:#2980b9;color:white;border:none;padding:10px;font-weight:bold;font-size:0.92rem;border-radius:4px;cursor:pointer;" onclick="triggerAlternativeRoute()">
                             Find Alternative Route
                         </button>
+                        <button id="btn-constraint-toggle" class="hidden" style="margin-top:6px;width:100%;background:#2980b9;color:white;border:none;padding:10px;font-weight:bold;font-size:0.92rem;border-radius:4px;cursor:pointer;" onclick="toggleConstraintPanel()">
+                            &#9650; Add Constraint
+                        </button>
+                        <div id="constraint-panel" class="hidden" style="margin-top:6px;border:1px solid #2980b9;border-radius:4px;padding:10px;background:#f0f7ff;">
+                            <div style="font-size:0.8rem;font-weight:600;color:#555;margin-bottom:8px;">Select one road condition:</div>
+                            <button class="constraint-btn" data-type="road_block" onclick="selectConstraint(this)" style="width:100%;margin-bottom:6px;padding:8px;border:2px dashed #999;border-radius:4px;background:#fff;cursor:pointer;font-weight:600;font-size:0.85rem;">Road Block</button>
+                            <div style="display:flex;gap:6px;">
+                                <button class="constraint-btn" data-type="heavy_traffic" onclick="selectConstraint(this)" style="flex:1;padding:8px;border:2px dashed #999;border-radius:4px;background:#fff;cursor:pointer;font-weight:600;font-size:0.85rem;">Heavy Traffic</button>
+                                <button class="constraint-btn" data-type="flooded_road" onclick="selectConstraint(this)" style="flex:1;padding:8px;border:2px dashed #999;border-radius:4px;background:#fff;cursor:pointer;font-weight:600;font-size:0.85rem;">Flooded Road</button>
+                            </div>
+                        </div>
 
                         {% if user.role != 'Responder' %}
                         <button id="btn-assign-task" class="hidden" style="margin-top:10px;width:100%;background:#d90429;color:white;border:none;padding:10px;font-weight:bold;font-size:0.92rem;border-radius:4px;cursor:pointer;" onclick="window.location.href='/teams'">
@@ -304,20 +315,51 @@
         let activeData = null;
         let isAlternativeMode = false;
 
+        let selectedConstraint = '';
+
         function showActionButtons(show) {
-            var absraCont  = document.getElementById('absra-container');
-            var btnReroute = document.getElementById('btn-reroute');
-            var btnStart   = document.getElementById('btn-start');
-            
+            var absraCont      = document.getElementById('absra-container');
+            var btnStart       = document.getElementById('btn-start');
+            var btnReroute     = document.getElementById('btn-reroute');
+            var btnConstraint  = document.getElementById('btn-constraint-toggle');
+            var constraintPanel = document.getElementById('constraint-panel');
+
             if (CAN_REROUTE) {
-                if (absraCont)  absraCont.classList.toggle('hidden',  !show);
-                if (btnReroute) btnReroute.classList.toggle('hidden', !show);
-                if (btnStart)   btnStart.classList.toggle('hidden',   !show);
+                if (absraCont) absraCont.classList.toggle('hidden', !show);
+                if (btnStart)  btnStart.classList.toggle('hidden', !show);
+                // Reroute and constraint buttons only shown when en route (handled by syncStartButton)
+                if (!show) {
+                    if (btnReroute) btnReroute.classList.add('hidden');
+                    if (btnConstraint) btnConstraint.classList.add('hidden');
+                    if (constraintPanel) constraintPanel.classList.add('hidden');
+                }
             } else {
-                if (absraCont)  absraCont.classList.add('hidden');
+                if (absraCont) absraCont.classList.add('hidden');
+                if (btnStart) btnStart.classList.add('hidden');
                 if (btnReroute) btnReroute.classList.add('hidden');
-                if (btnStart)   btnStart.classList.add('hidden');
+                if (btnConstraint) btnConstraint.classList.add('hidden');
+                if (constraintPanel) constraintPanel.classList.add('hidden');
             }
+        }
+
+        function toggleConstraintPanel() {
+            var panel = document.getElementById('constraint-panel');
+            var toggleBtn = document.getElementById('btn-constraint-toggle');
+            var isOpen = !panel.classList.contains('hidden');
+            panel.classList.toggle('hidden', isOpen);
+            toggleBtn.innerHTML = isOpen ? '&#9650; Add Constraint' : '&#9660; Add Constraint';
+        }
+
+        function selectConstraint(btn) {
+            document.querySelectorAll('.constraint-btn').forEach(b => {
+                b.style.background = '#fff';
+                b.style.border = '2px dashed #999';
+                b.style.color = '#333';
+            });
+            btn.style.background = '#2980b9';
+            btn.style.border = '2px solid #2980b9';
+            btn.style.color = '#fff';
+            selectedConstraint = btn.getAttribute('data-type');
         }
 
         function syncApproveButton() {
@@ -377,58 +419,56 @@
         function syncStartButton() {
             const btn = document.getElementById('btn-start');
             const btnReroute = document.getElementById('btn-reroute');
-            
+            const btnConstraint = document.getElementById('btn-constraint-toggle');
+            const constraintPanel = document.getElementById('constraint-panel');
+
             if (!btn || !activeData) return;
             const status = (activeData.status || '').toLowerCase();
 
             if (status.indexOf('awaiting') !== -1 || status.indexOf('resolved') !== -1) {
-                btn.innerHTML = '✓ Task Completed';
+                btn.innerHTML = '&#10003; Task Completed';
                 btn.style.background = '#95a5a6';
                 btn.style.cursor = 'not-allowed';
                 btn.style.opacity = '0.85';
                 btn.disabled = true;
                 btn.classList.remove('btn-end-task');
-                
-                if (btnReroute) {
-                    btnReroute.style.background = '#95a5a6';
-                    btnReroute.style.cursor = 'not-allowed';
-                    btnReroute.style.opacity = '0.85';
-                    btnReroute.disabled = true;
-                }
+                // Hide reroute and constraint after task is done
+                if (btnReroute) btnReroute.classList.add('hidden');
+                if (btnConstraint) btnConstraint.classList.add('hidden');
+                if (constraintPanel) constraintPanel.classList.add('hidden');
                 return;
             }
 
             if (enRouteTasks[activeData.task_id] || status.indexOf('en route') !== -1 || status.indexOf('enroute') !== -1) {
-                enRouteTasks[activeData.task_id] = true;  
-                btn.innerHTML = '🛑 End Task';
+                enRouteTasks[activeData.task_id] = true;
+                btn.innerHTML = '&#128721; End Task';
                 btn.style.background = '#d90429';
                 btn.style.cursor = 'pointer';
                 btn.style.opacity = '1';
                 btn.disabled = false;
                 btn.classList.add('btn-end-task');
-                
+                // Show reroute and constraint only when en route
                 if (btnReroute) {
+                    btnReroute.classList.remove('hidden');
                     btnReroute.style.background = '#2980b9';
                     btnReroute.style.cursor = 'pointer';
                     btnReroute.style.opacity = '1';
                     btnReroute.disabled = false;
                 }
+                if (btnConstraint) btnConstraint.classList.remove('hidden');
                 return;
             }
 
-            btn.innerHTML = '▶ Start Route';
+            // Pre-start state: show only Start Route, hide reroute and constraint
+            btn.innerHTML = '&#9654; Start Route';
             btn.style.background = '#27ae60';
             btn.style.cursor = 'pointer';
             btn.style.opacity = '1';
             btn.disabled = false;
             btn.classList.remove('btn-end-task');
-            
-            if (btnReroute) {
-                btnReroute.style.background = '#2980b9';
-                btnReroute.style.cursor = 'pointer';
-                btnReroute.style.opacity = '1';
-                btnReroute.disabled = false;
-            }
+            if (btnReroute) btnReroute.classList.add('hidden');
+            if (btnConstraint) btnConstraint.classList.add('hidden');
+            if (constraintPanel) constraintPanel.classList.add('hidden');
         }
 
         function startRoute() {
@@ -457,8 +497,23 @@
         function triggerAlternativeRoute() {
             if (!activeData) return;
             isAlternativeMode = true;
+            currentConstraint = selectedConstraint;
+            // Collapse the constraint panel after rerouting
+            var panel = document.getElementById('constraint-panel');
+            var toggleBtn = document.getElementById('btn-constraint-toggle');
+            if (panel) panel.classList.add('hidden');
+            if (toggleBtn) toggleBtn.innerHTML = '&#9650; Add Constraint';
+            // Reset constraint selection visually
+            document.querySelectorAll('.constraint-btn').forEach(b => {
+                b.style.background = '#fff';
+                b.style.border = '2px dashed #999';
+                b.style.color = '#333';
+            });
+            selectedConstraint = '';
             viewRoute(activeData);
         }
+
+        let currentConstraint = '';
 
         let autoTaskId = new URLSearchParams(window.location.search).get('task_id');
 
@@ -578,7 +633,7 @@
 
             if (!isPending && data.team_location && data.lat && data.lon) {
                 let useAbsra = document.getElementById('toggle-absra') ? document.getElementById('toggle-absra').checked : true;
-                fetch(`/calculate_route?task_id=${data.task_id}&team_lat=${data.team_location.lat}&team_lon=${data.team_location.lon}&task_lat=${data.lat}&task_lon=${data.lon}&alternative=${isAlternativeMode}&use_absra=${useAbsra}`)
+                fetch(`/calculate_route?task_id=${data.task_id}&team_lat=${data.team_location.lat}&team_lon=${data.team_location.lon}&task_lat=${data.lat}&task_lon=${data.lon}&alternative=${isAlternativeMode}&use_absra=${useAbsra}&constraint=${currentConstraint}`)
                 .then(res => res.json())
                 .then(routeData => {
                     let alertBox = document.getElementById('reroute-alert');
@@ -604,9 +659,10 @@
                         }).addTo(map);
                         document.getElementById('d-dist').value = routeData.distance;
                         document.getElementById('d-eta').value = routeData.eta;
+                        currentConstraint = '';
+                        isAlternativeMode = false;
                         if (alertBox) {
-                            if (isAlternativeMode && waypoints.length === 3) { alertBox.classList.remove('hidden'); alertBox.innerHTML = `<strong>⚠️ LOCAL REROUTE:</strong> Navigating side streets.`; } 
-                            else if (routeData.is_rerouted) { alertBox.classList.remove('hidden'); alertBox.innerHTML = `<strong>⚠️ ${routeData.message}</strong>`; } 
+                            if (routeData.is_rerouted) { alertBox.classList.remove('hidden'); alertBox.innerHTML = `<strong>&#9888;&#65039; ${routeData.message}</strong>`; }
                             else { alertBox.classList.add('hidden'); }
                         }
                     }

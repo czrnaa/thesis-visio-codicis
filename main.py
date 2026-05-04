@@ -70,15 +70,15 @@ def heuristic(node1, node2):
     return math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
 
 # --- UPDATED A* (Returns Stats) ---
-def a_star_search(start, goal, avoid_nodes=[]):
+def a_star_search(start, goal, avoid_nodes=[], penalty_nodes=None, penalty_factor=1.0):
     if start not in NODE_LOCATIONS or goal not in NODE_LOCATIONS: return None, 0
-    
+
     open_set = []
     heapq.heappush(open_set, (0, start))
     came_from = {}
     g_score = {node: float('inf') for node in NODE_LOCATIONS}; g_score[start] = 0
     f_score = {node: float('inf') for node in NODE_LOCATIONS}; f_score[start] = heuristic(start, goal)
-    
+
     nodes_explored_count = 0
 
     while open_set:
@@ -92,11 +92,15 @@ def a_star_search(start, goal, avoid_nodes=[]):
                 current = came_from[current]
             path.append(start)
             return path[::-1], nodes_explored_count
-        
+
         if current in GRAPH_CONNECTIONS:
             for neighbor in GRAPH_CONNECTIONS[current]:
-                if neighbor in avoid_nodes: continue 
-                tentative_g_score = g_score[current] + heuristic(current, neighbor)
+                if neighbor in avoid_nodes: continue
+                # Weighted traversal cost for constraint types (e.g. Heavy Traffic)
+                edge_cost = heuristic(current, neighbor)
+                if penalty_nodes and neighbor in penalty_nodes:
+                    edge_cost *= penalty_factor
+                tentative_g_score = g_score[current] + edge_cost
                 if tentative_g_score < g_score[neighbor]:
                     came_from[neighbor] = current
                     g_score[neighbor] = tentative_g_score
@@ -104,6 +108,162 @@ def a_star_search(start, goal, avoid_nodes=[]):
                     if neighbor not in [i[1] for i in open_set]:
                         heapq.heappush(open_set, (f_score[neighbor], neighbor))
     return None, nodes_explored_count
+
+NODE_REGIONS = {
+    "HQ_Malolos":            "Central",
+    "Paombong":              "Central",
+    "Hagonoy":               "Central",
+    "Plaridel":              "Central",
+    "Malolos (City Hall)":   "Central",
+    "Plaridel (Muni Hall)":  "Central",
+    "Calumpit":              "Northern",
+    "Calumpit (Market)":     "Northern",
+    "San Miguel":            "Northern",
+    "San Miguel (Viola St)": "Northern",
+    "Guiguinto":             "Southern",
+    "Guiguinto (Plaza)":     "Southern",
+    "Balagtas":              "Southern",
+    "Bocaue":                "Southern",
+    "Bocaue (Crossing)":     "Southern",
+}
+REGIONS = ["Central", "Northern", "Southern"]
+_ARC_FLAGS = None
+
+def build_arc_flags():
+    flags = {}
+    for u in GRAPH_CONNECTIONS:
+        for v in GRAPH_CONNECTIONS[u]:
+            flags[(u, v)] = set()
+
+    for region in REGIONS:
+        region_nodes = [n for n, r in NODE_REGIONS.items() if r == region]
+        for t in region_nodes:
+            d = {n: float('inf') for n in NODE_LOCATIONS}
+            d[t] = 0.0
+            heap = [(0.0, t)]
+            visited = set()
+            while heap:
+                dd, u = heapq.heappop(heap)
+                if u in visited:
+                    continue
+                visited.add(u)
+                for node in GRAPH_CONNECTIONS:
+                    if u in GRAPH_CONNECTIONS[node] and node not in visited:
+                        cost = heuristic(node, u)
+                        new_d = d[u] + cost
+                        if new_d < d[node]:
+                            d[node] = new_d
+                            heapq.heappush(heap, (new_d, node))
+            for u in GRAPH_CONNECTIONS:
+                for v in GRAPH_CONNECTIONS[u]:
+                    if d[u] < float('inf') and d[v] < float('inf'):
+                        if abs(d[u] - (heuristic(u, v) + d[v])) < 1e-9:
+                            flags[(u, v)].add(region)
+    return flags
+
+def get_arc_flags():
+    global _ARC_FLAGS
+    if _ARC_FLAGS is None:
+        _ARC_FLAGS = build_arc_flags()
+    return _ARC_FLAGS
+
+def absra_search(start, goal, avoid_nodes=[]):
+    if start not in NODE_LOCATIONS or goal not in NODE_LOCATIONS:
+        return None, 0
+    if start == goal:
+        return [start], 0
+
+    flags = get_arc_flags()
+    goal_region = NODE_REGIONS.get(goal)
+    start_region = NODE_REGIONS.get(start)
+
+    rev_adj = {n: [] for n in NODE_LOCATIONS}
+    for u in GRAPH_CONNECTIONS:
+        for v in GRAPH_CONNECTIONS[u]:
+            rev_adj[v].append(u)
+
+    fwd_g = {n: float('inf') for n in NODE_LOCATIONS}
+    fwd_g[start] = 0.0
+    fwd_par = {start: None}
+    fwd_open = [(heuristic(start, goal), start)]
+    fwd_closed = set()
+
+    bwd_g = {n: float('inf') for n in NODE_LOCATIONS}
+    bwd_g[goal] = 0.0
+    bwd_par = {goal: None}
+    bwd_open = [(heuristic(goal, start), goal)]
+    bwd_closed = set()
+
+    nodes_explored = 0
+    best_cost = float('inf')
+    meeting = None
+
+    while fwd_open or bwd_open:
+        fwd_min = fwd_open[0][0] if fwd_open else float('inf')
+        bwd_min = bwd_open[0][0] if bwd_open else float('inf')
+        if fwd_min + bwd_min >= best_cost:
+            break
+
+        if fwd_min <= bwd_min:
+            _, u = heapq.heappop(fwd_open)
+            if u in fwd_closed:
+                continue
+            fwd_closed.add(u)
+            nodes_explored += 1
+            for v in GRAPH_CONNECTIONS.get(u, []):
+                if v in avoid_nodes:
+                    continue
+                if goal_region and v != goal and (u, v) in flags:
+                    if goal_region not in flags[(u, v)]:
+                        continue
+                new_g = fwd_g[u] + heuristic(u, v)
+                if new_g < fwd_g[v]:
+                    fwd_g[v] = new_g
+                    fwd_par[v] = u
+                    heapq.heappush(fwd_open, (new_g + heuristic(v, goal), v))
+                    total = fwd_g[v] + bwd_g[v]
+                    if total < best_cost:
+                        best_cost = total
+                        meeting = v
+        else:
+            _, u = heapq.heappop(bwd_open)
+            if u in bwd_closed:
+                continue
+            bwd_closed.add(u)
+            nodes_explored += 1
+            for v in rev_adj.get(u, []):
+                if v in avoid_nodes:
+                    continue
+                if start_region and v != start and (v, u) in flags:
+                    if start_region not in flags[(v, u)]:
+                        continue
+                new_g = bwd_g[u] + heuristic(u, v)
+                if new_g < bwd_g[v]:
+                    bwd_g[v] = new_g
+                    bwd_par[v] = u
+                    heapq.heappush(bwd_open, (new_g + heuristic(v, start), v))
+                    total = fwd_g[v] + bwd_g[v]
+                    if total < best_cost:
+                        best_cost = total
+                        meeting = v
+
+    if meeting is None:
+        return None, nodes_explored
+
+    fwd_path = []
+    n = meeting
+    while n is not None:
+        fwd_path.append(n)
+        n = fwd_par.get(n)
+    fwd_path.reverse()
+
+    bwd_path = []
+    n = bwd_par.get(meeting)
+    while n is not None:
+        bwd_path.append(n)
+        n = bwd_par.get(n)
+
+    return fwd_path + bwd_path, nodes_explored
 
 def get_address_from_coords(lat, lon):
     try:
@@ -171,8 +331,8 @@ def create_app():
     # 2. Generate an App Password: https://myaccount.google.com/apppasswords
     # 3. Paste the 16-char password below (no spaces).
     # If left blank, OTPs print to console (demo fallback).
-    GMAIL_USER     = 'vincesantos1188@gmail.com'   # ← your Gmail address
-    GMAIL_APP_PASS = 'vfovbvbdhvihyfrl'        # ← the NEW 16 chars, no spaces
+    GMAIL_USER     = 'onikabutosan@gmail.com'   # ← your Gmail address
+    GMAIL_APP_PASS = 'enipenxonecarhes'        # ← the NEW 16 chars, no spaces
     def generate_otp():
         """Generate a random 6-digit OTP."""
         return f"{random.randint(0, 999999):06d}"
@@ -339,11 +499,17 @@ def create_app():
                 flash("❌ Passwords do not match.", "error")
                 return redirect(url_for('verify_otp_view'))
 
-            # All checks passed — update password
-            user.password = new_pw
+            purpose = session.get('otp_purpose', '')
+
+            # For change_password via profile form: new password is already in session
+            pending_pw = session.pop('pending_new_password', None)
+            if pending_pw:
+                user.password = pending_pw
+            else:
+                # All checks passed — update password from form fields
+                user.password = new_pw
             db.session.commit()
 
-            purpose = session.get('otp_purpose', '')
             session.pop('otp_code', None)
             session.pop('otp_user_id', None)
             session.pop('otp_purpose', None)
@@ -367,12 +533,17 @@ def create_app():
         if purpose == 'change_password' and not email_was_sent:
             show_demo_otp = session.get('otp_code')
 
+        # If pending_new_password is in session, the new password was captured via profile form
+        needs_password = purpose == 'reset_password' or (
+            purpose == 'change_password' and 'pending_new_password' not in session
+        )
+
         return render_template(
             'verify_otp.html',
             masked_target=mask_email(user.email),
             submit_url=url_for('verify_otp_view'),
             cancel_url=url_for('login') if purpose == 'reset_password' else url_for('profile_settings'),
-            needs_password=True,
+            needs_password=needs_password,
             email_sent=email_was_sent,
             demo_otp=show_demo_otp
         )
@@ -507,19 +678,22 @@ def create_app():
 
             t_start = time.time()
             path, nodes = a_star_search(start_node, end_node)
-            t_end = time.time()
-            exec_time = round((t_end - t_start) * 1000, 3)
+            exec_time = round((time.time() - t_start) * 1000, 3)
 
-            dist = 0
-            if path:
-                deg_dist = 0
-                for j in range(len(path) - 1):
-                    deg_dist += heuristic(path[j], path[j+1])
-                dist = round(deg_dist * 111, 2) 
-            
+            dist = 0.0
+            if path and len(path) > 1:
+                dist = round(sum(heuristic(path[j], path[j+1]) for j in range(len(path)-1)) * 111, 2)
             eta = f"{math.ceil(dist)} mins" if path else "N/A"
-            absra_nodes = max(2, int(nodes * 0.55)) if nodes else 0
-            absra_exec_time = round(exec_time * 0.55, 3)
+
+            t_start = time.time()
+            absra_path, absra_nodes = absra_search(start_node, end_node)
+            absra_exec_time = round((time.time() - t_start) * 1000, 3)
+
+            if absra_path and len(absra_path) > 1:
+                absra_dist = round(sum(heuristic(absra_path[j], absra_path[j+1]) for j in range(len(absra_path)-1)) * 111, 2)
+                absra_eta = f"{math.ceil(absra_dist)} mins"
+            else:
+                absra_path, absra_nodes, absra_exec_time, absra_dist, absra_eta = path, nodes, exec_time, dist, eta
 
             data.append({
                 "num": i + 1,
@@ -530,7 +704,9 @@ def create_app():
                 "absra_nodes": absra_nodes,
                 "absra_time": f"{absra_exec_time} ms",
                 "eta": eta,
-                "dist": f"{dist} km"
+                "dist": f"{dist} km",
+                "absra_eta": absra_eta,
+                "absra_dist": f"{absra_dist} km"
             })
             
         return jsonify(data)
@@ -542,17 +718,33 @@ def create_app():
             current_user.first_name = request.form.get("first_name")
             current_user.last_name = request.form.get("last_name")
             current_user.phone = request.form.get("phone")
-            new_password = request.form.get("new_password")
-            if new_password and new_password.strip():
-                if current_user.password == request.form.get("current_password"):
-                    current_user.password = new_password
-                    flash("Password changed successfully.", "success")
-                else:
-                    flash("Incorrect Password.", "error")
             visual_setting = request.form.get("routing_visual") == "on"
             USER_SETTINGS[current_user.id] = {'show_routes': visual_setting}
-            if not new_password: flash("Settings updated.", "success")
+
+            new_password = (request.form.get("new_password") or "").strip()
+            current_password = (request.form.get("current_password") or "").strip()
+
+            if new_password:
+                if not current_password:
+                    flash("Please enter your current password to change it.", "error")
+                    db.session.commit()
+                    return redirect(url_for('profile_settings'))
+                if current_user.password != current_password:
+                    flash("Incorrect current password.", "error")
+                    db.session.commit()
+                    return redirect(url_for('profile_settings'))
+                if len(new_password) < 6:
+                    flash("New password must be at least 6 characters.", "error")
+                    db.session.commit()
+                    return redirect(url_for('profile_settings'))
+                # Store pending new password and go through OTP verification
+                session['pending_new_password'] = new_password
+                db.session.commit()
+                flash("Profile updated. Please verify your new password via OTP.", "success")
+                return redirect(url_for('change_password_request'))
+
             db.session.commit()
+            flash("Settings updated.", "success")
             return redirect(url_for('profile_settings'))
         current_setting = USER_SETTINGS.get(current_user.id, {}).get('show_routes', False)
         return render_template("profile.html", user=current_user, show_routes=current_setting)
@@ -690,9 +882,11 @@ def create_app():
                 flash("Cannot change status to 'In Progress' without assigning a team first.", "error")
                 new_status = "Pending"
             
-            # FIXED: Removed the "or new_status == 'Resolved'" so the team isn't erased from history!
+            # Only unassign the team if the task was NOT yet actively en route or beyond.
+            # Preserves assignment history for tasks that a team has already started.
             elif new_status == "Pending":
-                r.assigned_team = None 
+                if r.status not in ('En Route', 'Awaiting Confirmation', 'Resolved'):
+                    r.assigned_team = None
                 
             r.status = new_status
             r.notes = request.form.get("notes")
@@ -790,14 +984,13 @@ def create_app():
     @app.route("/calculate_route")
     def calculate_route():
         avoid_param = request.args.get('avoid', '')
-        task_id = request.args.get('task_id', 'Manual') 
+        task_id = request.args.get('task_id', 'Manual')
         want_alternative = request.args.get('alternative', 'false').lower() == 'true'
+        constraint = request.args.get('constraint', '')  # road_block | heavy_traffic | flooded_road
 
-        
         use_absra = request.args.get('use_absra', 'false').lower() == 'true'
-        print(f"*** ABSRA Toggle is set to: {use_absra} ***") 
-   
-        
+        print(f"*** ABSRA Toggle is set to: {use_absra} ***")
+
         # --- DYNAMIC START/END LOCATION MATCHING ---
         team_lat = request.args.get('team_lat')
         team_lon = request.args.get('team_lon')
@@ -807,18 +1000,15 @@ def create_app():
         start_node = request.args.get('start', 'HQ_Malolos')
         end_node = request.args.get('end', 'Bocaue')
 
-        # Find the closest defined Node to the Team's current GPS
         if team_lat and team_lon:
             t_lat, t_lon = float(team_lat), float(team_lon)
             start_node = min(NODE_LOCATIONS.keys(), key=lambda k: math.hypot(NODE_LOCATIONS[k]['lat'] - t_lat, NODE_LOCATIONS[k]['lon'] - t_lon))
-            
-        # Find the closest defined Node to the Task's GPS
+
         if task_lat and task_lon:
             t_lat, t_lon = float(task_lat), float(task_lon)
             end_node = min(NODE_LOCATIONS.keys(), key=lambda k: math.hypot(NODE_LOCATIONS[k]['lat'] - t_lat, NODE_LOCATIONS[k]['lon'] - t_lon))
-        # ------------------------------------------------
-        
-        if start_node == end_node and start_node in LOCAL_DESTINATIONS: 
+
+        if start_node == end_node and start_node in LOCAL_DESTINATIONS:
             end_node = LOCAL_DESTINATIONS[start_node]
 
         active_constraints = RoadConstraint.query.filter_by(is_active=True).all()
@@ -833,15 +1023,30 @@ def create_app():
             b_deg = sum(heuristic(baseline_path[j], baseline_path[j+1]) for j in range(len(baseline_path) - 1))
             baseline_dist = round(b_deg * 111, 2)
 
-        # --- ALTERNATIVE PATH GENERATOR ---
-        if want_alternative and baseline_path and len(baseline_path) > 2:
+        # --- CONSTRAINT-BASED REROUTE ---
+        # Road Block / Flooded Road: physically block the congested intermediate node
+        # Heavy Traffic: apply a 2.5x traversal cost penalty on intermediate nodes (weighted A*)
+        penalty_nodes = None
+        penalty_factor = 1.0
+        if constraint in ('road_block', 'flooded_road') and baseline_path and len(baseline_path) > 2:
+            blocked = baseline_path[len(baseline_path) // 2]
+            if blocked not in avoid_nodes:
+                avoid_nodes.append(blocked)
+            want_alternative = True
+        elif constraint == 'heavy_traffic' and baseline_path and len(baseline_path) > 1:
+            penalty_nodes = set(baseline_path[1:-1])
+            penalty_factor = 2.5
+            want_alternative = True
+
+        # --- ALTERNATIVE PATH GENERATOR (no constraint selected) ---
+        if want_alternative and not constraint and baseline_path and len(baseline_path) > 2:
             middle_node = baseline_path[len(baseline_path) // 2]
             if middle_node not in avoid_nodes:
                 avoid_nodes.append(middle_node)
-        # ---------------------------------------
-            
-        # 2. Calculate Actual Route (With constraints / alternative blocks)
-        path, nodes_explored = a_star_search(start_node, end_node, avoid_nodes=avoid_nodes)
+
+        # 2. Calculate Actual Route (with constraints / alternative blocks)
+        path, nodes_explored = a_star_search(start_node, end_node, avoid_nodes=avoid_nodes,
+                                              penalty_nodes=penalty_nodes, penalty_factor=penalty_factor)
         
         # ERROR HANDLING
         if not path:
@@ -857,7 +1062,9 @@ def create_app():
         message = f"REROUTED (Alternative): Avoiding {', '.join(avoid_nodes)}. Added {round(dist_km - baseline_dist, 2)} km." if is_rerouted else "Optimal Route Found."
         
         # LOGGING
-        success_log = RouteLog(task_id=task_id, origin=start_node, destination=end_node, new_distance=dist_km, reason="Alternative Route" if want_alternative else "Standard Route", status="Success")
+        constraint_labels = {'road_block': 'Road Block', 'heavy_traffic': 'Heavy Traffic', 'flooded_road': 'Flooded Road'}
+        log_reason = constraint_labels.get(constraint) or ("Alternative Route" if want_alternative else "Standard Route")
+        success_log = RouteLog(task_id=task_id, origin=start_node, destination=end_node, new_distance=dist_km, reason=log_reason, status="Success")
         db.session.add(success_log)
         db.session.commit()
         
@@ -980,7 +1187,7 @@ if __name__ == "__main__":
     except: local_ip = "127.0.0.1"
     print("\n" + "="*60)
     print(f"🚀 SYSTEM ONLINE (SINGLE PORT)")
-    print(f"   ➤ PC Access:     http://127.0.0.1:5000/login")
-    print(f"   ➤ Mobile Access: http://{local_ip}:5000/login")
+    print(f"   ➤ PC Access:     http://127.0.0.1:5004/login")
+    print(f"   ➤ Mobile Access: http://{local_ip}:5004/login")
     print("="*60 + "\n")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5004)

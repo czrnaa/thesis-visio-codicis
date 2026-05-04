@@ -262,8 +262,8 @@
                             <td>${row.location}</td>
                             <td><span class="node-count" style="background:#cce5ff; color:#004085;">${row.absra_nodes || 'N/A'}</span></td>
                             <td class="tech-font" style="color:#004085;">${row.absra_time || 'N/A'}</td>
-                            <td>${row.eta}</td>
-                            <td>${row.dist}</td>
+                            <td>${row.absra_eta || row.eta}</td>
+                            <td>${row.absra_dist || row.dist}</td>
                         `;
                         absraBody.appendChild(trAbsra);
                     });

@@ -119,7 +119,10 @@
             {% endif %}
             
             <a href="/monitor" class="nav-item"><span class="icon"></span> Monitor Routing</a>
-            
+            {% if user.role == 'Programmer' %}
+            <a href="/analytics" class="nav-item"><span class="icon"></span> System Analytics</a>
+            {% endif %}
+
             {% if user.role == 'Admin' %}
             <a href="/manage_users" class="nav-item">
                 <span class="icon"></span> Manage Users
@@ -168,13 +171,18 @@
 
                             <div class="change-pass-section" id="pass-section" style="display: none;">
                                 <div class="change-pass-header">Change Password</div>
-                                <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:5px;padding:14px;margin-top:10px;">
-                                    <div style="font-size:0.92rem;color:#856404;margin-bottom:10px;">
-                                        🔒 For your security, password changes require OTP verification sent to your registered email.
+                                <div class="form-grid" style="margin-top: 10px;">
+                                    <div class="form-group">
+                                        <label>Current Password</label>
+                                        <input type="password" name="current_password" id="in-curr-pass" placeholder="Enter current password" readonly data-original="">
                                     </div>
-                                    <a href="/change_password_request" style="display:inline-block;background:#d90429;color:white;padding:10px 18px;border-radius:5px;text-decoration:none;font-weight:600;font-size:0.9rem;">
-                                        Send OTP to Email →
-                                    </a>
+                                    <div class="form-group">
+                                        <label>New Password</label>
+                                        <input type="password" name="new_password" id="in-new-pass" placeholder="Locked" readonly disabled data-original="">
+                                    </div>
+                                </div>
+                                <div style="font-size:0.8rem;color:#777;margin-top:2px;">
+                                    OTP verification will be sent to your registered email to confirm the change.
                                 </div>
                             </div>
                             
@@ -224,55 +232,59 @@
             }
         }
 
-        const inputs = ['in-phone', 'in-fname', 'in-lname'];
+        const profileInputs = ['in-phone', 'in-fname', 'in-lname'];
         const passSection = document.getElementById('pass-section');
-        const currPass = document.getElementById('in-curr-pass');
-        const newPass = document.getElementById('in-new-pass');
         const actionBtns = document.getElementById('action-btns');
         const editBtn = document.querySelector('.btn-edit-profile');
 
         function enableEditMode() {
-            inputs.forEach(id => {
+            profileInputs.forEach(id => {
                 let el = document.getElementById(id);
                 el.removeAttribute('readonly');
                 el.classList.add('editable');
             });
             passSection.style.display = 'block';
+            const currPass = document.getElementById('in-curr-pass');
             currPass.removeAttribute('readonly');
             currPass.classList.add('editable');
+            currPass.addEventListener('input', toggleNewPassField);
             actionBtns.style.display = 'flex';
             editBtn.style.display = 'none';
         }
 
         function cancelEditMode() {
-            inputs.forEach(id => {
+            profileInputs.forEach(id => {
                 let el = document.getElementById(id);
                 el.value = el.getAttribute('data-original');
                 el.setAttribute('readonly', true);
                 el.classList.remove('editable');
             });
             passSection.style.display = 'none';
+            const currPass = document.getElementById('in-curr-pass');
+            const newPass = document.getElementById('in-new-pass');
             currPass.value = '';
             currPass.setAttribute('readonly', true);
             currPass.classList.remove('editable');
             newPass.value = '';
             newPass.setAttribute('disabled', 'true');
             newPass.classList.remove('editable');
-            newPass.placeholder = "Locked";
+            newPass.placeholder = 'Locked';
             actionBtns.style.display = 'none';
             editBtn.style.display = 'inline-block';
         }
 
         function toggleNewPassField() {
+            const currPass = document.getElementById('in-curr-pass');
+            const newPass = document.getElementById('in-new-pass');
             if (currPass.value.length > 0) {
                 newPass.removeAttribute('disabled');
                 newPass.classList.add('editable');
-                newPass.placeholder = "Enter new password";
+                newPass.placeholder = 'Enter new password (min 6 chars)';
             } else {
                 newPass.setAttribute('disabled', 'true');
-                newPass.value = ''; 
+                newPass.value = '';
                 newPass.classList.remove('editable');
-                newPass.placeholder = "Locked";
+                newPass.placeholder = 'Locked';
             }
         }
     </script>

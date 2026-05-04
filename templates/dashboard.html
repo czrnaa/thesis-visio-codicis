@@ -109,6 +109,9 @@
             <a href="/teams" class="nav-item"><span class="icon"></span> Teams & Resources</a>
             {% endif %}
             <a href="/monitor" class="nav-item"><span class="icon"></span> Monitor Routing</a>
+            {% if user.role == 'Programmer' %}
+            <a href="/analytics" class="nav-item"><span class="icon"></span> System Analytics</a>
+            {% endif %}
             {% if user.role == 'Admin' %}
             <a href="/manage_users" class="nav-item"><span class="icon"></span> Manage Users</a>
             {% endif %}
