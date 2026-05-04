@@ -10,12 +10,12 @@ import glob
 # Find the database file in current directory
 candidates = glob.glob('*.db') + glob.glob('instance/*.db')
 if not candidates:
-    print("❌ No .db file found in current directory or ./instance/")
-    print("   Make sure you run this script from the THESIS folder.")
+    print("No .db file found in current directory or ./instance/")
+    print("Make sure you run this script from the THESIS folder.")
     exit(1)
 
 db_path = candidates[0]
-print(f"📂 Found database: {db_path}")
+print(f"Found database: {db_path}")
 
 conn = sqlite3.connect(db_path)
 cur = conn.cursor()
@@ -26,12 +26,12 @@ columns = [row[1] for row in cur.fetchall()]
 print(f"   Existing columns: {columns}")
 
 if 'email' in columns:
-    print("✅ 'email' column already exists. Nothing to do.")
+    print("'email' column already exists. Nothing to do.")
 else:
-    print("⚙️  Adding 'email' column...")
+    print("Adding 'email' column...")
     cur.execute("ALTER TABLE user ADD COLUMN email VARCHAR(120) DEFAULT ''")
     conn.commit()
-    print("✅ 'email' column added successfully.")
+    print("'email' column added successfully.")
 
 conn.close()
 print("\n Done. You can now run: python main.py")
