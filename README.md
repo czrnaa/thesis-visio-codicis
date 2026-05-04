@@ -58,3 +58,14 @@ It also supports multiple user roles with role-specific permissions.
    ```bash
    git clone https://github.com/czrnaa/thesis-visio-codicis.git
    cd thesis-visio-codicis
+
+---
+
+## Database Setup
+
+This project uses **SQLite** as its database.
+
+### Setup Command
+
+```bash
+sqlite3 disaster.db < disaster.sql
