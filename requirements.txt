@@ -1,3 +1,8 @@
+# Flask framework
 flask
 flask-login
-# add more if needed
+sqlite3
+
+
+# PDF generator
+pip install fpdf2
