@@ -19,6 +19,13 @@ import time
 import random
 from copy import deepcopy
 
+# (Optional) PDF export - requires: pip install fpdf2
+try:
+    from fpdf import FPDF
+    _PDF_AVAILABLE = True
+except ImportError:
+    _PDF_AVAILABLE = False
+
 # ROAD NETWORK GRAPH (Bulacan)
 NODE_LOCATIONS = {
     "HQ_Malolos":            {"lat": 14.8437, "lon": 120.8113},
