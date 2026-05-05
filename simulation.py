@@ -1,11 +1,6 @@
 """
 Disaster-Response Routing Simulation
-====================================
-Standalone simulation that mirrors the routing study described in the thesis:
-    * The road network of Bulacan is modeled as a graph (locations = nodes,
-      roads = edges).
-    * Disaster conditions are simulated by altering edge characteristics
-      (travel cost multipliers, accessibility).
+Standalone simulation:
     * Three disaster levels:
         Level 1 - Minor : small delays, no blockages.
         Level 2 - Moderate : significant slowdowns and higher traversal cost.
@@ -17,8 +12,6 @@ Standalone simulation that mirrors the routing study described in the thesis:
         - Path cost (route efficiency)
         - Number of nodes explored
         - Execution time
-Run:
-    python simulation.py
 """
 
 import math
@@ -27,10 +20,8 @@ import time
 import random
 from copy import deepcopy
 
-# --------------------------------------------------------------------------
-# 1. ROAD NETWORK GRAPH (Bulacan)
-#    Mirrors the structure used in main.py so results are comparable.
-# --------------------------------------------------------------------------
+# ROAD NETWORK GRAPH (Bulacan)
+# Mirrors the structure used in main.py so results are comparable.
 NODE_LOCATIONS = {
     "HQ_Malolos":            {"lat": 14.8437, "lon": 120.8113},
     "Paombong":              {"lat": 14.8322, "lon": 120.7890},
@@ -97,16 +88,7 @@ def heuristic(a, b):
     return haversine_km(a, b)
 
 
-# --------------------------------------------------------------------------
-# 2. DISASTER SIMULATION
-#    Returns a modified weighted graph + a set of blocked edges based on the
-#    chosen disaster level. Higher level = more impact on the network.
-#
-#    Flood model is grounded in Mamuyac (2025): empirical analysis of Metro
-#    Manila flooding shows that once flood depth exceeds 25 cm, lane closures
-#    become frequent and traffic flow capacity drops by 40-70%. We translate
-#    that into per-edge cost multipliers and probabilistic blockage.
-# --------------------------------------------------------------------------
+# DISASTER SIMULATION
 FLOOD_DEPTH_THRESHOLD_CM = 25            # Mamuyac (2025)
 FLOOD_CAPACITY_DROP_RANGE = (0.40, 0.70)  # 40-70% drop above threshold
 def build_base_weights():
@@ -119,14 +101,6 @@ def build_base_weights():
 
 
 def simulate_disaster(level, seed=42):
-    """
-    Apply disaster effects according to severity level.
-    Returns (edge_weights, blocked_edges) where blocked_edges is a set of
-    (u, v) pairs that the routing algorithm must skip.
-    Level 1 (Minor)    - 30% of edges get a 1.2-1.5x cost multiplier.
-    Level 2 (Moderate) - 50% of edges get a 1.8-2.8x cost multiplier.
-    Level 3 (Severe)   - 50% slowdown 2.5-4.0x AND ~20% of edges blocked.
-    """
     rng = random.Random(seed)
     weights = build_base_weights()
     blocked = set()
@@ -162,7 +136,7 @@ def simulate_disaster(level, seed=42):
 
 def simulate_flood_disaster(level, seed=42):
     """
-    Empirical flood model based on Mamuyac (2025) Metro Manila analysis.
+    Empirical flood model based on Mamuyac (2025) analysis.
     For each affected edge a flood depth (cm) is sampled from a severity-
     dependent distribution, then translated into routing impact:
         depth < 25 cm  : passable, minor slowdown (linear penalty up to 1.20x)
@@ -218,9 +192,7 @@ def simulate_flood_disaster(level, seed=42):
     return weights, blocked, depths
 
 
-# --------------------------------------------------------------------------
-# 3. ROUTING ALGORITHMS
-# --------------------------------------------------------------------------
+# ROUTING ALGORITHMS
 def a_star(start, goal, weights, blocked):
     """Traditional A* over the disaster-modified graph."""
     if start not in NODE_LOCATIONS or goal not in NODE_LOCATIONS:
@@ -425,9 +397,7 @@ def absra(start, goal, weights, blocked):
     return fwd_path + bwd_path, explored, best_cost
 
 
-# --------------------------------------------------------------------------
-# 4. BENCHMARK HARNESS
-# --------------------------------------------------------------------------
+# BENCHMARK HARNESS
 def measure(fn, *args, repeats=5):
     """Run fn several times, return the best (min) wall-clock time + result."""
     best_t = math.inf
@@ -531,9 +501,7 @@ def print_paths(rows):
         print(f"      ABSRA : {fmt_path(r['absra']['path'])}")
 
 
-# --------------------------------------------------------------------------
-# 5. MAIN
-# --------------------------------------------------------------------------
+# MAIN
 def main():
     test_cases = [
         ("HQ_Malolos", "Hagonoy"),
