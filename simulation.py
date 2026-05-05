@@ -681,6 +681,179 @@ def print_paths(rows):
         print(f"      ABSRA : {fmt_path(r['absra']['path'])}")
 
 
+def generate_pdf_report(generic_rows, flood_rows, traffic_rows, block_rows,
+                        output_path="simulation_report.pdf"):
+    """Save all simulation results to a PDF report (requires fpdf2)."""
+    if not _PDF_AVAILABLE:
+        print("[PDF] fpdf2 not installed — run: pip install fpdf2")
+        return
+
+    import datetime
+    level_names = {1: "Minor", 2: "Moderate", 3: "Severe"}
+
+    class _ReportPDF(FPDF):
+        def header(self):
+            self.set_font("Helvetica", "B", 8)
+            self.set_text_color(130, 130, 130)
+            self.cell(0, 5, "VisioCodicis  |  Disaster Routing Simulation", align="R")
+            self.ln(7)
+            self.set_text_color(0, 0, 0)
+
+        def footer(self):
+            self.set_y(-12)
+            self.set_font("Helvetica", "I", 8)
+            self.set_text_color(150, 150, 150)
+            self.cell(0, 6, f"Page {self.page_no()}", align="C")
+            self.set_text_color(0, 0, 0)
+
+    pdf = _ReportPDF(orientation="L", unit="mm", format="A4")
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+
+    def section_title(txt):
+        pdf.set_font("Helvetica", "B", 11)
+        pdf.set_fill_color(45, 90, 160)
+        pdf.set_text_color(255, 255, 255)
+        pdf.cell(0, 8, f"  {txt}", border=0, fill=True)
+        pdf.ln()
+        pdf.set_text_color(0, 0, 0)
+        pdf.ln(2)
+
+    def draw_table(headers, col_widths, data_rows, font_size=7):
+        pdf.set_font("Helvetica", "B", font_size)
+        pdf.set_fill_color(190, 210, 235)
+        for h, w in zip(headers, col_widths):
+            pdf.cell(w, 6, h, border=1, fill=True, align="C")
+        pdf.ln()
+        pdf.set_font("Helvetica", "", font_size)
+        for i, row in enumerate(data_rows):
+            if i % 2 == 0:
+                pdf.set_fill_color(255, 255, 255)
+            else:
+                pdf.set_fill_color(242, 246, 252)
+            for val, w in zip(row, col_widths):
+                pdf.cell(w, 5, str(val), border=1, fill=True, align="C")
+            pdf.ln()
+        pdf.ln(4)
+
+    # Cover
+    pdf.set_font("Helvetica", "B", 20)
+    pdf.cell(0, 14, "VisioCodicis: Disaster Routing Simulation", align="C")
+    pdf.ln()
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_text_color(80, 80, 80)
+    pdf.cell(0, 7,
+             f"Generated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+             align="C")
+    pdf.ln()
+    pdf.cell(0, 7,
+             "Routing area: Bulacan, Philippines   |   A* vs. ABSRA (Arc-flag Bidirectional Search A*)",
+             align="C")
+    pdf.ln(10)
+    pdf.set_text_color(0, 0, 0)
+
+    # 1. Generic
+    section_title("1. Baseline Synthetic Disaster Scenarios")
+    hdrs = ["Lvl", "Start -> Goal", "Algo", "Cost (km)", "Nodes", "Time (ms)"]
+    cws  = [14, 84, 16, 24, 20, 24]
+    rows_data = []
+    for r in generic_rows:
+        sg  = f"{r['start']} -> {r['goal']}"
+        lbl = f"L{r['level']} {level_names[r['level']]}"
+        for key, albl in [("a_star", "A*"), ("absra", "ABSRA")]:
+            a = r[key]
+            cost = f"{a['cost']:.2f}" if a['cost'] != math.inf else "INF"
+            rows_data.append([lbl, sg, albl, cost, str(a['explored']), f"{a['time_ms']:.3f}"])
+    draw_table(hdrs, cws, rows_data)
+
+    # 2. Flood
+    section_title("2. Flood Scenarios  (Mamuyac 2025 threshold: 25 cm | NDRRMC Carina Jul 2024)")
+    hdrs = ["Lvl", "Start -> Goal", "MaxDepth(cm)", ">25cm edges", "Closed roads",
+            "A* (km)", "ABSRA (km)", "A* Nodes", "ABSRA Nodes"]
+    cws  = [12, 74, 24, 20, 20, 20, 22, 20, 22]
+    rows_data = []
+    for r in flood_rows:
+        f  = r["flood"]
+        sg = f"{r['start']} -> {r['goal']}"
+        a, b = r["a_star"], r["absra"]
+        rows_data.append([
+            f"L{r['level']}", sg,
+            f"{f['max_depth_cm']:.1f}", str(f['edges_over_threshold']),
+            str(r['blocked_edges']),
+            f"{a['cost']:.2f}" if a['cost'] != math.inf else "INF",
+            f"{b['cost']:.2f}" if b['cost'] != math.inf else "INF",
+            str(a['explored']), str(b['explored']),
+        ])
+    draw_table(hdrs, cws, rows_data)
+
+    # 3. Heavy Traffic
+    section_title("3. Heavy-Traffic Scenarios  (BPR model | DPWH Region III / TomTom 2024)")
+    hdrs = ["Lvl", "Start -> Goal", "Max V/C", "Edges >= 1.0", "A* (km)",
+            "ABSRA (km)", "A* Nodes", "ABSRA Nodes", "Blocked roads"]
+    cws  = [12, 72, 18, 20, 20, 22, 20, 22, 22]
+    rows_data = []
+    for r in traffic_rows:
+        h  = r["heavy_traffic"]
+        sg = f"{r['start']} -> {r['goal']}"
+        a, b = r["a_star"], r["absra"]
+        rows_data.append([
+            f"L{r['level']}", sg,
+            f"{h['max_vc']:.2f}", str(h['edges_over_capacity']),
+            f"{a['cost']:.2f}" if a['cost'] != math.inf else "INF",
+            f"{b['cost']:.2f}" if b['cost'] != math.inf else "INF",
+            str(a['explored']), str(b['explored']), str(r['blocked_edges']),
+        ])
+    draw_table(hdrs, cws, rows_data)
+
+    # 4. Road Block
+    section_title("4. Road-Block Scenarios  (DPWH Region III | Bulacan DEO post-typhoon bulletins)")
+    hdrs = ["Lvl", "Start -> Goal", "Max S", "Edges >= 0.6", "Closed roads",
+            "A* (km)", "ABSRA (km)", "A* Nodes", "ABSRA Nodes"]
+    cws  = [12, 74, 16, 18, 18, 20, 22, 20, 22]
+    rows_data = []
+    for r in block_rows:
+        rb = r["road_block"]
+        sg = f"{r['start']} -> {r['goal']}"
+        a, b = r["a_star"], r["absra"]
+        rows_data.append([
+            f"L{r['level']}", sg,
+            f"{rb['max_severity']:.2f}", str(rb['edges_blocked']),
+            str(r['blocked_edges']),
+            f"{a['cost']:.2f}" if a['cost'] != math.inf else "INF",
+            f"{b['cost']:.2f}" if b['cost'] != math.inf else "INF",
+            str(a['explored']), str(b['explored']),
+        ])
+    draw_table(hdrs, cws, rows_data)
+
+    # 5. Aggregate Summary
+    pdf.add_page()
+    section_title("5. Algorithm Comparison Summary  (averaged per scenario type & level)")
+    hdrs = ["Scenario", "Level", "Algorithm", "Avg Cost (km)", "Avg Nodes",
+            "Avg Time (ms)", "Reachable"]
+    cws  = [32, 20, 22, 30, 24, 28, 22]
+    rows_data = []
+    for label, rows in [("Generic", generic_rows), ("Flood", flood_rows),
+                        ("Traffic", traffic_rows), ("Road-Block", block_rows)]:
+        for level in (1, 2, 3):
+            subset = [r for r in rows if r["level"] == level]
+            for algo_key, albl in [("a_star", "A*"), ("absra", "ABSRA")]:
+                reached = [r[algo_key] for r in subset if r[algo_key]["path"]]
+                if not reached:
+                    rows_data.append([label, f"L{level}", albl, "-", "-", "-",
+                                      f"0/{len(subset)}"])
+                else:
+                    avg_c = sum(x["cost"]     for x in reached) / len(reached)
+                    avg_n = sum(x["explored"] for x in reached) / len(reached)
+                    avg_t = sum(x["time_ms"]  for x in reached) / len(reached)
+                    rows_data.append([label, f"L{level}", albl,
+                                      f"{avg_c:.2f}", f"{avg_n:.1f}", f"{avg_t:.3f}",
+                                      f"{len(reached)}/{len(subset)}"])
+    draw_table(hdrs, cws, rows_data, font_size=8)
+
+    pdf.output(output_path)
+    print(f"\n[PDF] Report saved -> {output_path}")
+
+
 # MAIN
 def main():
     test_cases = [
@@ -754,6 +927,8 @@ def main():
                   for lvl in (1, 2, 3) for s, g in test_cases]
     print_block_report(block_rows)
     aggregate(block_rows, "Road-block summary (averaged across test cases):")
+
+    generate_pdf_report(generic_rows, flood_rows, traffic_rows, block_rows)
 
 
 if __name__ == "__main__":
