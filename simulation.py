@@ -1,9 +1,15 @@
 """
 Disaster-Response Routing Simulation
+====================================
+Standalone simulation that mirrors the routing study described in the thesis:
+    * The road network of Bulacan is modeled as a graph (locations = nodes,
+      roads = edges).
+    * Disaster conditions are simulated by altering edge characteristics
+      (travel cost multipliers, accessibility).
     * Three disaster levels:
-        Level 1 - Minor    : small delays, no blockages.
+        Level 1 - Minor : small delays, no blockages.
         Level 2 - Moderate : significant slowdowns and higher traversal cost.
-        Level 3 - Severe   : selected roads are blocked / inaccessible.
+        Level 3 - Severe : selected roads are blocked / inaccessible.
     * Two routing algorithms are compared:
         - Traditional A*
         - Optimized ABSRA (Arc-flag Bidirectional Search A*)
@@ -11,6 +17,8 @@ Disaster-Response Routing Simulation
         - Path cost (route efficiency)
         - Number of nodes explored
         - Execution time
+Run:
+    python simulation.py
 """
 
 import math
@@ -19,7 +27,10 @@ import time
 import random
 from copy import deepcopy
 
+# --------------------------------------------------------------------------
 # 1. ROAD NETWORK GRAPH (Bulacan)
+#    Mirrors the structure used in main.py so results are comparable.
+# --------------------------------------------------------------------------
 NODE_LOCATIONS = {
     "HQ_Malolos":            {"lat": 14.8437, "lon": 120.8113},
     "Paombong":              {"lat": 14.8322, "lon": 120.7890},
@@ -70,6 +81,7 @@ REGIONS = ["Central", "Northern", "Southern"]
 
 
 def haversine_km(a, b):
+    """Great-circle distance in km between two node names."""
     lat1, lon1 = NODE_LOCATIONS[a]["lat"], NODE_LOCATIONS[a]["lon"]
     lat2, lon2 = NODE_LOCATIONS[b]["lat"], NODE_LOCATIONS[b]["lon"]
     R = 6371.0
@@ -81,11 +93,24 @@ def haversine_km(a, b):
 
 
 def heuristic(a, b):
+    """Admissible heuristic - straight-line distance in km."""
     return haversine_km(a, b)
 
 
-# DISASTER SIMULATION
+# --------------------------------------------------------------------------
+# 2. DISASTER SIMULATION
+#    Returns a modified weighted graph + a set of blocked edges based on the
+#    chosen disaster level. Higher level = more impact on the network.
+#
+#    Flood model is grounded in Mamuyac (2025): empirical analysis of Metro
+#    Manila flooding shows that once flood depth exceeds 25 cm, lane closures
+#    become frequent and traffic flow capacity drops by 40-70%. We translate
+#    that into per-edge cost multipliers and probabilistic blockage.
+# --------------------------------------------------------------------------
+FLOOD_DEPTH_THRESHOLD_CM = 25            # Mamuyac (2025)
+FLOOD_CAPACITY_DROP_RANGE = (0.40, 0.70)  # 40-70% drop above threshold
 def build_base_weights():
+    """Base edge cost = real distance (km). Symmetric."""
     weights = {}
     for u, neighbors in GRAPH_CONNECTIONS.items():
         for v in neighbors:
@@ -95,39 +120,109 @@ def build_base_weights():
 
 def simulate_disaster(level, seed=42):
     """
-    Level 1 (Minor)    - 30% of edges get 1.2-1.5x cost multiplier.
-    Level 2 (Moderate) - 50% of edges get 1.8-2.8x cost multiplier.
+    Apply disaster effects according to severity level.
+    Returns (edge_weights, blocked_edges) where blocked_edges is a set of
+    (u, v) pairs that the routing algorithm must skip.
+    Level 1 (Minor)    - 30% of edges get a 1.2-1.5x cost multiplier.
+    Level 2 (Moderate) - 50% of edges get a 1.8-2.8x cost multiplier.
     Level 3 (Severe)   - 50% slowdown 2.5-4.0x AND ~20% of edges blocked.
     """
     rng = random.Random(seed)
     weights = build_base_weights()
     blocked = set()
+
+    # All directed edges in the graph
     edges = list(weights.keys())
 
     if level == 1:
         affected = rng.sample(edges, k=max(1, int(len(edges) * 0.30)))
         for e in affected:
             weights[e] *= rng.uniform(1.2, 1.5)
+
     elif level == 2:
         affected = rng.sample(edges, k=max(1, int(len(edges) * 0.50)))
         for e in affected:
             weights[e] *= rng.uniform(1.8, 2.8)
+
     elif level == 3:
         slow = rng.sample(edges, k=max(1, int(len(edges) * 0.50)))
         for e in slow:
             weights[e] *= rng.uniform(2.5, 4.0)
+        # Block ~20% of edges (and their reverse, to keep the graph consistent)
         block_candidates = rng.sample(edges, k=max(1, int(len(edges) * 0.20)))
         for (u, v) in block_candidates:
             blocked.add((u, v))
             blocked.add((v, u))
+
     elif level != 0:
         raise ValueError(f"Unknown disaster level: {level}")
 
     return weights, blocked
 
 
-# ROUTING ALGORITHMS
+def simulate_flood_disaster(level, seed=42):
+    """
+    Empirical flood model based on Mamuyac (2025) Metro Manila analysis.
+    For each affected edge a flood depth (cm) is sampled from a severity-
+    dependent distribution, then translated into routing impact:
+        depth < 25 cm  : passable, minor slowdown (linear penalty up to 1.20x)
+        depth >= 25 cm : capacity drops r ~ U(0.40, 0.70)
+                         -> cost multiplier = 1 / (1 - r)  (1.67x .. 3.33x)
+                         AND with closure probability p = min(1, (d-25)/50)
+                         the edge (and its reverse) is marked impassable.
+    Severity controls the depth distribution and the affected fraction:
+        Level 1 (Minor)    : depth ~ U(0, 30) cm,    30% of edges affected
+        Level 2 (Moderate) : depth ~ U(10, 60) cm,   50% of edges affected
+        Level 3 (Severe)   : depth ~ U(20, 100) cm,  70% of edges affected
+    Returns (weights, blocked, depths) where `depths` maps directed edge to
+    its sampled flood depth in cm (0 for unaffected edges).
+    """
+    rng = random.Random(seed)
+    weights = build_base_weights()
+    blocked = set()
+    depths = {e: 0.0 for e in weights}
+
+    if level == 1:
+        depth_lo, depth_hi, fraction = 0.0, 30.0, 0.30
+    elif level == 2:
+        depth_lo, depth_hi, fraction = 10.0, 60.0, 0.50
+    elif level == 3:
+        depth_lo, depth_hi, fraction = 20.0, 100.0, 0.70
+    else:
+        raise ValueError(f"Unknown flood level: {level}")
+
+    # Sample affected edges as undirected pairs so both directions share depth
+    undirected = list({tuple(sorted(e)) for e in weights})
+    affected = rng.sample(undirected, k=max(1, int(len(undirected) * fraction)))
+
+    for (a, b) in affected:
+        d = rng.uniform(depth_lo, depth_hi)
+        depths[(a, b)] = d
+        depths[(b, a)] = d
+
+        if d < FLOOD_DEPTH_THRESHOLD_CM:
+            mult = 1.0 + 0.008 * d            # up to ~1.20x at 25 cm
+        else:
+            r = rng.uniform(*FLOOD_CAPACITY_DROP_RANGE)
+            mult = 1.0 / (1.0 - r)            # 1.67x .. 3.33x
+
+        weights[(a, b)] *= mult
+        weights[(b, a)] *= mult
+
+        if d >= FLOOD_DEPTH_THRESHOLD_CM:
+            p_close = min(1.0, (d - FLOOD_DEPTH_THRESHOLD_CM) / 50.0)
+            if rng.random() < p_close:
+                blocked.add((a, b))
+                blocked.add((b, a))
+
+    return weights, blocked, depths
+
+
+# --------------------------------------------------------------------------
+# 3. ROUTING ALGORITHMS
+# --------------------------------------------------------------------------
 def a_star(start, goal, weights, blocked):
+    """Traditional A* over the disaster-modified graph."""
     if start not in NODE_LOCATIONS or goal not in NODE_LOCATIONS:
         return None, 0, math.inf
     if start == goal:
@@ -187,8 +282,12 @@ def _dijkstra(source, adj):
 
 def _build_arc_flags(weights, blocked):
     """
-    fwd_flags[(u,v)] = R if edge is on a shortest path TO some node in R
-    bwd_flags[(u,v)] = R if edge is on a shortest path FROM some node in R
+    Pre-compute arc flags for both search directions.
+    fwd_flags[(u,v)] = R if edge (u,v) lies on a shortest path TO some node
+                      in region R - used by forward search toward goal_region.
+    bwd_flags[(u,v)] = R if edge (u,v) lies on a shortest path FROM some node
+                      in region R - used by backward search expanding the
+                      predecessor edge while traveling toward start_region.
     """
     fwd_flags = {e: set() for e in weights}
     bwd_flags = {e: set() for e in weights}
@@ -203,25 +302,38 @@ def _build_arc_flags(weights, blocked):
 
     for region in REGIONS:
         members = [n for n, r in NODE_REGIONS.items() if r == region]
+
+        # Forward flags: reverse Dijkstra from each target in region.
+        # dist_to[t][u] = shortest cost u -> t.
         for t in members:
             d = _dijkstra(t, rev_adj)
             for (u, v), w in weights.items():
-                if (u, v) in blocked: continue
+                if (u, v) in blocked:
+                    continue
                 if d[u] < math.inf and d[v] < math.inf and \
                         abs(d[u] - (w + d[v])) < 1e-9:
                     fwd_flags[(u, v)].add(region)
+
+        # Backward flags: forward Dijkstra from each source in region.
+        # dist_from[s][v] = shortest cost s -> v.
         for s in members:
             d = _dijkstra(s, adj)
             for (u, v), w in weights.items():
-                if (u, v) in blocked: continue
+                if (u, v) in blocked:
+                    continue
                 if d[u] < math.inf and d[v] < math.inf and \
                         abs(d[v] - (d[u] + w)) < 1e-9:
                     bwd_flags[(u, v)].add(region)
+
     return fwd_flags, bwd_flags
 
 
 def absra(start, goal, weights, blocked):
-    """Arc-flag Bidirectional Search A* - the optimized algorithm."""
+    """
+    Optimized routing: Arc-flag Bidirectional Search A*.
+    Forward + backward A* meet in the middle; arc flags prune any edge that
+    cannot lie on a shortest path toward the goal/start region.
+    """
     if start not in NODE_LOCATIONS or goal not in NODE_LOCATIONS:
         return None, 0, math.inf
     if start == goal:
@@ -233,7 +345,8 @@ def absra(start, goal, weights, blocked):
 
     rev_adj = {n: [] for n in NODE_LOCATIONS}
     for (u, v), w in weights.items():
-        if (u, v) in blocked: continue
+        if (u, v) in blocked:
+            continue
         rev_adj[v].append((u, w))
 
     fwd_g = {n: math.inf for n in NODE_LOCATIONS}; fwd_g[start] = 0.0
@@ -255,11 +368,13 @@ def absra(start, goal, weights, blocked):
 
         if f_min <= b_min and fwd_open:
             _, u = heapq.heappop(fwd_open)
-            if u in fwd_closed: continue
+            if u in fwd_closed:
+                continue
             fwd_closed.add(u)
             explored += 1
             for v in GRAPH_CONNECTIONS.get(u, []):
-                if (u, v) in blocked: continue
+                if (u, v) in blocked:
+                    continue
                 if goal_region and v != goal and goal_region not in fwd_flags.get((u, v), set()):
                     continue
                 ng = fwd_g[u] + weights[(u, v)]
@@ -273,7 +388,8 @@ def absra(start, goal, weights, blocked):
                         meeting = v
         elif bwd_open:
             _, u = heapq.heappop(bwd_open)
-            if u in bwd_closed: continue
+            if u in bwd_closed:
+                continue
             bwd_closed.add(u)
             explored += 1
             for v, w in rev_adj[u]:
@@ -292,38 +408,132 @@ def absra(start, goal, weights, blocked):
     if meeting is None:
         return None, explored, math.inf
 
-    fwd_path, n = [], meeting
+    # Reconstruct path: start -> meeting (forward) + meeting -> goal (backward)
+    fwd_path = []
+    n = meeting
     while n is not None:
-        fwd_path.append(n); n = fwd_par.get(n)
+        fwd_path.append(n)
+        n = fwd_par.get(n)
     fwd_path.reverse()
-    bwd_path, n = [], bwd_par.get(meeting)
+
+    bwd_path = []
+    n = bwd_par.get(meeting)
     while n is not None:
-        bwd_path.append(n); n = bwd_par.get(n)
+        bwd_path.append(n)
+        n = bwd_par.get(n)
 
     return fwd_path + bwd_path, explored, best_cost
 
-# BENCHMARK HARNESS
+
+# --------------------------------------------------------------------------
+# 4. BENCHMARK HARNESS
+# --------------------------------------------------------------------------
 def measure(fn, *args, repeats=5):
-    best_t, result = math.inf, None
+    """Run fn several times, return the best (min) wall-clock time + result."""
+    best_t = math.inf
+    result = None
     for _ in range(repeats):
         t0 = time.perf_counter()
         result = fn(*args)
-        best_t = min(best_t, time.perf_counter() - t0)
+        t1 = time.perf_counter()
+        best_t = min(best_t, t1 - t0)
     return result, best_t
 
 
-def run_scenario(start, goal, level, seed=42):
-    weights, blocked = simulate_disaster(level, seed=seed)
+def run_scenario(start, goal, level, seed=42, disaster_type="generic"):
+    if disaster_type == "flood":
+        weights, blocked, depths = simulate_flood_disaster(level, seed=seed)
+    else:
+        weights, blocked = simulate_disaster(level, seed=seed)
+        depths = None
+
     (a_path, a_exp, a_cost), a_t = measure(a_star, start, goal, weights, blocked)
-    (b_path, b_exp, b_cost), b_t = measure(absra,  start, goal, weights, blocked)
-    return {
-        "level": level, "start": start, "goal": goal,
+    (b_path, b_exp, b_cost), b_t = measure(absra, start, goal, weights, blocked)
+
+    result = {
+        "level": level,
+        "start": start,
+        "goal": goal,
+        "disaster_type": disaster_type,
         "blocked_edges": len(blocked) // 2,
         "a_star":  {"path": a_path, "cost": a_cost, "explored": a_exp, "time_ms": a_t * 1000},
         "absra":   {"path": b_path, "cost": b_cost, "explored": b_exp, "time_ms": b_t * 1000},
     }
 
+    if depths is not None:
+        # Summarize using undirected edges so each road is counted once
+        seen, undirected_depths = set(), []
+        for (u, v), d in depths.items():
+            key = tuple(sorted((u, v)))
+            if key in seen:
+                continue
+            seen.add(key)
+            undirected_depths.append(d)
+        flooded = [d for d in undirected_depths if d > 0]
+        over = [d for d in undirected_depths if d >= FLOOD_DEPTH_THRESHOLD_CM]
+        result["flood"] = {
+            "max_depth_cm":   max(undirected_depths) if undirected_depths else 0.0,
+            "mean_depth_cm":  (sum(flooded) / len(flooded)) if flooded else 0.0,
+            "edges_flooded": len(flooded),
+            "edges_over_threshold": len(over),
+        }
 
+    return result
+
+
+def fmt_path(p):
+    if not p:
+        return "(no route)"
+    return " -> ".join(p)
+
+
+def print_report(rows):
+    level_names = {0: "No Disaster", 1: "Minor", 2: "Moderate", 3: "Severe"}
+    print("=" * 88)
+    print(f"{'Lvl':<4}{'Start -> Goal':<42}{'Algo':<8}{'Cost(km)':>10}{'Nodes':>8}{'Time(ms)':>12}")
+    print("-" * 88)
+    for r in rows:
+        sg = f"{r['start']} -> {r['goal']}"
+        lvl = f"{r['level']}({level_names[r['level']][0]})"
+        for algo_key, algo_label in [("a_star", "A*"), ("absra", "ABSRA")]:
+            a = r[algo_key]
+            cost = f"{a['cost']:.2f}" if a['cost'] != math.inf else "INF"
+            print(f"{lvl:<4}{sg:<42}{algo_label:<8}{cost:>10}{a['explored']:>8}{a['time_ms']:>12.3f}")
+        print("-" * 88)
+
+
+def print_flood_report(rows):
+    """Per-scenario flood depth statistics + routing comparison."""
+    print("=" * 104)
+    print(f"{'Lvl':<4}{'Start -> Goal':<42}"
+          f"{'MaxDepth':>10}{'>25cm':>8}{'Closed':>8}"
+          f"{'A* km':>9}{'ABSRA km':>10}{'A* nodes':>10}{'ABSRA':>7}")
+    print("-" * 104)
+    for r in rows:
+        f = r["flood"]
+        sg = f"{r['start']} -> {r['goal']}"
+        a, b = r["a_star"], r["absra"]
+        a_cost = f"{a['cost']:.2f}" if a['cost'] != math.inf else "INF"
+        b_cost = f"{b['cost']:.2f}" if b['cost'] != math.inf else "INF"
+        print(f"L{r['level']:<3}{sg:<42}"
+              f"{f['max_depth_cm']:>9.1f}{f['edges_over_threshold']:>8}"
+              f"{r['blocked_edges']:>8}{a_cost:>9}{b_cost:>10}"
+              f"{a['explored']:>10}{b['explored']:>7}")
+    print("-" * 104)
+
+
+def print_paths(rows):
+    print()
+    print("Resolved routes:")
+    for r in rows:
+        print(f"  [L{r['level']}] {r['start']} -> {r['goal']}  (blocked roads: {r['blocked_edges']})")
+        print(f"      A*    : {fmt_path(r['a_star']['path'])}")
+        print(f"      ABSRA : {fmt_path(r['absra']['path'])}")
+
+
+# --------------------------------------------------------------------------
+# 5. MAIN
+# --------------------------------------------------------------------------
 def main():
     test_cases = [
         ("HQ_Malolos", "Hagonoy"),
@@ -332,5 +542,46 @@ def main():
         ("HQ_Malolos", "Calumpit (Market)"),
         ("Plaridel",   "Bocaue"),
     ]
-    rows = [run_scenario(s, g, lvl, seed=2026 + lvl)
-            for lvl in (1, 2, 3) for s, g in test_cases]
+
+    def aggregate(rows, header):
+        print()
+        print(header)
+        print(f"{'Level':<10}{'Algo':<8}{'AvgCost':>10}{'AvgNodes':>10}"
+              f"{'AvgTime(ms)':>14}{'Reachable':>12}")
+        for level in (1, 2, 3):
+            subset = [r for r in rows if r["level"] == level]
+            for algo_key, label in [("a_star", "A*"), ("absra", "ABSRA")]:
+                reached = [r[algo_key] for r in subset if r[algo_key]["path"]]
+                if not reached:
+                    print(f"L{level:<9}{label:<8}{'-':>10}{'-':>10}{'-':>14}"
+                          f"{0:>5}/{len(subset)}")
+                    continue
+                avg_cost = sum(x["cost"] for x in reached) / len(reached)
+                avg_nodes = sum(x["explored"] for x in reached) / len(reached)
+                avg_time = sum(x["time_ms"] for x in reached) / len(reached)
+                print(f"L{level:<9}{label:<8}{avg_cost:>10.2f}{avg_nodes:>10.1f}"
+                      f"{avg_time:>14.3f}{len(reached):>5}/{len(subset)}")
+
+    # ---- Generic disaster sweep ----
+    print("\n### GENERIC DISASTER SCENARIOS ###")
+    generic_rows = [run_scenario(s, g, lvl, seed=2026 + lvl)
+                    for lvl in (1, 2, 3) for s, g in test_cases]
+    print_report(generic_rows)
+    print_paths(generic_rows)
+    aggregate(generic_rows, "Generic-disaster summary (averaged across test cases):")
+
+    # ---- Flood-specific sweep (Mamuyac, 2025) ----
+    print("\n### FLOOD SCENARIOS - Mamuyac (2025) empirical model ###")
+    print(f"Threshold: {FLOOD_DEPTH_THRESHOLD_CM} cm; "
+          f"capacity drop above threshold: "
+          f"{int(FLOOD_CAPACITY_DROP_RANGE[0]*100)}-"
+          f"{int(FLOOD_CAPACITY_DROP_RANGE[1]*100)}%")
+    flood_rows = [run_scenario(s, g, lvl, seed=4040 + lvl, disaster_type="flood")
+                  for lvl in (1, 2, 3) for s, g in test_cases]
+    print_flood_report(flood_rows)
+    print_paths(flood_rows)
+    aggregate(flood_rows, "Flood-scenario summary (averaged across test cases):")
+
+
+if __name__ == "__main__":
+    main()
