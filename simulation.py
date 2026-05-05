@@ -113,8 +113,8 @@ def haversine_km(a, b):
 
 
 def heuristic(a, b):
-    """Admissible heuristic - straight-line distance in km."""
-    return haversine_km(a, b)
+    """Admissible heuristic — straight-line travel time in minutes at max road speed."""
+    return haversine_km(a, b) / HEURISTIC_MAX_SPEED * 60.0
 
 # DISASTER SIMULATION
 FLOOD_DEPTH_THRESHOLD_CM = 25            # Mamuyac (2025): closure threshold
@@ -131,12 +131,22 @@ ROADBLOCK_W_DAMAGE      = 0.40
 ROADBLOCK_W_OBSTRUCTION = 0.40
 ROADBLOCK_W_RISK        = 0.20
 ROADBLOCK_S_THRESHOLD   = 0.60
+
+# --- Travel-time constants --------------------------------------------------
+# Base cost unit is MINUTES (distance / speed * 60).
+# BASE_SPEED_KMH  : free-flow average for Bulacan urban+provincial mix.
+# HEURISTIC_MAX   : NLEX/expressway ceiling — keeps the heuristic admissible
+#                   (h never overestimates actual travel time).
+BASE_SPEED_KMH        = 40.0
+HEURISTIC_MAX_SPEED   = 80.0
+
+
 def build_base_weights():
-    """Base edge cost = real distance (km). Symmetric."""
+    """Base edge cost = free-flow travel time in minutes."""
     weights = {}
     for u, neighbors in GRAPH_CONNECTIONS.items():
         for v in neighbors:
-            weights[(u, v)] = haversine_km(u, v)
+            weights[(u, v)] = haversine_km(u, v) / BASE_SPEED_KMH * 60.0
     return weights
 
 
@@ -600,7 +610,7 @@ def fmt_path(p):
 def print_report(rows):
     level_names = {0: "No Disaster", 1: "Minor", 2: "Moderate", 3: "Severe"}
     print("=" * 88)
-    print(f"{'Lvl':<4}{'Start -> Goal':<42}{'Algo':<8}{'Cost(km)':>10}{'Nodes':>8}{'Time(ms)':>12}")
+    print(f"{'Lvl':<4}{'Start -> Goal':<42}{'Algo':<8}{'Cost(min)':>10}{'Nodes':>8}{'Time(ms)':>12}")
     print("-" * 88)
     for r in rows:
         sg = f"{r['start']} -> {r['goal']}"
@@ -617,7 +627,7 @@ def print_flood_report(rows):
     print("=" * 104)
     print(f"{'Lvl':<4}{'Start -> Goal':<42}"
           f"{'MaxDepth':>10}{'>25cm':>8}{'Closed':>8}"
-          f"{'A* km':>9}{'ABSRA km':>10}{'A* nodes':>10}{'ABSRA':>7}")
+          f"{'A* min':>9}{'ABSRA min':>10}{'A* nodes':>10}{'ABSRA':>7}")
     print("-" * 104)
     for r in rows:
         f = r["flood"]
@@ -637,7 +647,7 @@ def print_traffic_report(rows):
     print("=" * 104)
     print(f"{'Lvl':<4}{'Start -> Goal':<42}"
           f"{'MaxV/C':>8}{'>=1.0':>7}"
-          f"{'A* km':>9}{'ABSRA km':>10}{'A* nodes':>10}{'ABSRA':>7}{'BlkRoads':>10}")
+          f"{'A* min':>9}{'ABSRA min':>10}{'A* nodes':>10}{'ABSRA':>7}{'BlkRoads':>10}")
     print("-" * 104)
     for r in rows:
         h = r["heavy_traffic"]
@@ -657,7 +667,7 @@ def print_block_report(rows):
     print("=" * 104)
     print(f"{'Lvl':<4}{'Start -> Goal':<42}"
           f"{'MaxS':>7}{'>=0.6':>7}{'Closed':>8}"
-          f"{'A* km':>9}{'ABSRA km':>10}{'A* nodes':>10}{'ABSRA':>7}")
+          f"{'A* min':>9}{'ABSRA min':>10}{'A* nodes':>10}{'ABSRA':>7}")
     print("-" * 104)
     for r in rows:
         rb = r["road_block"]
@@ -754,7 +764,7 @@ def generate_pdf_report(generic_rows, flood_rows, traffic_rows, block_rows,
 
     # 1. Generic
     section_title("1. Baseline Synthetic Disaster Scenarios")
-    hdrs = ["Lvl", "Start -> Goal", "Algo", "Cost (km)", "Nodes", "Time (ms)"]
+    hdrs = ["Lvl", "Start -> Goal", "Algo", "Cost (min)", "Nodes", "Time (ms)"]
     cws  = [14, 84, 16, 24, 20, 24]
     rows_data = []
     for r in generic_rows:
@@ -769,7 +779,7 @@ def generate_pdf_report(generic_rows, flood_rows, traffic_rows, block_rows,
     # 2. Flood
     section_title("2. Flood Scenarios  (Mamuyac 2025 threshold: 25 cm | NDRRMC Carina Jul 2024)")
     hdrs = ["Lvl", "Start -> Goal", "MaxDepth(cm)", ">25cm edges", "Closed roads",
-            "A* (km)", "ABSRA (km)", "A* Nodes", "ABSRA Nodes"]
+            "A* (min)", "ABSRA (min)", "A* Nodes", "ABSRA Nodes"]
     cws  = [12, 74, 24, 20, 20, 20, 22, 20, 22]
     rows_data = []
     for r in flood_rows:
@@ -788,8 +798,8 @@ def generate_pdf_report(generic_rows, flood_rows, traffic_rows, block_rows,
 
     # 3. Heavy Traffic
     section_title("3. Heavy-Traffic Scenarios  (BPR model | DPWH Region III / TomTom 2024)")
-    hdrs = ["Lvl", "Start -> Goal", "Max V/C", "Edges >= 1.0", "A* (km)",
-            "ABSRA (km)", "A* Nodes", "ABSRA Nodes", "Blocked roads"]
+    hdrs = ["Lvl", "Start -> Goal", "Max V/C", "Edges >= 1.0", "A* (min)",
+            "ABSRA (min)", "A* Nodes", "ABSRA Nodes", "Blocked roads"]
     cws  = [12, 72, 18, 20, 20, 22, 20, 22, 22]
     rows_data = []
     for r in traffic_rows:
@@ -808,7 +818,7 @@ def generate_pdf_report(generic_rows, flood_rows, traffic_rows, block_rows,
     # 4. Road Block
     section_title("4. Road-Block Scenarios  (DPWH Region III | Bulacan DEO post-typhoon bulletins)")
     hdrs = ["Lvl", "Start -> Goal", "Max S", "Edges >= 0.6", "Closed roads",
-            "A* (km)", "ABSRA (km)", "A* Nodes", "ABSRA Nodes"]
+            "A* (min)", "ABSRA (min)", "A* Nodes", "ABSRA Nodes"]
     cws  = [12, 74, 16, 18, 18, 20, 22, 20, 22]
     rows_data = []
     for r in block_rows:
@@ -828,7 +838,7 @@ def generate_pdf_report(generic_rows, flood_rows, traffic_rows, block_rows,
     # 5. Aggregate Summary
     pdf.add_page()
     section_title("5. Algorithm Comparison Summary  (averaged per scenario type & level)")
-    hdrs = ["Scenario", "Level", "Algorithm", "Avg Cost (km)", "Avg Nodes",
+    hdrs = ["Scenario", "Level", "Algorithm", "Avg Cost (min)", "Avg Nodes",
             "Avg Time (ms)", "Reachable"]
     cws  = [32, 20, 22, 30, 24, 28, 22]
     rows_data = []
@@ -867,20 +877,20 @@ def main():
     def aggregate(rows, header):
         print()
         print(header)
-        print(f"{'Level':<10}{'Algo':<8}{'AvgCost':>10}{'AvgNodes':>10}"
+        print(f"{'Level':<10}{'Algo':<8}{'AvgCost(min)':>13}{'AvgNodes':>10}"
               f"{'AvgTime(ms)':>14}{'Reachable':>12}")
         for level in (1, 2, 3):
             subset = [r for r in rows if r["level"] == level]
             for algo_key, label in [("a_star", "A*"), ("absra", "ABSRA")]:
                 reached = [r[algo_key] for r in subset if r[algo_key]["path"]]
                 if not reached:
-                    print(f"L{level:<9}{label:<8}{'-':>10}{'-':>10}{'-':>14}"
+                    print(f"L{level:<9}{label:<8}{'-':>13}{'-':>10}{'-':>14}"
                           f"{0:>5}/{len(subset)}")
                     continue
                 avg_cost = sum(x["cost"] for x in reached) / len(reached)
                 avg_nodes = sum(x["explored"] for x in reached) / len(reached)
                 avg_time = sum(x["time_ms"] for x in reached) / len(reached)
-                print(f"L{level:<9}{label:<8}{avg_cost:>10.2f}{avg_nodes:>10.1f}"
+                print(f"L{level:<9}{label:<8}{avg_cost:>13.2f}{avg_nodes:>10.1f}"
                       f"{avg_time:>14.3f}{len(reached):>5}/{len(subset)}")
 
     # ---- Synthetic baseline sweep (no Bulacan-specific calibration) ----
