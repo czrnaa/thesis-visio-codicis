@@ -370,7 +370,7 @@
 
             const status = (activeData.status || '').toLowerCase();
 
-            if (status.indexOf('awaiting') !== -1) {
+            if (status.indexOf('waiting') !== -1) {
                 btnApprove.classList.remove('hidden');
                 notice.classList.add('hidden');
                 btnApprove.innerHTML = 'Approve Task';
@@ -429,7 +429,7 @@
 
             // Treat explicitly-ended (false) the same as server "awaiting/resolved" so that
             // a stale "En Route" response from the poll cannot re-enable the End Task button.
-            if (status.indexOf('awaiting') !== -1 || status.indexOf('resolved') !== -1 || localState === false) {
+            if (status.indexOf('waiting') !== -1 || status.indexOf('resolved') !== -1 || localState === false) {
                 btn.innerHTML = '&#10003; Task Completed';
                 btn.style.background = '#95a5a6';
                 btn.style.cursor = 'not-allowed';
@@ -454,14 +454,17 @@
                 btn.style.opacity = '1';
                 btn.disabled = false;
                 btn.classList.add('btn-end-task');
-                if (btnReroute) {
-                    btnReroute.classList.remove('hidden');
-                    btnReroute.style.background = '#2980b9';
-                    btnReroute.style.cursor = 'pointer';
-                    btnReroute.style.opacity = '1';
-                    btnReroute.disabled = false;
+                // Alt-route and constraint controls are for responders only
+                if (CAN_REROUTE) {
+                    if (btnReroute) {
+                        btnReroute.classList.remove('hidden');
+                        btnReroute.style.background = '#2980b9';
+                        btnReroute.style.cursor = 'pointer';
+                        btnReroute.style.opacity = '1';
+                        btnReroute.disabled = false;
+                    }
+                    if (btnConstraint) btnConstraint.classList.remove('hidden');
                 }
-                if (btnConstraint) btnConstraint.classList.remove('hidden');
                 return;
             }
 
@@ -483,7 +486,7 @@
             if (btn && btn.disabled) return; 
             const taskId = activeData.task_id;
             const status = (activeData.status || '').toLowerCase();
-            if (status.indexOf('awaiting') !== -1 || status.indexOf('resolved') !== -1) return;
+            if (status.indexOf('waiting') !== -1 || status.indexOf('resolved') !== -1) return;
 
             if (!enRouteTasks[taskId]) {
                 enRouteTasks[taskId] = true;
@@ -494,9 +497,9 @@
             } else {
                 if (!confirm('End task for ' + taskId + '?\nThis will notify the operator to update the report status.')) return;
                 enRouteTasks[taskId] = false;
-                activeData.status = 'Awaiting Confirmation'; 
+                activeData.status = 'Waiting for Approval'; 
                 syncStartButton(); 
-                fetch('/update_status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_id: taskId, status: 'Awaiting Confirmation' }) });
+                fetch('/update_status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_id: taskId, status: 'Waiting for Approval' }) });
             }
         }
 
@@ -545,6 +548,39 @@
 
         let currentConstraint = '';
 
+        // ── Live responder location (operators/admins/programmers only) ──────────
+        let liveResponderMarker  = null;
+        let liveLocationInterval = null;
+
+        function stopLiveTracking() {
+            if (liveLocationInterval) { clearInterval(liveLocationInterval); liveLocationInterval = null; }
+            if (liveResponderMarker)  { map.removeLayer(liveResponderMarker);  liveResponderMarker  = null; }
+        }
+
+        function startLiveTracking(taskId) {
+            stopLiveTracking();
+            function update() {
+                fetch('/responder_data')
+                    .then(function(r) { return r.json(); })
+                    .then(function(rows) {
+                        var row = rows.find(function(r) { return r.task_id === taskId; });
+                        if (!row || !row.team_location) return;
+                        var lat = row.team_location.lat, lon = row.team_location.lon;
+                        if (liveResponderMarker) {
+                            liveResponderMarker.setLatLng([lat, lon]);
+                        } else {
+                            liveResponderMarker = L.circleMarker([lat, lon], {
+                                radius: 9, color: '#27ae60', fillColor: '#2ecc71',
+                                fillOpacity: 0.9, weight: 2
+                            }).addTo(map).bindPopup('<b>Responder Live Location</b>');
+                        }
+                    }).catch(function() {});
+            }
+            update();
+            liveLocationInterval = setInterval(update, 5000);
+        }
+        // ─────────────────────────────────────────────────────────────────────────
+
         let autoTaskId = new URLSearchParams(window.location.search).get('task_id');
 
         function loadData() {
@@ -576,7 +612,7 @@
 
                         let s = (row.status || '').toLowerCase(), bg = '#fff3cd', fg = '#856404';
                         if (s.indexOf('progress') !== -1 || s.indexOf('route') !== -1) { bg = '#d4edda'; fg = '#155724'; }
-                        if (s.indexOf('awaiting') !== -1) { bg = '#cce5ff'; fg = '#004085'; }
+                        if (s.indexOf('waiting') !== -1) { bg = '#cce5ff'; fg = '#004085'; }
                         if (s.indexOf('resolved') !== -1) { bg = '#e2e3e5'; fg = '#383d41'; }
 
                         let sev = (row.severity || '').toLowerCase(), sevColor = '#555';
@@ -620,6 +656,7 @@
         }
 
         function viewRoute(data, overrideTeamLat, overrideTeamLon) {
+            stopLiveTracking();
             activeData = data;
             
             const isPending = (!data.team_location || data.assigned_team === "Pending Assignment" || data.status === "Pending");
@@ -693,8 +730,10 @@
                         document.getElementById('d-eta').value = routeData.eta;
                         currentConstraint = '';
                         isAlternativeMode = false;
+                        // Operators see a live green dot tracking the responder
+                        if (!CAN_REROUTE) startLiveTracking(data.task_id);
                         if (alertBox) {
-                            if (routeData.is_rerouted) { alertBox.classList.remove('hidden'); alertBox.innerHTML = `<strong>&#9888;&#65039; ${routeData.message}</strong>`; }
+                            if (routeData.is_rerouted && !CAN_REROUTE) { alertBox.classList.remove('hidden'); alertBox.innerHTML = `<strong>&#9888;&#65039; ${routeData.message}</strong>`; }
                             else { alertBox.classList.add('hidden'); }
                         }
                     }

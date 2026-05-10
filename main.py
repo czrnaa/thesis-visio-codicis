@@ -867,6 +867,12 @@ def create_app():
             if path and len(path) > 1:
                 dist = round(sum(haversine_km(path[j], path[j+1]) for j in range(len(path)-1)), 2)
                 path_cost = sum(base_w.get((path[j], path[j+1]), 0) for j in range(len(path)-1))
+                # Last-mile: end node → actual task GPS (mirrors calculate_route logic)
+                if r.lat and r.lon:
+                    ln = NODE_LOCATIONS[path[-1]]
+                    lm = _haversine_raw(r.lat, r.lon, ln['lat'], ln['lon'])
+                    dist = round(dist + lm, 2)
+                    path_cost += lm / BASE_SPEED_KMH * 60.0
             eta = f"{math.ceil(path_cost)} mins" if path else "N/A"
 
             # ABSRA — best of REPS runs
@@ -880,6 +886,12 @@ def create_app():
             if absra_path and len(absra_path) > 1:
                 absra_dist = round(sum(haversine_km(absra_path[j], absra_path[j+1]) for j in range(len(absra_path)-1)), 2)
                 absra_cost = sum(base_w.get((absra_path[j], absra_path[j+1]), 0) for j in range(len(absra_path)-1))
+                # Last-mile for ABSRA
+                if r.lat and r.lon:
+                    ln = NODE_LOCATIONS[absra_path[-1]]
+                    lm = _haversine_raw(r.lat, r.lon, ln['lat'], ln['lon'])
+                    absra_dist = round(absra_dist + lm, 2)
+                    absra_cost += lm / BASE_SPEED_KMH * 60.0
                 absra_eta = f"{math.ceil(absra_cost)} mins"
             else:
                 absra_nodes, absra_exec_time, absra_dist, absra_eta = nodes, exec_time, dist, eta
@@ -1387,8 +1399,8 @@ def create_app():
             if new_status == "En Route":
                 db.session.add(Notification(task_id=r.task_id, message=f"{r.task_id} — Team is En Route to {r.location}. Update status when task is complete."))
                 db.session.commit()
-            elif new_status == "Awaiting Confirmation":
-                db.session.add(Notification(task_id=r.task_id, message=f"{r.task_id} — Responder has ended task at {r.location}. Please update the report status."))
+            elif new_status == "Waiting for Approval":
+                db.session.add(Notification(task_id=r.task_id, message=f"{r.task_id} — Responder has completed task at {r.location} and is waiting for operator approval."))
                 db.session.commit()
             return jsonify({"status": "ok"})
         return jsonify({"error": "Report not found"}), 404

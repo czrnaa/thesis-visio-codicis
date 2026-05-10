@@ -195,7 +195,7 @@
             // Also check enRouteTasks[taskId] === false (explicitly ended this session) so a
             // stale "En Route" server response cannot re-enable the button before the DB write
             // propagates to the next poll.
-            if (status.indexOf('awaiting') !== -1 || status.indexOf('resolved') !== -1 || enRouteTasks[taskId] === false) {
+            if (status.indexOf('waiting') !== -1 || status.indexOf('resolved') !== -1 || enRouteTasks[taskId] === false) {
                 btn.textContent = 'Task Completed';
                 btn.className = 'btn-action';
                 btn.style.background = '#95a5a6';
@@ -224,7 +224,7 @@
             
             // Prevent clicks if completed
             var status = (r.status || '').toLowerCase();
-            if (status.indexOf('awaiting') !== -1 || status.indexOf('resolved') !== -1) return;
+            if (status.indexOf('waiting') !== -1 || status.indexOf('resolved') !== -1) return;
 
             if (!enRouteTasks[r.task_id]) {
                 enRouteTasks[r.task_id] = true;
@@ -246,7 +246,7 @@
                 fetch('/update_status', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ task_id: r.task_id, status: 'Awaiting Confirmation' })
+                    body: JSON.stringify({ task_id: r.task_id, status: 'Waiting for Approval' })
                 });
                 var anyActive = Object.values(enRouteTasks).some(function(v) { return v; });
                 if (!anyActive) document.getElementById('en-route-banner').style.display = 'none';
