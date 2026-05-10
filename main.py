@@ -850,9 +850,19 @@ def create_app():
 
         for i, r in enumerate(reports):
             start_node = "HQ_Malolos"
-            end_node = r.location
-            if end_node not in NODE_LOCATIONS:
-                end_node = "Bocaue"
+            # Snap to nearest graph node via GPS — same method as calculate_route.
+            # Using r.location (municipality name) caused almost all tasks to fall back to
+            # "Bocaue" because form values like "Malolos" don't match the internal label
+            # "HQ_Malolos", making all rows show identical metrics.
+            if r.lat and r.lon:
+                end_node = min(NODE_LOCATIONS.keys(),
+                               key=lambda k: math.hypot(NODE_LOCATIONS[k]['lat'] - r.lat,
+                                                        NODE_LOCATIONS[k]['lon'] - r.lon))
+            else:
+                end_node = r.location if r.location in NODE_LOCATIONS else "Bocaue"
+            # Mirror calculate_route: when start == end, route to local sub-destination
+            if end_node == start_node and start_node in LOCAL_DESTINATIONS:
+                end_node = LOCAL_DESTINATIONS[start_node]
 
             # A* — best of REPS runs for stable timing
             best_a_time = float('inf')
