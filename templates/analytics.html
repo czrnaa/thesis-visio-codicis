@@ -81,8 +81,8 @@
         <div class="content">
             <div class="page-title">System Analytics & Logs</div>
 
-            <div class="section-title">A* Algorithm Performance</div>
-            <div class="table-container">
+            <div class="section-title">Algorithm Comparison: A* vs ABSRA</div>
+            <div class="table-container" style="max-height:420px;">
                 <div id="stats-empty" style="text-align:center; padding: 50px 20px; background:#fff; display: block;">
                     <div style="display:flex; flex-direction:column; align-items:center; opacity:0.9;">
                         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px;">
@@ -96,44 +96,26 @@
                 <table id="stats-table" style="display: none;">
                     <thead>
                         <tr>
-                            <th style="width: 50px;">#</th>
-                            <th>Task ID</th>
-                            <th>Target Location</th>
-                            <th>Nodes Explored</th>
-                            <th>Execution Time</th>
-                            <th>Est. Arrival (ETA)</th>
-                            <th>Path Distance</th>
+                            <th rowspan="2" style="width:36px; vertical-align:bottom;">#</th>
+                            <th rowspan="2" style="vertical-align:bottom;">Task ID</th>
+                            <th rowspan="2" style="vertical-align:bottom;">Target Location</th>
+                            <th colspan="3" style="text-align:center; background:#f5f5f5; border-bottom:1px solid #bbb;">A* (Baseline)</th>
+                            <th colspan="3" style="text-align:center; background:#e8f4f8; border-bottom:1px solid #bbb;">ABSRA (Optimized)</th>
+                            <th colspan="2" style="text-align:center; background:#eafaf1; border-bottom:1px solid #bbb;">Improvement</th>
+                        </tr>
+                        <tr>
+                            <th style="background:#f5f5f5;">Nodes</th>
+                            <th style="background:#f5f5f5;">Time</th>
+                            <th style="background:#f5f5f5;">ETA</th>
+                            <th style="background:#e8f4f8; color:#004085;">Nodes</th>
+                            <th style="background:#e8f4f8; color:#004085;">Time</th>
+                            <th style="background:#e8f4f8; color:#004085;">ETA</th>
+                            <th style="background:#eafaf1; color:#155724;">Nodes ↓</th>
+                            <th style="background:#eafaf1; color:#155724;">Time ↓</th>
                         </tr>
                     </thead>
                     <tbody id="stats-body"></tbody>
-                </table>
-            </div>
-
-            <div class="section-title">ABSRA Optimization Performance</div>
-            <div class="table-container">
-                <div id="absra-empty" style="text-align:center; padding: 50px 20px; background:#fff; display: block;">
-                    <div style="display:flex; flex-direction:column; align-items:center; opacity:0.9;">
-                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px;">
-                            <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
-                            <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" stroke="#d90429"></path>
-                        </svg>
-                        <span style="color: #222; font-size: 1.15rem; font-weight: 700; margin-bottom: 4px;">No Data Available</span>
-                        <span style="color: #777; font-size: 0.9rem;">Data will be shown once it's available.</span>
-                    </div>
-                </div>
-                <table id="absra-table" style="display: none;">
-                    <thead>
-                        <tr>
-                            <th style="width: 50px;">#</th>
-                            <th>Task ID</th>
-                            <th>Target Location</th>
-                            <th>Nodes Explored (ABSRA)</th>
-                            <th>Execution Time (ABSRA)</th>
-                            <th>Est. Arrival (ETA)</th>
-                            <th>Path Distance</th>
-                        </tr>
-                    </thead>
-                    <tbody id="absra-body"></tbody>
+                    <tfoot id="stats-footer" style="background:#f9f9f9; font-weight:700; border-top:2px solid #333;"></tfoot>
                 </table>
             </div>
 
@@ -210,70 +192,73 @@
             });
         }
 
-        // --- 2. Fetch Algorithm Performance Data (A* & ABSRA) ---
+        // --- 2. Fetch Algorithm Performance Data (A* vs ABSRA side-by-side) ---
         function loadStats() {
             fetch('/analytics_data')
-                .then(res => {
-                    if (!res.ok) throw new Error("HTTP error");
-                    return res.json();
-                })
+                .then(res => { if (!res.ok) throw new Error("HTTP error"); return res.json(); })
                 .then(data => {
-                    const statsEmpty = document.getElementById('stats-empty');
-                    const statsTable = document.getElementById('stats-table');
-                    const statsBody = document.getElementById('stats-body');
-                    
-                    const absraEmpty = document.getElementById('absra-empty');
-                    const absraTable = document.getElementById('absra-table');
-                    const absraBody = document.getElementById('absra-body');
-                    
-                    statsBody.innerHTML = '';
-                    absraBody.innerHTML = '';
-                    
-                    if(!data || data.length === 0) {
+                    const statsEmpty  = document.getElementById('stats-empty');
+                    const statsTable  = document.getElementById('stats-table');
+                    const statsBody   = document.getElementById('stats-body');
+                    const statsFooter = document.getElementById('stats-footer');
+
+                    statsBody.innerHTML   = '';
+                    statsFooter.innerHTML = '';
+
+                    if (!data || data.length === 0) {
                         statsEmpty.style.display = 'block';
                         statsTable.style.display = 'none';
-                        absraEmpty.style.display = 'block';
-                        absraTable.style.display = 'none';
                         return;
                     }
 
                     statsEmpty.style.display = 'none';
                     statsTable.style.display = 'table';
-                    absraEmpty.style.display = 'none';
-                    absraTable.style.display = 'table';
+
+                    let totalNodeRed = 0, totalTimeImp = 0;
 
                     data.forEach(row => {
-                        let tr = document.createElement('tr');
+                        const nodeRed  = parseFloat(row.node_reduction)  || 0;
+                        const timeImp  = parseFloat(row.time_improvement) || 0;
+                        totalNodeRed  += nodeRed;
+                        totalTimeImp  += timeImp;
+
+                        const redColor  = nodeRed  > 0 ? '#155724' : '#555';
+                        const timeColor = timeImp  > 0 ? '#155724' : '#555';
+
+                        const tr = document.createElement('tr');
                         tr.innerHTML = `
                             <td>${row.num}</td>
                             <td><strong>${row.task_id}</strong></td>
                             <td>${row.location}</td>
-                            <td><span class="node-count">${row.nodes}</span></td>
-                            <td class="tech-font">${row.time}</td>
-                            <td>${row.eta}</td>
-                            <td>${row.dist}</td>
+                            <td style="background:#f5f5f5;"><span class="node-count">${row.a_nodes}</span></td>
+                            <td style="background:#f5f5f5;" class="tech-font">${row.a_time}</td>
+                            <td style="background:#f5f5f5;">${row.a_eta}</td>
+                            <td style="background:#e8f4f8;"><span class="node-count" style="background:#cce5ff;color:#004085;">${row.absra_nodes}</span></td>
+                            <td style="background:#e8f4f8;" class="tech-font" style="color:#004085;">${row.absra_time}</td>
+                            <td style="background:#e8f4f8;">${row.absra_eta}</td>
+                            <td style="background:#eafaf1; font-weight:700; color:${redColor};">${row.node_reduction}</td>
+                            <td style="background:#eafaf1; font-weight:700; color:${timeColor};">${row.time_improvement}</td>
                         `;
                         statsBody.appendChild(tr);
-
-                        let trAbsra = document.createElement('tr');
-                        trAbsra.innerHTML = `
-                            <td>${row.num}</td>
-                            <td><strong>${row.task_id}</strong></td>
-                            <td>${row.location}</td>
-                            <td><span class="node-count" style="background:#cce5ff; color:#004085;">${row.absra_nodes || 'N/A'}</span></td>
-                            <td class="tech-font" style="color:#004085;">${row.absra_time || 'N/A'}</td>
-                            <td>${row.absra_eta || row.eta}</td>
-                            <td>${row.absra_dist || row.dist}</td>
-                        `;
-                        absraBody.appendChild(trAbsra);
                     });
+
+                    // Summary footer row
+                    const avgNodeRed = (totalNodeRed / data.length).toFixed(1);
+                    const avgTimeImp = (totalTimeImp / data.length).toFixed(1);
+                    statsFooter.innerHTML = `
+                        <tr>
+                            <td colspan="3" style="text-align:right; padding-right:12px;">Average across ${data.length} task(s):</td>
+                            <td colspan="3" style="background:#f5f5f5;"></td>
+                            <td colspan="3" style="background:#e8f4f8;"></td>
+                            <td style="background:#eafaf1; color:#155724;">${avgNodeRed}%</td>
+                            <td style="background:#eafaf1; color:#155724;">${avgTimeImp}%</td>
+                        </tr>
+                    `;
                 })
                 .catch(err => {
                     console.error("Error loading stats:", err);
                     document.getElementById('stats-empty').style.display = 'block';
                     document.getElementById('stats-table').style.display = 'none';
-                    document.getElementById('absra-empty').style.display = 'block';
-                    document.getElementById('absra-table').style.display = 'none';
                 });
         }
 

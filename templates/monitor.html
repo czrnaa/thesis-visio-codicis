@@ -496,21 +496,45 @@
 
         function triggerAlternativeRoute() {
             if (!activeData) return;
+
+            const btn = document.getElementById('btn-reroute');
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = '&#128205; Locating...';
+            btn.disabled = true;
+
             isAlternativeMode = true;
             currentConstraint = selectedConstraint;
-            // Collapse the constraint panel after rerouting
+            selectedConstraint = '';
+
+            // Collapse the constraint panel
             var panel = document.getElementById('constraint-panel');
             var toggleBtn = document.getElementById('btn-constraint-toggle');
             if (panel) panel.classList.add('hidden');
             if (toggleBtn) toggleBtn.innerHTML = '&#9650; Add Constraint';
-            // Reset constraint selection visually
             document.querySelectorAll('.constraint-btn').forEach(b => {
                 b.style.background = '#fff';
                 b.style.border = '2px dashed #999';
                 b.style.color = '#333';
             });
-            selectedConstraint = '';
-            viewRoute(activeData);
+
+            function doReroute(lat, lon) {
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+                viewRoute(activeData, lat, lon);
+            }
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(pos) { doReroute(pos.coords.latitude, pos.coords.longitude); },
+                    function(err) {
+                        console.warn('Geolocation unavailable (' + err.message + '), using stored team location.');
+                        doReroute(null, null);
+                    },
+                    { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+                );
+            } else {
+                doReroute(null, null);
+            }
         }
 
         let currentConstraint = '';
@@ -589,7 +613,7 @@
                 .catch(err => console.error('[Monitor] loadData failed:', err));
         }
 
-        function viewRoute(data) {
+        function viewRoute(data, overrideTeamLat, overrideTeamLon) {
             activeData = data;
             
             const isPending = (!data.team_location || data.assigned_team === "Pending Assignment" || data.status === "Pending");
@@ -632,8 +656,10 @@
             markers = [];
 
             if (!isPending && data.team_location && data.lat && data.lon) {
+                const teamLat = (overrideTeamLat != null) ? overrideTeamLat : data.team_location.lat;
+                const teamLon = (overrideTeamLon != null) ? overrideTeamLon : data.team_location.lon;
                 let useAbsra = document.getElementById('toggle-absra') ? document.getElementById('toggle-absra').checked : true;
-                fetch(`/calculate_route?task_id=${data.task_id}&team_lat=${data.team_location.lat}&team_lon=${data.team_location.lon}&task_lat=${data.lat}&task_lon=${data.lon}&alternative=${isAlternativeMode}&use_absra=${useAbsra}&constraint=${currentConstraint}`)
+                fetch(`/calculate_route?task_id=${data.task_id}&team_lat=${teamLat}&team_lon=${teamLon}&task_lat=${data.lat}&task_lon=${data.lon}&alternative=${isAlternativeMode}&use_absra=${useAbsra}&constraint=${currentConstraint}`)
                 .then(res => res.json())
                 .then(routeData => {
                     let alertBox = document.getElementById('reroute-alert');
