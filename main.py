@@ -69,15 +69,19 @@ LOCAL_DESTINATIONS = {
     "San Miguel": "San Miguel (Viola St)"
 }
 
-def haversine_km(a, b):
-    """Great-circle distance in km between two node names."""
-    lat1, lon1 = NODE_LOCATIONS[a]['lat'], NODE_LOCATIONS[a]['lon']
-    lat2, lon2 = NODE_LOCATIONS[b]['lat'], NODE_LOCATIONS[b]['lon']
+def _haversine_raw(lat1, lon1, lat2, lon2):
     R = 6371.0
     p1, p2 = math.radians(lat1), math.radians(lat2)
     dp, dl = math.radians(lat2 - lat1), math.radians(lon2 - lon1)
     h = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
     return 2 * R * math.asin(math.sqrt(h))
+
+def haversine_km(a, b):
+    """Great-circle distance in km between two node names."""
+    return _haversine_raw(
+        NODE_LOCATIONS[a]['lat'], NODE_LOCATIONS[a]['lon'],
+        NODE_LOCATIONS[b]['lat'], NODE_LOCATIONS[b]['lon']
+    )
 
 def heuristic(node1, node2):
     # Admissible heuristic: straight-line travel time in minutes at max road speed.
@@ -1276,11 +1280,28 @@ def create_app():
             return jsonify({"path": [], "coords": [], "distance": "N/A", "eta": "Blocked",
                             "is_rerouted": False, "message": "Error: Destination unreachable due to closures."})
 
-        dist_km = round(sum(haversine_km(path[j], path[j+1]) for j in range(len(path) - 1)), 2)
-        eta_min  = math.ceil(sum(
+        graph_dist_km = sum(haversine_km(path[j], path[j+1]) for j in range(len(path) - 1))
+        graph_cost    = sum(
             modified_w.get((path[j], path[j+1]), haversine_km(path[j], path[j+1]) / BASE_SPEED_KMH * 60.0)
             for j in range(len(path) - 1)
-        ))
+        )
+
+        # First-mile: actual team GPS → nearest graph node (avoids 1-min ETA when both ends
+        # snap to the same node but the real-world distance between them is significant).
+        first_mile_km = 0.0
+        if team_lat and team_lon:
+            fn = NODE_LOCATIONS[path[0]]
+            first_mile_km = _haversine_raw(float(team_lat), float(team_lon), fn['lat'], fn['lon'])
+
+        # Last-mile: last graph node → actual task GPS
+        last_mile_km = 0.0
+        if task_lat and task_lon:
+            ln = NODE_LOCATIONS[path[-1]]
+            last_mile_km = _haversine_raw(float(task_lat), float(task_lon), ln['lat'], ln['lon'])
+
+        extra_km  = first_mile_km + last_mile_km
+        dist_km   = round(graph_dist_km + extra_km, 2)
+        eta_min   = math.ceil(graph_cost + extra_km / BASE_SPEED_KMH * 60.0)
 
         is_rerouted = (path != baseline_path) or want_alternative
         message = (f"REROUTED: Avoiding {', '.join(avoid_nodes)}. "

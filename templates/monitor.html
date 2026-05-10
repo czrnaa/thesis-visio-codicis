@@ -424,22 +424,29 @@
 
             if (!btn || !activeData) return;
             const status = (activeData.status || '').toLowerCase();
+            // localState: undefined = not yet acted on, true = explicitly started, false = explicitly ended
+            const localState = enRouteTasks[activeData.task_id];
 
-            if (status.indexOf('awaiting') !== -1 || status.indexOf('resolved') !== -1) {
+            // Treat explicitly-ended (false) the same as server "awaiting/resolved" so that
+            // a stale "En Route" response from the poll cannot re-enable the End Task button.
+            if (status.indexOf('awaiting') !== -1 || status.indexOf('resolved') !== -1 || localState === false) {
                 btn.innerHTML = '&#10003; Task Completed';
                 btn.style.background = '#95a5a6';
                 btn.style.cursor = 'not-allowed';
                 btn.style.opacity = '0.85';
                 btn.disabled = true;
                 btn.classList.remove('btn-end-task');
-                // Hide reroute and constraint after task is done
                 if (btnReroute) btnReroute.classList.add('hidden');
                 if (btnConstraint) btnConstraint.classList.add('hidden');
                 if (constraintPanel) constraintPanel.classList.add('hidden');
                 return;
             }
 
-            if (enRouteTasks[activeData.task_id] || status.indexOf('en route') !== -1 || status.indexOf('enroute') !== -1) {
+            // En Route: explicit local start OR server says en route and we haven't acted yet
+            const isEnRoute = localState === true ||
+                (localState === undefined && (status.indexOf('en route') !== -1 || status.indexOf('enroute') !== -1));
+
+            if (isEnRoute) {
                 enRouteTasks[activeData.task_id] = true;
                 btn.innerHTML = '&#128721; End Task';
                 btn.style.background = '#d90429';
@@ -447,7 +454,6 @@
                 btn.style.opacity = '1';
                 btn.disabled = false;
                 btn.classList.add('btn-end-task');
-                // Show reroute and constraint only when en route
                 if (btnReroute) {
                     btnReroute.classList.remove('hidden');
                     btnReroute.style.background = '#2980b9';
@@ -459,7 +465,7 @@
                 return;
             }
 
-            // Pre-start state: show only Start Route, hide reroute and constraint
+            // Pre-start state
             btn.innerHTML = '&#9654; Start Route';
             btn.style.background = '#27ae60';
             btn.style.cursor = 'pointer';

@@ -192,7 +192,10 @@
             var status = (r.status || '').toLowerCase();
 
             // ── DONE state: grey, disabled ──
-            if (status.indexOf('awaiting') !== -1 || status.indexOf('resolved') !== -1) {
+            // Also check enRouteTasks[taskId] === false (explicitly ended this session) so a
+            // stale "En Route" server response cannot re-enable the button before the DB write
+            // propagates to the next poll.
+            if (status.indexOf('awaiting') !== -1 || status.indexOf('resolved') !== -1 || enRouteTasks[taskId] === false) {
                 btn.textContent = 'Task Completed';
                 btn.className = 'btn-action';
                 btn.style.background = '#95a5a6';
