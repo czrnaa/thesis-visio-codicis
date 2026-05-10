@@ -66,6 +66,7 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(120), default="")
     status = db.Column(db.String(20), default="Active")
     last_login = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    show_routes = db.Column(db.Boolean, default=False)
 
 class RoadConstraint(db.Model):
     id = db.Column(db.Integer, primary_key=True)

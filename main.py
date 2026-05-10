@@ -16,7 +16,6 @@ from models import db, DisasterReport, Team, User, RouteLog, RoadConstraint, Not
 # ==========================================
 #  GLOBAL SETTINGS & DATA
 # ==========================================
-USER_SETTINGS = {}
 
 # --- Physics-based routing constants (calibrated for Bulacan corridors) ---
 BASE_SPEED_KMH      = 40.0   # free-flow average for Bulacan urban+provincial mix
@@ -453,8 +452,14 @@ def get_address_from_coords(lat, lon):
 def create_app():
     app = Flask(__name__)
     basedir = os.path.abspath(os.path.dirname(__file__))
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'disaster.db')
-    app.config['SECRET_KEY'] = 'thesis_secret_key_123'
+
+    database_url = os.environ.get('DATABASE_URL', 'sqlite:///' + os.path.join(basedir, 'disaster.db'))
+    # Neon/Heroku return "postgres://" but SQLAlchemy requires "postgresql://"
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'thesis_secret_key_123')
     db.init_app(app)
 
     login_manager = LoginManager()
@@ -479,7 +484,6 @@ def create_app():
             if user and user.password == request.form.get('password'):
                 login_user(user)
                 user.last_login = datetime.datetime.now()
-                if user.id not in USER_SETTINGS: USER_SETTINGS[user.id] = {'show_routes': False}
                 db.session.commit()
                 return redirect(url_for('dashboard_view'))
             return render_template('login.html', error="Invalid Credentials")
@@ -499,8 +503,8 @@ def create_app():
     # 2. Generate an App Password: https://myaccount.google.com/apppasswords
     # 3. Paste the 16-char password below (no spaces).
     # If left blank, OTPs print to console (demo fallback).
-    GMAIL_USER     = 'onikabutosan@gmail.com'   # ← your Gmail address
-    GMAIL_APP_PASS = 'enipenxonecarhes'        # ← the NEW 16 chars, no spaces
+    GMAIL_USER     = os.environ.get('GMAIL_USER', '')
+    GMAIL_APP_PASS = os.environ.get('GMAIL_APP_PASS', '')
     def generate_otp():
         """Generate a random 6-digit OTP."""
         return f"{random.randint(0, 999999):06d}"
@@ -722,8 +726,8 @@ def create_app():
     @app.route("/dashboard")
     @login_required
     def dashboard_view():
-        show_all = USER_SETTINGS.get(current_user.id, {}).get('show_routes', False)
-        
+        show_all = current_user.show_routes
+
         # --- NEW LOGIC: Calculate Dashboard Stats ---
         # 1. Active Reports (Tasks that are currently being handled)
         active_count = DisasterReport.query.filter(DisasterReport.status.in_(['In Progress', 'En Route'])).count()
@@ -818,7 +822,7 @@ def create_app():
     @app.route("/monitor")
     @login_required
     def monitor_view():
-        show_all = USER_SETTINGS.get(current_user.id, {}).get('show_routes', False)
+        show_all = current_user.show_routes
         can_reroute = current_user.role == "Responder"
         return render_template("monitor.html", user=current_user, show_all_routes=show_all, can_reroute=can_reroute)
 
@@ -905,8 +909,7 @@ def create_app():
             current_user.first_name = request.form.get("first_name")
             current_user.last_name = request.form.get("last_name")
             current_user.phone = request.form.get("phone")
-            visual_setting = request.form.get("routing_visual") == "on"
-            USER_SETTINGS[current_user.id] = {'show_routes': visual_setting}
+            current_user.show_routes = request.form.get("routing_visual") == "on"
 
             new_password = (request.form.get("new_password") or "").strip()
             current_password = (request.form.get("current_password") or "").strip()
@@ -933,8 +936,7 @@ def create_app():
             db.session.commit()
             flash("Settings updated.", "success")
             return redirect(url_for('profile_settings'))
-        current_setting = USER_SETTINGS.get(current_user.id, {}).get('show_routes', False)
-        return render_template("profile.html", user=current_user, show_routes=current_setting)
+        return render_template("profile.html", user=current_user, show_routes=current_user.show_routes)
 
     @app.route("/manage_users")
     @login_required
