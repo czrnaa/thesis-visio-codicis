@@ -92,3 +92,14 @@ class RouteLog(db.Model):
     reason = db.Column(db.String(255), nullable=True)      # Reason/Type of Constraint
     status = db.Column(db.String(50), nullable=False)      # "Success" or "Error"
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow) # Time triggered
+
+# --- TABLE 6: VEHICLE RESOURCES ---
+class VehicleResource(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    vehicle_type = db.Column(db.String(50), unique=True, nullable=False)
+    total = db.Column(db.Integer, default=10)
+    currently_assigned = db.Column(db.Integer, default=0)
+
+    @property
+    def available(self):
+        return max(0, self.total - self.currently_assigned)

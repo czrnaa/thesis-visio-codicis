@@ -11,7 +11,7 @@ from email.mime.multipart import MIMEMultipart
 import requests 
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from models import db, DisasterReport, Team, User, RouteLog, RoadConstraint, Notification
+from models import db, DisasterReport, Team, User, RouteLog, RoadConstraint, Notification, VehicleResource
 
 # ==========================================
 #  GLOBAL SETTINGS & DATA
@@ -33,13 +33,15 @@ NODE_LOCATIONS = {
     "Guiguinto":             {"lat": 14.8300, "lon": 120.8800},
     "Balagtas":              {"lat": 14.8150, "lon": 120.9100},
     "Bocaue":                {"lat": 14.7960, "lon": 120.9250},
+    "Marilao":               {"lat": 14.774252085429513, "lon": 120.95924868037731},
     "San Miguel":            {"lat": 15.1450, "lon": 120.9780},
     "Malolos (City Hall)":   {"lat": 14.8450, "lon": 120.8150},
     "Plaridel (Muni Hall)":  {"lat": 14.8890, "lon": 120.8600},
     "Calumpit (Market)":     {"lat": 14.9160, "lon": 120.7680},
     "Guiguinto (Plaza)":     {"lat": 14.8320, "lon": 120.8830},
     "Bocaue (Crossing)":     {"lat": 14.7980, "lon": 120.9280},
-    "San Miguel (Viola St)": {"lat": 15.1485, "lon": 120.9820}, 
+    "San Miguel (Viola St)": {"lat": 15.1485, "lon": 120.9820},
+    "Marilao (Municipal Hall)": {"lat": 14.774252085429513, "lon": 120.95924868037731},
 }
 
 GRAPH_CONNECTIONS = {
@@ -49,15 +51,17 @@ GRAPH_CONNECTIONS = {
     "Plaridel":     ["HQ_Malolos", "Calumpit", "Guiguinto", "San Miguel", "Plaridel (Muni Hall)"],
     "Calumpit":     ["Plaridel", "Calumpit (Market)"],
     "Guiguinto":    ["HQ_Malolos", "Plaridel", "Balagtas", "Guiguinto (Plaza)"],
-    "Balagtas":     ["Guiguinto", "Bocaue"],
-    "Bocaue":       ["Balagtas", "Bocaue (Crossing)"],
+    "Balagtas":     ["Guiguinto", "Bocaue", "Marilao"],
+    "Bocaue":       ["Balagtas", "Bocaue (Crossing)", "Marilao"],
+    "Marilao":      ["Bocaue", "Balagtas", "Marilao (Municipal Hall)"],
     "San Miguel":   ["Plaridel", "San Miguel (Viola St)"],
-    "Malolos (City Hall)":   ["HQ_Malolos"],
-    "Plaridel (Muni Hall)":  ["Plaridel"],
-    "Calumpit (Market)":     ["Calumpit"],
-    "Guiguinto (Plaza)":     ["Guiguinto"],
-    "Bocaue (Crossing)":     ["Bocaue"],
-    "San Miguel (Viola St)": ["San Miguel"]
+    "Malolos (City Hall)":      ["HQ_Malolos"],
+    "Plaridel (Muni Hall)":     ["Plaridel"],
+    "Calumpit (Market)":        ["Calumpit"],
+    "Guiguinto (Plaza)":        ["Guiguinto"],
+    "Bocaue (Crossing)":        ["Bocaue"],
+    "San Miguel (Viola St)":    ["San Miguel"],
+    "Marilao (Municipal Hall)": ["Marilao"],
 }
 
 LOCAL_DESTINATIONS = {
@@ -66,7 +70,8 @@ LOCAL_DESTINATIONS = {
     "Calumpit":   "Calumpit (Market)",
     "Guiguinto":  "Guiguinto (Plaza)",
     "Bocaue":     "Bocaue (Crossing)",
-    "San Miguel": "San Miguel (Viola St)"
+    "San Miguel": "San Miguel (Viola St)",
+    "Marilao":    "Marilao (Municipal Hall)",
 }
 
 def _haversine_raw(lat1, lon1, lat2, lon2):
@@ -161,6 +166,8 @@ NODE_REGIONS = {
     "Balagtas":              "Southern",
     "Bocaue":                "Southern",
     "Bocaue (Crossing)":     "Southern",
+    "Marilao":               "Southern",
+    "Marilao (Municipal Hall)": "Southern",
 }
 REGIONS = ["Central", "Northern", "Southern"]
 
@@ -179,6 +186,8 @@ BULACAN_RISK_PROFILE = {
     "Balagtas":              {"flood": 0.45, "traffic": 0.90, "vuln": 0.45},
     "Bocaue":                {"flood": 0.50, "traffic": 0.90, "vuln": 0.50},
     "Bocaue (Crossing)":     {"flood": 0.50, "traffic": 0.95, "vuln": 0.50},
+    "Marilao":               {"flood": 0.45, "traffic": 0.85, "vuln": 0.45},
+    "Marilao (Municipal Hall)": {"flood": 0.45, "traffic": 0.85, "vuln": 0.45},
     "San Miguel":            {"flood": 0.30, "traffic": 0.55, "vuln": 0.55},
     "San Miguel (Viola St)": {"flood": 0.30, "traffic": 0.55, "vuln": 0.55},
 }
@@ -449,6 +458,33 @@ def get_address_from_coords(lat, lon):
             return f"{city} ({street})"
     except: pass
     return f"{lat:.4f}, {lon:.4f}"
+
+# ==========================================
+#  VEHICLE RESOURCE HELPERS
+# ==========================================
+import re as _re
+
+def _update_vehicle_counts(resources_str, delta):
+    """
+    Parse a resources string like 'Food Trucks x3, Ambulances x1'
+    and adjust VehicleResource.currently_assigned by delta * qty.
+    delta=+1 when assigning, delta=-1 when releasing/deleting.
+    """
+    for part in resources_str.split(','):
+        part = part.strip()
+        if not part:
+            continue
+        # Match "Vehicle Name xN" pattern
+        m = _re.match(r'^(.+?)\s+x(\d+)$', part)
+        if m:
+            vtype = m.group(1).strip()
+            qty = int(m.group(2))
+        else:
+            vtype = part
+            qty = 1
+        vr = VehicleResource.query.filter_by(vehicle_type=vtype).first()
+        if vr:
+            vr.currently_assigned = max(0, vr.currently_assigned + delta * qty)
 
 # ==========================================
 #  APP FACTORY
@@ -821,7 +857,8 @@ def create_app():
                 "last_updated": t.last_updated.strftime('%m-%d-%Y') if t.last_updated else "N/A"
             })
             
-        return render_template("teams.html", teams=display_teams, reports=reports, user=current_user)
+        vehicles = VehicleResource.query.order_by(VehicleResource.id).all()
+        return render_template("teams.html", teams=display_teams, reports=reports, vehicles=vehicles, user=current_user)
 
     @app.route("/monitor")
     @login_required
@@ -849,7 +886,7 @@ def create_app():
         REPS = 5  # repeated runs → take min time (matches simulation.py measure())
 
         for i, r in enumerate(reports):
-            start_node = "HQ_Malolos"
+            start_node = "Marilao (Municipal Hall)"
             # Snap to nearest graph node via GPS — same method as calculate_route.
             # Using r.location (municipality name) caused almost all tasks to fall back to
             # "Bocaue" because form values like "Malolos" don't match the internal label
@@ -913,6 +950,8 @@ def create_app():
             data.append({
                 "num": i + 1,
                 "task_id": r.task_id,
+                "from": start_node,
+                "to": end_node,
                 "location": r.location,
                 "a_nodes": nodes,
                 "a_time": f"{exec_time} ms",
@@ -1113,18 +1152,54 @@ def create_app():
             if new_status == request.form.get("status"):
                 flash("Report details updated successfully.", "success")
         return redirect(url_for('reports_list', view_id=request.form.get("view_id")))
-    
+
+    @app.route("/delete_report", methods=["POST"])
+    @login_required
+    def delete_report():
+        if current_user.role == "Responder":
+            flash("You do not have permission to delete reports.", "error")
+            return redirect(url_for('reports_list'))
+        report_id = request.form.get("report_id")
+        r = DisasterReport.query.get(report_id)
+        if r:
+            task_id = r.task_id
+            # Free up the assigned team if the task was still active
+            if r.assigned_team and r.status not in ('Resolved',):
+                team = Team.query.filter_by(team_id=r.assigned_team).first()
+                if team:
+                    team.status = "Available"
+                # Restore vehicles to available pool
+                if r.resources:
+                    _update_vehicle_counts(r.resources, delta=-1)
+                    db.session.commit()
+            # Remove related route logs and notifications to avoid orphaned rows
+            RouteLog.query.filter_by(task_id=task_id).delete()
+            Notification.query.filter_by(task_id=task_id).delete()
+            db.session.delete(r)
+            db.session.commit()
+            flash(f"Task {task_id} has been deleted successfully.", "success")
+        else:
+            flash("Report not found.", "error")
+        return redirect(url_for('reports_list'))
+
     @app.route("/assign_team", methods=["POST"])
     @login_required
     def assign_team():
         if current_user.role == "Responder": return redirect(url_for('dashboard_view'))
         team_id = request.form.get("team_id")
         task_id = request.form.get("task_id")
+        resources_str = (request.form.get("resources") or "").strip()
         if not team_id or team_id.strip() == "": return redirect(url_for("teams_view"))
         r = DisasterReport.query.filter_by(task_id=task_id).first()
         if r: 
             r.assigned_team = team_id
-            r.status = "In Progress" 
+            r.status = "In Progress"
+            # Store the resources selected via the assignment form
+            if resources_str:
+                r.resources = resources_str
+            # Deduct vehicles from available pool based on assigned resources
+            if r.resources:
+                _update_vehicle_counts(r.resources, delta=+1)
             db.session.commit()
         return redirect(url_for("teams_view"))
 
@@ -1212,13 +1287,13 @@ def create_app():
         task_lat = request.args.get('task_lat')
         task_lon = request.args.get('task_lon')
 
-        start_node = request.args.get('start', 'HQ_Malolos')
+        start_node = request.args.get('start', 'Marilao (Municipal Hall)')
         end_node = request.args.get('end', 'Bocaue')
 
         if team_lat and team_lon:
             t_lat, t_lon = float(team_lat), float(team_lon)
             start_node = min(NODE_LOCATIONS.keys(), key=lambda k: math.hypot(NODE_LOCATIONS[k]['lat'] - t_lat, NODE_LOCATIONS[k]['lon'] - t_lon))
-
+ 
         if task_lat and task_lon:
             t_lat, t_lon = float(task_lat), float(task_lon)
             end_node = min(NODE_LOCATIONS.keys(), key=lambda k: math.hypot(NODE_LOCATIONS[k]['lat'] - t_lat, NODE_LOCATIONS[k]['lon'] - t_lon))
@@ -1443,6 +1518,11 @@ def setup_database():
     app = create_app()
     with app.app_context():
         db.create_all()
+        # Seed default vehicle resources (10 each) if not already present
+        default_vehicles = ["Food Trucks", "Cargo Truck", "Ambulances", "Vans", "MPVs/Sedans"]
+        for vtype in default_vehicles:
+            if not VehicleResource.query.filter_by(vehicle_type=vtype).first():
+                db.session.add(VehicleResource(vehicle_type=vtype, total=10, currently_assigned=0))
         users = [{"id": "programmer", "role": "Programmer", "fname": "Dev", "lname": "Admin"}, 
                  {"id": "admin", "role": "Admin", "fname": "System", "lname": "Admin"}]
         for u in users:
