@@ -51,6 +51,31 @@
         
         .status-success { color: #006600; font-weight: bold; }
         .status-error { color: #d90429; font-weight: bold; }
+
+        /* Geolocation banner */
+        .geo-banner {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 4px;
+            border: 1px solid #b8daff;
+            background: #d1ecf1;
+            color: #0c5460;
+            font-size: 0.9rem;
+        }
+        .geo-banner.success { background: #d4edda; color: #155724; border-color: #c3e6cb; }
+        .geo-banner.warn    { background: #fff3cd; color: #856404; border-color: #ffeeba; }
+        .geo-banner button  {
+            background: #d90429; color: white; border: none;
+            padding: 6px 14px; border-radius: 4px; font-weight: 600;
+            cursor: pointer; font-size: 0.85rem;
+        }
+        .geo-banner button:hover { background: #b00220; }
+        .geo-banner button.secondary { background: #6c757d; }
+        .geo-banner button.secondary:hover { background: #5a6268; }
     </style>
 </head>
 <body>
@@ -80,6 +105,14 @@
         
         <div class="content">
             <div class="page-title">System Analytics & Logs</div>
+
+            <div id="geo-banner" class="geo-banner">
+                <span id="geo-banner-text">📍 This page can use your current location as the route origin. Click "Share location" to enable.</span>
+                <span>
+                    <button id="geo-share-btn" type="button" onclick="requestUserLocation()">Share location</button>
+                    <button id="geo-clear-btn" type="button" class="secondary" onclick="clearUserLocation()" style="display:none;">Use Marilao HQ</button>
+                </span>
+            </div>
 
             <div class="section-title">Algorithm Comparison: A* vs ABSRA</div>
             <div class="table-container" style="max-height:420px;">
@@ -151,6 +184,54 @@
     </div>
 
     <script>
+        // ─── Browser Geolocation ────────────────────────────────────────────
+        // Stores the viewer's lat/lon and sends it to /analytics_data so the
+        // FROM column reflects where the user actually is (or "OUTSIDE Bulacan").
+        let userLocation = null;
+
+        function setBanner(text, kind) {
+            const banner = document.getElementById('geo-banner');
+            const txt    = document.getElementById('geo-banner-text');
+            banner.classList.remove('success', 'warn');
+            if (kind) banner.classList.add(kind);
+            txt.innerHTML = text;
+        }
+
+        function requestUserLocation() {
+            if (!navigator.geolocation) {
+                setBanner('⚠️ Your browser does not support geolocation. The FROM column will use Marilao HQ.', 'warn');
+                return;
+            }
+            setBanner('⏳ Requesting your location… please allow the browser prompt.', null);
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    userLocation = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+                    setBanner(
+                        `📍 Using your location (<strong>${userLocation.lat.toFixed(5)}, ${userLocation.lon.toFixed(5)}</strong>) as the route origin. The FROM column will show your nearest Bulacan node, or "OUTSIDE Bulacan" if you're not in the province.`,
+                        'success'
+                    );
+                    document.getElementById('geo-share-btn').textContent = 'Refresh location';
+                    document.getElementById('geo-clear-btn').style.display = 'inline-block';
+                    loadStats(); // refresh immediately with the new origin
+                },
+                (err) => {
+                    let msg = '⚠️ Location access denied or unavailable. The FROM column will use Marilao HQ.';
+                    if (err && err.code === 1) msg = '⚠️ You denied location access. The FROM column will use Marilao HQ. <a href="#" onclick="requestUserLocation(); return false;">Try again</a>';
+                    else if (err && err.code === 3) msg = '⚠️ Location request timed out. <a href="#" onclick="requestUserLocation(); return false;">Try again</a>';
+                    setBanner(msg, 'warn');
+                },
+                { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+            );
+        }
+
+        function clearUserLocation() {
+            userLocation = null;
+            setBanner('📍 Using Marilao HQ as the route origin. <a href="#" onclick="requestUserLocation(); return false;">Share my location instead</a>', null);
+            document.getElementById('geo-share-btn').textContent = 'Share location';
+            document.getElementById('geo-clear-btn').style.display = 'none';
+            loadStats();
+        }
+
         // --- 1. Fetch Active Reports ---
         function loadActiveReports() {
             fetch('/api/all_monitor_reports')
@@ -194,7 +275,11 @@
 
         // --- 2. Fetch Algorithm Performance Data (A* vs ABSRA side-by-side) ---
         function loadStats() {
-            fetch('/analytics_data')
+            let url = '/analytics_data';
+            if (userLocation) {
+                url += `?user_lat=${userLocation.lat}&user_lon=${userLocation.lon}`;
+            }
+            fetch(url)
                 .then(res => { if (!res.ok) throw new Error("HTTP error"); return res.json(); })
                 .then(data => {
                     const statsEmpty  = document.getElementById('stats-empty');
@@ -310,6 +395,10 @@
         loadActiveReports();
         loadStats();
         loadLogs();
+
+        // Prompt the viewer for their location right away so the FROM column
+        // reflects where they actually are. If they deny, we silently fall back.
+        requestUserLocation();
         
         setInterval(loadActiveReports, 5000); 
         setInterval(loadStats, 3000); 

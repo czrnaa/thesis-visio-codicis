@@ -728,9 +728,17 @@
                 .then(routeData => {
                     let alertBox = document.getElementById('reroute-alert');
                     if (routeData.coords && routeData.coords.length > 0) {
-                        let waypoints = [];
-                        if (routeData.coords.length > 2 || (routeData.is_rerouted && routeData.coords.length > 2)) {
-                            waypoints = [L.latLng(teamLat, teamLon), ...routeData.coords.map(c => L.latLng(c[0], c[1])), L.latLng(data.lat, data.lon)];
+                        // Don't pass every intermediate A* graph node to OSRM as a forced
+                        // waypoint — that produces unnecessary detours because OSRM has to
+                        // visit each one in order. Keep just start + end so OSRM picks the
+                        // actual shortest road path. For alternative routing, drop in a
+                        // single mid-graph waypoint to force a genuinely different route.
+                        let waypoints;
+                        if (isAlternativeMode && routeData.coords.length > 2) {
+                            const midIdx = Math.floor(routeData.coords.length / 2);
+                            const midC = routeData.coords[midIdx];
+                            markers.push(L.circleMarker([midC[0], midC[1]], {color: 'blue', radius: 6}).addTo(map));
+                            waypoints = [L.latLng(teamLat, teamLon), L.latLng(midC[0], midC[1]), L.latLng(data.lat, data.lon)];
                         } else if (isAlternativeMode) {
                             let midLat = (teamLat + data.lat) / 2, midLon = (teamLon + data.lon) / 2 + 0.015;
                             markers.push(L.circleMarker([midLat, midLon], {color: 'blue', radius: 6}).addTo(map));

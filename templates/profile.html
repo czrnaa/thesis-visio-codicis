@@ -111,6 +111,7 @@
     
     <div class="main-container">
         <div class="sidebar">
+            {% if user.role != 'Admin' %}
             <a href="/dashboard" class="nav-item"><span class="icon"></span> Dashboard</a>
             <a href="/reports" class="nav-item"><span class="icon"></span> Reports</a>
             
@@ -119,6 +120,7 @@
             {% endif %}
             
             <a href="/monitor" class="nav-item"><span class="icon"></span> Monitor Routing</a>
+            {% endif %}
             {% if user.role == 'Programmer' %}
             <a href="/analytics" class="nav-item"><span class="icon"></span> System Analytics</a>
             {% endif %}

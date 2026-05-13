@@ -525,6 +525,9 @@ def create_app():
                 login_user(user)
                 user.last_login = datetime.datetime.now()
                 db.session.commit()
+                # Admins are restricted to user management only.
+                if user.role == "Admin":
+                    return redirect(url_for('manage_users'))
                 return redirect(url_for('dashboard_view'))
             return render_template('login.html', error="Invalid Credentials")
         return render_template('login.html')
@@ -761,11 +764,17 @@ def create_app():
         )
 
     @app.route("/")
-    def home(): return redirect(url_for("dashboard_view"))
+    def home():
+        if current_user.is_authenticated and current_user.role == "Admin":
+            return redirect(url_for("manage_users"))
+        return redirect(url_for("dashboard_view"))
 
     @app.route("/dashboard")
     @login_required
     def dashboard_view():
+        # Admins are restricted to user management only.
+        if current_user.role == "Admin":
+            return redirect(url_for('manage_users'))
         show_all = current_user.show_routes
 
         # --- NEW LOGIC: Calculate Dashboard Stats ---
@@ -817,6 +826,9 @@ def create_app():
     @app.route("/reports")
     @login_required
     def reports_list():
+        # Admins are restricted to user management only.
+        if current_user.role == "Admin":
+            return redirect(url_for('manage_users'))
         view_id = request.args.get('view_id', type=int)
         if current_user.role == "Responder":
             team = get_responder_team()
@@ -830,6 +842,8 @@ def create_app():
     @login_required
     def teams_view():
         if current_user.role == "Responder": return redirect(url_for('dashboard_view'))
+        # Admins are restricted to user management only.
+        if current_user.role == "Admin": return redirect(url_for('manage_users'))
         
         # Show ALL reports (including resolved) to perfectly align with Monitor/Analytics
         reports = DisasterReport.query.order_by(DisasterReport.date_submitted.desc()).all()
@@ -863,6 +877,9 @@ def create_app():
     @app.route("/monitor")
     @login_required
     def monitor_view():
+        # Admins are restricted to user management only.
+        if current_user.role == "Admin":
+            return redirect(url_for('manage_users'))
         show_all = current_user.show_routes
         can_reroute = current_user.role == "Responder"
         return render_template("monitor.html", user=current_user, show_all_routes=show_all, can_reroute=can_reroute)
@@ -880,13 +897,50 @@ def create_app():
     def analytics_data():
         if current_user.role != "Programmer": return jsonify([])
 
+        # Bulacan province approximate bounding box. If the VIEWER's browser GPS is
+        # outside this box, we display "OUTSIDE Bulacan" as the FROM label (since
+        # their location is not in the routable graph) but still compute routes
+        # from the Marilao HQ depot for the algorithm comparison metrics.
+        # Tightened so that Metro Manila (Quezon City ~14.68, Manila ~14.60,
+        # Paranaque ~14.48) is correctly flagged as outside.
+        BULACAN_LAT_MIN, BULACAN_LAT_MAX = 14.70, 15.35
+        BULACAN_LON_MIN, BULACAN_LON_MAX = 120.55, 121.20
+
+        def _in_bulacan(lat, lon):
+            return (BULACAN_LAT_MIN <= lat <= BULACAN_LAT_MAX and
+                    BULACAN_LON_MIN <= lon <= BULACAN_LON_MAX)
+
+        # Read browser-supplied geolocation from query params. If absent (user
+        # denied permission or it isn't available yet), fall back to the depot.
+        user_lat = request.args.get('user_lat', type=float)
+        user_lon = request.args.get('user_lon', type=float)
+        DEPOT_NODE = "Marilao (Municipal Hall)"
+
+        if user_lat is not None and user_lon is not None:
+            if _in_bulacan(user_lat, user_lon):
+                # Snap viewer's location to nearest graph node and route from there.
+                actual_start_node = min(
+                    NODE_LOCATIONS.keys(),
+                    key=lambda k: math.hypot(NODE_LOCATIONS[k]['lat'] - user_lat,
+                                             NODE_LOCATIONS[k]['lon'] - user_lon)
+                )
+                from_label = actual_start_node
+            else:
+                # Viewer is outside Bulacan — can't route from out-of-graph coords,
+                # so use the depot for routing but flag the label.
+                actual_start_node = DEPOT_NODE
+                from_label = "OUTSIDE Bulacan"
+        else:
+            actual_start_node = DEPOT_NODE
+            from_label = DEPOT_NODE
+
         reports = DisasterReport.query.order_by(DisasterReport.date_submitted.desc()).all()
         data = []
         base_w = _ROUTER_CACHE.base_weights
         REPS = 5  # repeated runs → take min time (matches simulation.py measure())
 
         for i, r in enumerate(reports):
-            start_node = "Marilao (Municipal Hall)"
+            start_node = actual_start_node
             # Snap to nearest graph node via GPS — same method as calculate_route.
             # Using r.location (municipality name) caused almost all tasks to fall back to
             # "Bocaue" because form values like "Malolos" don't match the internal label
@@ -950,7 +1004,7 @@ def create_app():
             data.append({
                 "num": i + 1,
                 "task_id": r.task_id,
-                "from": start_node,
+                "from": from_label,
                 "to": end_node,
                 "location": r.location,
                 "a_nodes": nodes,

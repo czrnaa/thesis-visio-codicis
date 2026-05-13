@@ -64,10 +64,12 @@
     
     <div class="main-container">
         <div class="sidebar">
+            {% if user.role != 'Admin' %}
             <a href="/dashboard" class="nav-item"><span class="icon"></span> Dashboard</a>
             <a href="/reports" class="nav-item"><span class="icon"></span> Reports</a>
             <a href="/teams" class="nav-item"><span class="icon"></span> Teams & Resources</a>
             <a href="/monitor" class="nav-item"><span class="icon"></span> Monitor Routing</a>
+            {% endif %}
 
             {% if user.role == 'Admin' or user.role == 'Programmer' %}
             <a href="/manage_users" class="nav-item active">
