@@ -152,7 +152,7 @@
                         <div id="reroute-alert" class="alert-box alert-error hidden" style="margin-bottom: 10px; font-size: 0.85rem; padding: 10px;"></div>
                         
                         <div id="active-details" class="hidden">
-                            <div class="info-row"><span class="info-label">Disaster Type</span><span class="info-val" id="d-type">-</span></div>
+                            <div class="info-row"><span class="info-label">Incident Type</span><span class="info-val" id="d-type">-</span></div>
                             <div class="info-row"><span class="info-label">Severity Level</span><span class="info-val" id="d-sev">-</span></div>
                             <div class="info-row"><span class="info-label">Assigned Task</span><span class="info-val" id="d-task">Response</span></div>
                         </div>
@@ -243,6 +243,10 @@
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
     <script>
         const CAN_REROUTE = document.getElementById('can-reroute-flag').dataset.value === 'true';
+
+        // Marilao Municipal Hall — fixed depot where vehicles are parked before dispatch
+        const DEPOT_LAT = 14.7743;
+        const DEPOT_LON = 120.9592;
 
         function onAbsraToggle() {
             const cb = document.getElementById('toggle-absra');
@@ -536,13 +540,22 @@
                 navigator.geolocation.getCurrentPosition(
                     function(pos) { doReroute(pos.coords.latitude, pos.coords.longitude); },
                     function(err) {
-                        console.warn('Geolocation unavailable (' + err.message + '), using stored team location.');
-                        doReroute(null, null);
+                        console.warn('Geolocation unavailable (' + err.message + '), falling back to stored team location.');
+                        if (activeData && activeData.team_location) {
+                            doReroute(activeData.team_location.lat, activeData.team_location.lon);
+                        } else {
+                            doReroute(DEPOT_LAT, DEPOT_LON);
+                        }
                     },
                     { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
                 );
             } else {
-                doReroute(null, null);
+                // No geolocation API — fall back to stored team location or depot
+                if (activeData && activeData.team_location) {
+                    doReroute(activeData.team_location.lat, activeData.team_location.lon);
+                } else {
+                    doReroute(DEPOT_LAT, DEPOT_LON);
+                }
             }
         }
 
@@ -698,9 +711,17 @@
             markers.forEach(m => map.removeLayer(m));
             markers = [];
 
-            if (!isPending && data.team_location && data.lat && data.lon) {
-                const teamLat = (overrideTeamLat != null) ? overrideTeamLat : data.team_location.lat;
-                const teamLon = (overrideTeamLon != null) ? overrideTeamLon : data.team_location.lon;
+            if (!isPending && data.lat && data.lon) {
+                // Reroute: use live GPS override → start from responder's current location
+                // Initial route: always start from Marilao Municipal Hall depot
+                let teamLat, teamLon;
+                if (overrideTeamLat != null && overrideTeamLon != null) {
+                    teamLat = overrideTeamLat;
+                    teamLon = overrideTeamLon;
+                } else {
+                    teamLat = DEPOT_LAT;
+                    teamLon = DEPOT_LON;
+                }
                 let useAbsra = document.getElementById('toggle-absra') ? document.getElementById('toggle-absra').checked : true;
                 fetch(`/calculate_route?task_id=${data.task_id}&team_lat=${teamLat}&team_lon=${teamLon}&task_lat=${data.lat}&task_lon=${data.lon}&alternative=${isAlternativeMode}&use_absra=${useAbsra}&constraint=${currentConstraint}`)
                 .then(res => res.json())
@@ -709,13 +730,13 @@
                     if (routeData.coords && routeData.coords.length > 0) {
                         let waypoints = [];
                         if (routeData.coords.length > 2 || (routeData.is_rerouted && routeData.coords.length > 2)) {
-                            waypoints = [L.latLng(data.team_location.lat, data.team_location.lon), ...routeData.coords.map(c => L.latLng(c[0], c[1])), L.latLng(data.lat, data.lon)];
+                            waypoints = [L.latLng(teamLat, teamLon), ...routeData.coords.map(c => L.latLng(c[0], c[1])), L.latLng(data.lat, data.lon)];
                         } else if (isAlternativeMode) {
-                            let midLat = (data.team_location.lat + data.lat) / 2, midLon = (data.team_location.lon + data.lon) / 2 + 0.015;
+                            let midLat = (teamLat + data.lat) / 2, midLon = (teamLon + data.lon) / 2 + 0.015;
                             markers.push(L.circleMarker([midLat, midLon], {color: 'blue', radius: 6}).addTo(map));
-                            waypoints = [L.latLng(data.team_location.lat, data.team_location.lon), L.latLng(midLat, midLon), L.latLng(data.lat, data.lon)];
+                            waypoints = [L.latLng(teamLat, teamLon), L.latLng(midLat, midLon), L.latLng(data.lat, data.lon)];
                         } else {
-                            waypoints = [L.latLng(data.team_location.lat, data.team_location.lon), L.latLng(data.lat, data.lon)];
+                            waypoints = [L.latLng(teamLat, teamLon), L.latLng(data.lat, data.lon)];
                         }
                         routingControl = L.Routing.control({
                             waypoints: waypoints, show: false, addWaypoints: false, draggableWaypoints: false, routeWhileDragging: false, fitSelectedRoutes: false,

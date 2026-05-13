@@ -123,9 +123,15 @@
             align-items: center;
             box-sizing: border-box; /* THIS FIXES THE ALIGNMENT ISSUE */
         }
-        .checkboxes { display: none; position: absolute; background-color: white; border: 1px solid #333; border-radius: 5px; width: 100%; max-height: 200px; overflow-y: auto; z-index: 1000; margin-top: 5px; }
-        .checkboxes label { display: block; padding: 8px 10px; cursor: pointer; border-bottom: 1px solid #eee; margin: 0; font-weight: normal; }
+        .checkboxes { display: none; position: absolute; background-color: white; border: 1px solid #333; border-radius: 5px; width: 100%; max-height: 350px; overflow-y: auto; z-index: 1000; margin-top: 5px; }
+        .checkboxes label { display: flex; align-items: center; padding: 8px 10px; cursor: pointer; border-bottom: 1px solid #eee; margin: 0; font-weight: normal; gap: 8px; }
         .checkboxes label:hover { background-color: #f1f1f1; }
+        .qty-controls { display: none; align-items: center; gap: 6px; margin-left: auto; }
+        .qty-controls.active { display: flex; }
+        .qty-btn { width: 26px; height: 26px; border: 1px solid #333; border-radius: 4px; background: #e0e0e0; font-size: 1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; color: #333; user-select: none; }
+        .qty-btn:hover { background: #ccc; }
+        .qty-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .qty-val { min-width: 20px; text-align: center; font-weight: 700; font-size: 0.9rem; }
 
         .btn-submit { background: #d94343; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; cursor: pointer; float: right; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
         .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
@@ -164,10 +170,10 @@
                         <div class="left-col">
                             <div class="row-2">
                                 <div class="form-group"><label>Task ID</label><input type="text" name="task_id" value="{{ task_id }}" readonly></div>
-                                <div class="form-group"><label>Disaster Type*</label>
-                                    <select name="disaster_type" required>
+                                <div class="form-group"><label>Incident Type*</label>
+                                    <select id="incident_type_select" name="disaster_type" required onchange="updateResponseTypes()">
                                         <option value="">-- Select an option --</option>
-                                        <option value="Typhoon">Typhoon</option><option value="Flood">Flood</option><option value="Fire">Fire</option><option value="Earthquake">Earthquake</option><option value="Landslide">Landslide</option>
+                                        <option value="Relief Goods Distribution">Relief Goods Distribution</option><option value="Emergency Logistics Prepositioning">Emergency Logistics Prepositioning</option><option value="Mobile Financial Assistance Payouts">Mobile Financial Assistance Payouts</option>
                                     </select>
                                 </div>
                             </div>
@@ -180,8 +186,8 @@
 
                             <div class="row-2">
                                 <div class="form-group"><label>Response Type*</label>
-                                    <select name="response_type">
-                                        <option value="">-- Select an option --</option><option value="Rescue">Search & Rescue</option><option value="Evacuation">Evacuation</option><option value="Medical">Medical Aid</option><option value="Relief">Relief Goods</option><option value="Firefighting">Firefighting</option>
+                                    <select id="response_type_select" name="response_type" required>
+                                        <option value="">-- Select Incident Type first --</option>
                                     </select>
                                 </div>
                                 <div class="form-group"><label>Estimated Number of People Affected*</label>
@@ -195,11 +201,23 @@
                                 <div class="multiselect">
                                     <div class="select-box" onclick="toggleCheckbox('resources_list', 'res_display')"><span id="res_display">-- Select that applies --</span></div>
                                     <div id="resources_list" class="checkboxes">
-                                        <label><input type="checkbox" name="resources" value="Ambulance" onclick="updateDisplay('resources_list', 'res_display')"> Ambulance</label>
-                                        <label><input type="checkbox" name="resources" value="Fire Truck" onclick="updateDisplay('resources_list', 'res_display')"> Fire Truck</label>
-                                        <label><input type="checkbox" name="resources" value="Rescue Boat" onclick="updateDisplay('resources_list', 'res_display')"> Rescue Boat</label>
-                                        <label><input type="checkbox" name="resources" value="Police Unit" onclick="updateDisplay('resources_list', 'res_display')"> Police Unit</label>
+                                        <label><input type="checkbox" data-vehicle="Food Trucks" onchange="onVehicleToggle(this)"> <span>Food Trucks</span>
+                                            <span class="qty-controls" data-for="Food Trucks"><button type="button" class="qty-btn" onclick="changeQty(this,-1)" disabled>−</button><span class="qty-val">1</span><button type="button" class="qty-btn" onclick="changeQty(this,1)">+</button></span>
+                                        </label>
+                                        <label><input type="checkbox" data-vehicle="Cargo Truck" onchange="onVehicleToggle(this)"> <span>Cargo Truck</span>
+                                            <span class="qty-controls" data-for="Cargo Truck"><button type="button" class="qty-btn" onclick="changeQty(this,-1)" disabled>−</button><span class="qty-val">1</span><button type="button" class="qty-btn" onclick="changeQty(this,1)">+</button></span>
+                                        </label>
+                                        <label><input type="checkbox" data-vehicle="Ambulances" onchange="onVehicleToggle(this)"> <span>Ambulances</span>
+                                            <span class="qty-controls" data-for="Ambulances"><button type="button" class="qty-btn" onclick="changeQty(this,-1)" disabled>−</button><span class="qty-val">1</span><button type="button" class="qty-btn" onclick="changeQty(this,1)">+</button></span>
+                                        </label>
+                                        <label><input type="checkbox" data-vehicle="Vans" onchange="onVehicleToggle(this)"> <span>Vans</span>
+                                            <span class="qty-controls" data-for="Vans"><button type="button" class="qty-btn" onclick="changeQty(this,-1)" disabled>−</button><span class="qty-val">1</span><button type="button" class="qty-btn" onclick="changeQty(this,1)">+</button></span>
+                                        </label>
+                                        <label><input type="checkbox" data-vehicle="MPVs/Sedans" onchange="onVehicleToggle(this)"> <span>Multi-Purpose Vehicles (MPVs) / Sedans</span>
+                                            <span class="qty-controls" data-for="MPVs/Sedans"><button type="button" class="qty-btn" onclick="changeQty(this,-1)" disabled>−</button><span class="qty-val">1</span><button type="button" class="qty-btn" onclick="changeQty(this,1)">+</button></span>
+                                        </label>
                                     </div>
+                                    <input type="hidden" name="resources" id="resources_hidden" value="">
                                 </div>
                             </div>
 
@@ -330,18 +348,101 @@
 
         function updateDisplay(listId, displayId) {
             let container = document.getElementById(listId);
-            let inputs = container.getElementsByTagName('input');
+            let inputs = container.querySelectorAll('input[type="checkbox"]');
             let selected = [];
             for (let i = 0; i < inputs.length; i++) {
-                if (inputs[i].checked) selected.push(inputs[i].parentElement.innerText.trim());
+                if (inputs[i].checked) {
+                    let vehicle = inputs[i].getAttribute('data-vehicle');
+                    if (vehicle) {
+                        let qtyEl = container.querySelector('.qty-controls[data-for="' + vehicle + '"] .qty-val');
+                        let qty = qtyEl ? parseInt(qtyEl.textContent) : 1;
+                        selected.push(vehicle + ' x' + qty);
+                    } else {
+                        selected.push(inputs[i].parentElement.innerText.trim());
+                    }
+                }
             }
             document.getElementById(displayId).innerText = selected.length > 0 ? selected.join(", ") : "-- Select that applies --";
+            // Update hidden field for form submission
+            let hidden = document.getElementById('resources_hidden');
+            if (hidden) hidden.value = selected.join(', ');
+        }
+
+        function onVehicleToggle(cb) {
+            let vehicle = cb.getAttribute('data-vehicle');
+            let container = cb.closest('.checkboxes');
+            let qtyCtrl = container.querySelector('.qty-controls[data-for="' + vehicle + '"]');
+            if (cb.checked) {
+                qtyCtrl.classList.add('active');
+                // Reset to 1 when first checked
+                qtyCtrl.querySelector('.qty-val').textContent = '1';
+                let btns = qtyCtrl.querySelectorAll('.qty-btn');
+                btns[0].disabled = true;   // − disabled at 1
+                btns[1].disabled = false;  // + enabled
+            } else {
+                qtyCtrl.classList.remove('active');
+                qtyCtrl.querySelector('.qty-val').textContent = '1';
+            }
+            updateDisplay('resources_list', 'res_display');
+        }
+
+        function changeQty(btn, delta) {
+            event.preventDefault();
+            event.stopPropagation();
+            let qtyCtrl = btn.closest('.qty-controls');
+            let valEl = qtyCtrl.querySelector('.qty-val');
+            let cur = parseInt(valEl.textContent);
+            let next = Math.max(0, Math.min(10, cur + delta));
+            valEl.textContent = next;
+            let btns = qtyCtrl.querySelectorAll('.qty-btn');
+            btns[0].disabled = (next <= 0);  // − button
+            btns[1].disabled = (next >= 10); // + button
+            // If quantity drops to 0, uncheck the vehicle
+            if (next === 0) {
+                let vehicle = qtyCtrl.getAttribute('data-for');
+                let cb = qtyCtrl.closest('.checkboxes').querySelector('input[data-vehicle="' + vehicle + '"]');
+                if (cb) { cb.checked = false; qtyCtrl.classList.remove('active'); }
+            }
+            updateDisplay('resources_list', 'res_display');
         }
 
         document.addEventListener('click', function(e) {
             if (!e.target.closest('.multiselect')) document.querySelectorAll('.checkboxes').forEach(el => el.style.display = 'none');
             if (!e.target.closest('#address_input') && !e.target.closest('.search-results')) document.getElementById('search_results').style.display = 'none';
         });
+
+        // --- DYNAMIC RESPONSE TYPE LOGIC ---
+        const RESPONSE_TYPE_MAP = {
+            "Relief Goods Distribution": [
+                "Food Items (FFPs & RTEF)",
+                "Non-Food Items (NFIs)"
+            ],
+            "Emergency Logistics Prepositioning": [
+                "Bulk Food Items",
+                "Bulk Non-Food Items (NFIs)",
+                "Mobile Storage Units",
+                "Staging Area Equipment"
+            ],
+            "Mobile Financial Assistance Payouts": [
+                "Emergency Cash Transfer (ECT) Disbursements",
+                "Assistance to Individuals in Crisis Situation (AICS) Cash Aid",
+                "Mobile Command Systems/Tents for Payouts"
+            ]
+        };
+
+        function updateResponseTypes(preserveValue) {
+            const incidentType = document.getElementById('incident_type_select').value;
+            const responseSelect = document.getElementById('response_type_select');
+            const options = RESPONSE_TYPE_MAP[incidentType] || [];
+            responseSelect.innerHTML = '<option value="">-- Select an option --</option>';
+            options.forEach(function(opt) {
+                const el = document.createElement('option');
+                el.value = opt;
+                el.textContent = opt;
+                if (preserveValue && opt === preserveValue) el.selected = true;
+                responseSelect.appendChild(el);
+            });
+        }
     </script>
 </body>
 </html>
