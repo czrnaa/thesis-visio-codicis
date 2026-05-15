@@ -1325,6 +1325,60 @@ def create_app():
             
         return jsonify({"status": "error", "message": "Invalid node location."}), 400
 
+    @app.route("/api/active_constraints", methods=["GET"])
+    @login_required
+    def list_active_constraints():
+        """All currently active road constraints, with map coordinates.
+        Used by monitor.html to draw warning markers."""
+        rows = RoadConstraint.query.filter_by(is_active=True).order_by(RoadConstraint.id.desc()).all()
+        type_labels = {
+            'road_block':    'Road Block',
+            'heavy_traffic': 'Heavy Traffic',
+            'flooded_road':  'Flooded Road',
+        }
+        out = []
+        for c in rows:
+            # Back-fill lat/lon from NODE_LOCATIONS for legacy rows that
+            # were created before the coordinate columns existed.
+            lat, lon = c.lat, c.lon
+            if (lat is None or lon is None) and c.node_name in NODE_LOCATIONS:
+                lat = NODE_LOCATIONS[c.node_name]['lat']
+                lon = NODE_LOCATIONS[c.node_name]['lon']
+            if lat is None or lon is None:
+                continue
+            out.append({
+                'id':              c.id,
+                'node_name':       c.node_name,
+                'reason':          c.reason or type_labels.get(c.constraint_type, 'Constraint'),
+                'constraint_type': c.constraint_type or 'road_block',
+                'lat':             lat,
+                'lon':             lon,
+                'task_id':         c.task_id,
+                'reported_by':     c.reported_by,
+                'timestamp':       c.timestamp.strftime("%Y-%m-%d %H:%M") if c.timestamp else None,
+            })
+        return jsonify(out)
+
+    @app.route("/api/remove_constraint/<int:cid>", methods=["POST"])
+    @login_required
+    def remove_constraint(cid):
+        """Lift a constraint — used by responders when the road is clear again.
+        Soft-deletes (is_active=False) and stamps resolved_at so we keep history."""
+        c = RoadConstraint.query.get(cid)
+        if not c:
+            return jsonify({"status": "error", "message": "Constraint not found."}), 404
+        if not c.is_active:
+            return jsonify({"status": "info", "message": "Constraint already cleared."})
+        c.is_active = False
+        c.resolved_at = datetime.datetime.utcnow()
+        db.session.commit()
+        _ROUTER_CACHE.invalidate()
+        return jsonify({
+            "status": "success",
+            "message": f"Constraint cleared at {c.node_name}.",
+            "id": c.id,
+        })
+
     @app.route("/calculate_route")
     def calculate_route():
         avoid_param = request.args.get('avoid', '')
@@ -1340,6 +1394,13 @@ def create_app():
         team_lon = request.args.get('team_lon')
         task_lat = request.args.get('task_lat')
         task_lon = request.args.get('task_lon')
+
+        # The front-end may pre-compute where on the ORIGINAL route the
+        # obstacle is (a point taken from the leaflet-routing-machine
+        # geometry of the route being avoided). When provided, this is
+        # the most accurate place to drop the warning pin.
+        obstacle_lat = request.args.get('obstacle_lat')
+        obstacle_lon = request.args.get('obstacle_lon')
 
         start_node = request.args.get('start', 'Marilao (Municipal Hall)')
         end_node = request.args.get('end', 'Bocaue')
@@ -1467,6 +1528,105 @@ def create_app():
         db.session.add(success_log)
         db.session.commit()
 
+        # ── PERSIST THE CONSTRAINT (map warning marker) ─────────────────────
+        # When a responder reroutes because of a specific road condition, drop
+        # a pin so every viewer of the map can see the hazard. Priority for
+        # pin location:
+        #   1. obstacle_lat/lon from the front-end — a point on the ORIGINAL
+        #      route that's being avoided. Most accurate: the pin sits on the
+        #      actual road the obstacle is on.
+        #   2. The Bulacan node we just avoided (if A* found any).
+        #   3. The responder's GPS (where they were when they hit it).
+        #   4. The task destination as a last resort.
+        if want_alternative and constraint in constraint_labels:
+            pin_lat, pin_lon, pin_node = None, None, None
+
+            # 1. Front-end-provided obstacle position (on the original route)
+            if obstacle_lat and obstacle_lon:
+                try:
+                    pin_lat = float(obstacle_lat)
+                    pin_lon = float(obstacle_lon)
+                    pin_node = min(
+                        NODE_LOCATIONS.keys(),
+                        key=lambda k: math.hypot(
+                            NODE_LOCATIONS[k]['lat'] - pin_lat,
+                            NODE_LOCATIONS[k]['lon'] - pin_lon,
+                        ),
+                    )
+                except (TypeError, ValueError):
+                    pin_lat = pin_lon = None
+
+            # 2. Avoided Bulacan node
+            if pin_lat is None and baseline_path and len(baseline_path) > 2:
+                intermediates = baseline_path[1:-1]
+                risk_key = {'flooded_road': 'flood', 'road_block': 'vuln', 'heavy_traffic': 'traffic'}[constraint]
+                pin_node = max(intermediates, key=lambda n: BULACAN_RISK_PROFILE.get(n, {}).get(risk_key, 0.5))
+                node_loc = NODE_LOCATIONS.get(pin_node)
+                if node_loc:
+                    pin_lat, pin_lon = node_loc['lat'], node_loc['lon']
+
+            # 3. Responder GPS
+            if pin_lat is None and team_lat and team_lon:
+                try:
+                    pin_lat = float(team_lat)
+                    pin_lon = float(team_lon)
+                    pin_node = min(
+                        NODE_LOCATIONS.keys(),
+                        key=lambda k: math.hypot(
+                            NODE_LOCATIONS[k]['lat'] - pin_lat,
+                            NODE_LOCATIONS[k]['lon'] - pin_lon,
+                        ),
+                    )
+                except (TypeError, ValueError):
+                    pin_lat = pin_lon = None
+
+            # 4. Task destination as last resort
+            if pin_lat is None and task_lat and task_lon:
+                try:
+                    pin_lat = float(task_lat)
+                    pin_lon = float(task_lon)
+                    pin_node = min(
+                        NODE_LOCATIONS.keys(),
+                        key=lambda k: math.hypot(
+                            NODE_LOCATIONS[k]['lat'] - pin_lat,
+                            NODE_LOCATIONS[k]['lon'] - pin_lon,
+                        ),
+                    )
+                except (TypeError, ValueError):
+                    pin_lat = pin_lon = None
+
+            if pin_lat is not None and pin_lon is not None:
+                # Spatial duplicate check: same type within ~200 m → skip.
+                DUPE_DEG = 0.002
+                dupe = RoadConstraint.query.filter(
+                    RoadConstraint.constraint_type == constraint,
+                    RoadConstraint.is_active == True,
+                    RoadConstraint.lat >= pin_lat - DUPE_DEG,
+                    RoadConstraint.lat <= pin_lat + DUPE_DEG,
+                    RoadConstraint.lon >= pin_lon - DUPE_DEG,
+                    RoadConstraint.lon <= pin_lon + DUPE_DEG,
+                ).first()
+                if not dupe:
+                    reporter = getattr(current_user, 'account_id', None) if current_user.is_authenticated else None
+                    new_pin = RoadConstraint(
+                        node_name=pin_node or 'Reported Location',
+                        reason=constraint_labels[constraint],
+                        constraint_type=constraint,
+                        lat=pin_lat,
+                        lon=pin_lon,
+                        task_id=task_id if task_id != 'Manual' else None,
+                        reported_by=reporter,
+                        is_active=True,
+                    )
+                    db.session.add(new_pin)
+                    db.session.commit()
+                    _ROUTER_CACHE.invalidate()
+                    print(f"[constraint-pin] saved {constraint_labels[constraint]} at "
+                          f"({pin_lat:.5f}, {pin_lon:.5f}) by {reporter or 'anon'} for {task_id}")
+                else:
+                    print(f"[constraint-pin] skipped duplicate {constraint_labels[constraint]} near "
+                          f"({pin_lat:.5f}, {pin_lon:.5f}) — already active as id={dupe.id}")
+
         coords = [[NODE_LOCATIONS[node]['lat'], NODE_LOCATIONS[node]['lon']] for node in path]
         
         # This is the vital return statement that was missing!
@@ -1564,8 +1724,50 @@ def create_app():
         db.session.commit()
         return jsonify({"status": "ok"})
 
+    # Idempotent: top-up legacy databases with any newly-added columns
+    # so the app works without a separate manual migration step.
+    _auto_migrate_road_constraint(app)
+
     return app
 
+
+
+def _auto_migrate_road_constraint(app):
+    """Idempotent: ensure road_constraint has the new map-marker columns.
+    Runs on every startup; only adds columns that are missing. Safe across
+    SQLite (local dev) and PostgreSQL (Neon/Heroku) backends."""
+    from sqlalchemy import text, inspect
+    with app.app_context():
+        try:
+            inspector = inspect(db.engine)
+            if 'road_constraint' not in inspector.get_table_names():
+                return  # db.create_all() will build it with the new schema
+            existing = {col['name'] for col in inspector.get_columns('road_constraint')}
+
+            dialect = db.engine.dialect.name  # 'sqlite' or 'postgresql'
+            float_t    = 'FLOAT'     if dialect == 'sqlite' else 'DOUBLE PRECISION'
+            datetime_t = 'DATETIME'  if dialect == 'sqlite' else 'TIMESTAMP'
+
+            wanted = [
+                ('lat',             float_t),
+                ('lon',             float_t),
+                ('constraint_type', 'VARCHAR(30)'),
+                ('task_id',         'VARCHAR(20)'),
+                ('reported_by',     'VARCHAR(50)'),
+                ('resolved_at',     datetime_t),
+            ]
+            added = []
+            with db.engine.begin() as conn:
+                for name, sqltype in wanted:
+                    if name in existing:
+                        continue
+                    conn.execute(text(f"ALTER TABLE road_constraint ADD COLUMN {name} {sqltype}"))
+                    added.append(name)
+            if added:
+                print(f"[auto-migrate] road_constraint: added columns {added}")
+        except Exception as e:
+            # Never block app startup; just log so the user can see it.
+            print(f"[auto-migrate] WARNING: could not auto-migrate road_constraint: {e}")
 
 
 def setup_database():
@@ -1583,6 +1785,9 @@ def setup_database():
             if not User.query.filter_by(account_id=u["id"]).first():
                 db.session.add(User(account_id=u["id"], password="password123", role=u["role"], first_name=u["fname"], last_name=u["lname"]))
         db.session.commit()
+    # After tables exist & are seeded, top-up any newly-added columns on
+    # legacy databases that pre-date the constraint-marker feature.
+    _auto_migrate_road_constraint(app)
 
 if __name__ == "__main__":
     setup_database()

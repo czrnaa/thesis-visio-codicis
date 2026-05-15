@@ -75,6 +75,18 @@ class RoadConstraint(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
+    # Map-marker support: location & type of the constraint encountered
+    # during a responder's reroute. lat/lon let us pin the warning icon
+    # exactly where it was reported. constraint_type drives the icon /
+    # color (road_block | heavy_traffic | flooded_road). task_id keeps a
+    # trail back to the task that uncovered it.
+    lat = db.Column(db.Float, nullable=True)
+    lon = db.Column(db.Float, nullable=True)
+    constraint_type = db.Column(db.String(30), nullable=True)
+    task_id = db.Column(db.String(20), nullable=True)
+    reported_by = db.Column(db.String(50), nullable=True)
+    resolved_at = db.Column(db.DateTime, nullable=True)
+
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     task_id = db.Column(db.String(20), nullable=False)

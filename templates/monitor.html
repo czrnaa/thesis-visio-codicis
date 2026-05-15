@@ -319,7 +319,141 @@
         let activeData = null;
         let isAlternativeMode = false;
 
+        // Geometry of the LAST route that was rendered. Captured from
+        // leaflet-routing-machine's 'routesfound' event so we can place
+        // a constraint pin where the obstacle actually is on the
+        // original (about-to-be-rerouted) route.
+        let lastRouteCoords = [];          // Array<L.LatLng>
+        let pendingObstacle = null;        // {lat, lon} or null
+        let originalRoutePoly = null;      // L.Polyline of the avoided route
+
         let selectedConstraint = '';
+
+        // ── Persistent constraint warning markers ────────────────────────────
+        // Each entry: { id: marker } so we can update/remove individually.
+        let constraintLayer = L.layerGroup().addTo(map);
+        let constraintMarkers = {};
+
+        const CONSTRAINT_ICONS = {
+            road_block:    { emoji: '\u26D4', color: '#c0392b', label: 'Road Block' },
+            heavy_traffic: { emoji: '\uD83D\uDE97', color: '#e67e22', label: 'Heavy Traffic' },
+            flooded_road:  { emoji: '\uD83C\uDF0A', color: '#2980b9', label: 'Flooded Road' },
+        };
+
+        function makeConstraintIcon(type) {
+            const cfg = CONSTRAINT_ICONS[type] || { emoji: '\u26A0\uFE0F', color: '#d4ac0d', label: 'Constraint' };
+            const html = '<div style="position:relative;width:36px;height:36px;">'
+                + '<div style="position:absolute;inset:0;background:' + cfg.color + ';border:2px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;">'
+                + cfg.emoji
+                + '</div>'
+                + '<div style="position:absolute;top:-4px;right:-4px;background:#fff;border:1.5px solid ' + cfg.color + ';color:' + cfg.color + ';font-weight:700;font-size:11px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;">!</div>'
+                + '</div>';
+            return L.divIcon({
+                html: html,
+                className: 'constraint-warning-icon',
+                iconSize: [36, 36],
+                iconAnchor: [18, 18],
+                popupAnchor: [0, -16],
+            });
+        }
+
+        function buildConstraintPopup(c) {
+            const cfg = CONSTRAINT_ICONS[c.constraint_type] || { color: '#d4ac0d', label: 'Constraint' };
+            const ts  = c.timestamp ? '<div style="font-size:0.72rem;color:#888;margin-top:4px;">Reported: ' + c.timestamp + '</div>' : '';
+            const rep = c.reported_by ? '<div style="font-size:0.72rem;color:#888;">By: ' + c.reported_by + '</div>' : '';
+            const tsk = c.task_id ? '<div style="font-size:0.72rem;color:#888;">Task: ' + c.task_id + '</div>' : '';
+            let actions = '';
+            if (CAN_REROUTE) {
+                actions = '<button onclick="removeConstraint(' + c.id + ')" '
+                        + 'style="margin-top:8px;width:100%;background:#27ae60;color:#fff;border:none;padding:6px 10px;'
+                        + 'border-radius:4px;font-weight:600;font-size:0.8rem;cursor:pointer;">'
+                        + '\u2713 Mark as Cleared</button>';
+            } else {
+                actions = '<div style="margin-top:8px;font-size:0.72rem;color:#888;font-style:italic;">'
+                        + 'Only responders can clear this constraint.</div>';
+            }
+            return '<div style="min-width:170px;font-family:Segoe UI,sans-serif;">'
+                + '<div style="font-weight:700;color:' + cfg.color + ';font-size:0.95rem;margin-bottom:2px;">'
+                + '\u26A0\uFE0F ' + (c.reason || cfg.label) + '</div>'
+                + '<div style="font-size:0.8rem;color:#333;">' + (c.node_name || 'Unknown area') + '</div>'
+                + ts + rep + tsk
+                + actions
+                + '</div>';
+        }
+
+        function refreshConstraints(opts) {
+            opts = opts || {};
+            fetch('/api/active_constraints')
+                .then(function(r) { return r.json(); })
+                .then(function(rows) {
+                    const seen = {};
+                    rows.forEach(function(c) {
+                        seen[c.id] = true;
+                        if (constraintMarkers[c.id]) {
+                            // Already drawn; just refresh popup contents
+                            constraintMarkers[c.id].setPopupContent(buildConstraintPopup(c));
+                        } else {
+                            const m = L.marker([c.lat, c.lon], { icon: makeConstraintIcon(c.constraint_type), zIndexOffset: 800 });
+                            m.bindPopup(buildConstraintPopup(c));
+                            m.addTo(constraintLayer);
+                            constraintMarkers[c.id] = m;
+                        }
+                    });
+                    // Drop markers whose constraint was cleared elsewhere
+                    Object.keys(constraintMarkers).forEach(function(id) {
+                        if (!seen[id]) {
+                            constraintLayer.removeLayer(constraintMarkers[id]);
+                            delete constraintMarkers[id];
+                        }
+                    });
+                    if (typeof opts.onUpdate === 'function') { opts.onUpdate(rows); }
+                })
+                .catch(function(err) { console.warn('Constraint fetch failed:', err); });
+        }
+
+        function showConstraintToast(text) {
+            // Tiny non-blocking confirmation that a pin was saved.
+            let t = document.getElementById('constraint-toast');
+            if (!t) {
+                t = document.createElement('div');
+                t.id = 'constraint-toast';
+                t.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);'
+                    + 'background:#27ae60;color:#fff;padding:10px 18px;border-radius:6px;'
+                    + 'font-weight:600;font-size:0.9rem;box-shadow:0 4px 12px rgba(0,0,0,0.25);'
+                    + 'z-index:9999;opacity:0;transition:opacity 0.25s ease;pointer-events:none;';
+                document.body.appendChild(t);
+            }
+            t.textContent = text;
+            requestAnimationFrame(function() { t.style.opacity = '1'; });
+            clearTimeout(window.__constraintToastTO);
+            window.__constraintToastTO = setTimeout(function() { t.style.opacity = '0'; }, 3500);
+        }
+
+        function removeConstraint(cid) {
+            if (!confirm('Mark this constraint as cleared? Routes will be allowed through here again.')) return;
+            fetch('/api/remove_constraint/' + cid, { method: 'POST' })
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    if (res.status === 'success' || res.status === 'info') {
+                        if (constraintMarkers[cid]) {
+                            constraintLayer.removeLayer(constraintMarkers[cid]);
+                            delete constraintMarkers[cid];
+                        }
+                        // The avoided-route line was tied to this constraint;
+                        // once the road's clear again it's no longer useful.
+                        if (originalRoutePoly) { map.removeLayer(originalRoutePoly); originalRoutePoly = null; }
+                    } else {
+                        alert(res.message || 'Could not clear constraint.');
+                    }
+                })
+                .catch(function(err) {
+                    console.error('Remove constraint failed:', err);
+                    alert('Network error while clearing constraint.');
+                });
+        }
+
+        refreshConstraints();
+        setInterval(refreshConstraints, 10000);
 
         function showActionButtons(show) {
             var absraCont      = document.getElementById('absra-container');
@@ -510,6 +644,19 @@
         function triggerAlternativeRoute() {
             if (!activeData) return;
 
+            // If no constraint type was picked, prompt the user — otherwise no
+            // warning pin will be saved and the reroute is just a generic detour.
+            if (!selectedConstraint) {
+                var panel = document.getElementById('constraint-panel');
+                var toggleBtn = document.getElementById('btn-constraint-toggle');
+                if (panel && panel.classList.contains('hidden')) {
+                    panel.classList.remove('hidden');
+                    if (toggleBtn) toggleBtn.innerHTML = '&#9660; Add Constraint';
+                }
+                showConstraintToast('\u2139\uFE0F Pick a road condition first to drop a warning pin.');
+                return;
+            }
+
             const btn = document.getElementById('btn-reroute');
             const origHtml = btn.innerHTML;
             btn.innerHTML = '&#128205; Locating...';
@@ -533,6 +680,43 @@
             function doReroute(lat, lon) {
                 btn.innerHTML = origHtml;
                 btn.disabled = false;
+
+                // Use the original route's geometry — the one the responder
+                // was just on — to:
+                //   (a) compute where on that route the obstacle is, and
+                //   (b) leave a faded gray line on the map showing the
+                //       avoided path for visual context.
+                pendingObstacle = null;
+                if (originalRoutePoly) { map.removeLayer(originalRoutePoly); originalRoutePoly = null; }
+
+                if (lastRouteCoords && lastRouteCoords.length > 1) {
+                    // Find the route coord closest to where the responder is.
+                    let closestIdx = 0, minD = Infinity;
+                    for (let i = 0; i < lastRouteCoords.length; i++) {
+                        const p = lastRouteCoords[i];
+                        const d = (p.lat - lat) * (p.lat - lat) + (p.lng - lon) * (p.lng - lon);
+                        if (d < minD) { minD = d; closestIdx = i; }
+                    }
+                    // The obstacle is somewhere ahead of the responder on
+                    // the original route. Place the pin roughly halfway
+                    // between the responder and the destination along that
+                    // geometry.
+                    const aheadIdx = Math.min(
+                        lastRouteCoords.length - 1,
+                        closestIdx + Math.max(1, Math.floor((lastRouteCoords.length - closestIdx) * 0.45))
+                    );
+                    const pin = lastRouteCoords[aheadIdx];
+                    pendingObstacle = { lat: pin.lat, lon: pin.lng };
+
+                    // Render the original route as a faded dashed line so
+                    // the responder can see what they're going around.
+                    originalRoutePoly = L.polyline(
+                        lastRouteCoords.map(function(p) { return [p.lat, p.lng]; }),
+                        { color: '#7f8c8d', weight: 5, opacity: 0.55, dashArray: '8,8' }
+                    ).addTo(map);
+                    originalRoutePoly.bindTooltip('Avoided route', { sticky: true, direction: 'top' });
+                }
+
                 viewRoute(activeData, lat, lon);
             }
 
@@ -710,6 +894,9 @@
             if (routingControl) { map.removeControl(routingControl); routingControl = null; }
             markers.forEach(m => map.removeLayer(m));
             markers = [];
+            // The faded "avoided route" line is per-reroute scratch geometry —
+            // wipe it whenever we redraw or switch tasks.
+            if (originalRoutePoly) { map.removeLayer(originalRoutePoly); originalRoutePoly = null; }
 
             if (!isPending && data.lat && data.lon) {
                 // Reroute: use live GPS override → start from responder's current location
@@ -723,7 +910,11 @@
                     teamLon = DEPOT_LON;
                 }
                 let useAbsra = document.getElementById('toggle-absra') ? document.getElementById('toggle-absra').checked : true;
-                fetch(`/calculate_route?task_id=${data.task_id}&team_lat=${teamLat}&team_lon=${teamLon}&task_lat=${data.lat}&task_lon=${data.lon}&alternative=${isAlternativeMode}&use_absra=${useAbsra}&constraint=${currentConstraint}`)
+                let routeUrl = `/calculate_route?task_id=${data.task_id}&team_lat=${teamLat}&team_lon=${teamLon}&task_lat=${data.lat}&task_lon=${data.lon}&alternative=${isAlternativeMode}&use_absra=${useAbsra}&constraint=${currentConstraint}`;
+                if (pendingObstacle) {
+                    routeUrl += `&obstacle_lat=${pendingObstacle.lat}&obstacle_lon=${pendingObstacle.lon}`;
+                }
+                fetch(routeUrl)
                 .then(res => res.json())
                 .then(routeData => {
                     let alertBox = document.getElementById('reroute-alert');
@@ -755,8 +946,34 @@
                                 return null;
                             }
                         }).addTo(map);
+                        // Capture this route's actual road geometry — next
+                        // reroute will use it to place the obstacle pin on
+                        // the road that's being avoided.
+                        routingControl.on('routesfound', function(e) {
+                            if (e.routes && e.routes[0] && e.routes[0].coordinates) {
+                                lastRouteCoords = e.routes[0].coordinates;
+                            }
+                        });
                         document.getElementById('d-dist').value = routeData.distance;
                         document.getElementById('d-eta').value = routeData.eta;
+                        // A reroute with a chosen constraint type just persisted a new
+                        // warning pin server-side — pull it down so it shows up right away.
+                        if (currentConstraint) {
+                            const savedType = currentConstraint;
+                            const knownIds = new Set(Object.keys(constraintMarkers).map(Number));
+                            refreshConstraints({
+                                onUpdate: function(rows) {
+                                    // Find the brand-new pin so we can flash it for the responder.
+                                    const fresh = rows.find(r => !knownIds.has(r.id) && r.constraint_type === savedType);
+                                    if (fresh) {
+                                        const lbl = (CONSTRAINT_ICONS[savedType] && CONSTRAINT_ICONS[savedType].label) || 'Constraint';
+                                        showConstraintToast('\u26A0\uFE0F ' + lbl + ' pinned on the map');
+                                        const m = constraintMarkers[fresh.id];
+                                        if (m) { m.openPopup(); }
+                                    }
+                                }
+                            });
+                        }
                         currentConstraint = '';
                         isAlternativeMode = false;
                         // Operators see a live green dot tracking the responder
