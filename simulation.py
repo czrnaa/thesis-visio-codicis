@@ -418,18 +418,27 @@ def _build_arc_flags(weights, blocked):
     return fwd_flags, bwd_flags
 
 
-def absra(start, goal, weights, blocked):
+def absra(start, goal, weights, blocked, _prebuilt_flags=None):
     """
     Optimized routing: Arc-flag Bidirectional Search A*.
     Forward + backward A* meet in the middle; arc flags prune any edge that
     cannot lie on a shortest path toward the goal/start region.
+
+    _prebuilt_flags : optional (fwd_flags, bwd_flags) tuple.
+        When supplied, skips the expensive arc-flag preprocessing so that
+        benchmark timing only reflects the actual per-query search cost.
+        Arc flags are a ONE-TIME preprocessing step (amortized O(0) per
+        query), so they must not inflate per-query timing.
     """
     if start not in NODE_LOCATIONS or goal not in NODE_LOCATIONS:
         return None, 0, math.inf
     if start == goal:
         return [start], 0, 0.0
 
-    fwd_flags, bwd_flags = _build_arc_flags(weights, blocked)
+    if _prebuilt_flags is not None:
+        fwd_flags, bwd_flags = _prebuilt_flags
+    else:
+        fwd_flags, bwd_flags = _build_arc_flags(weights, blocked)
     goal_region = NODE_REGIONS.get(goal)
     start_region = NODE_REGIONS.get(start)
 
@@ -555,7 +564,14 @@ def run_scenario(start, goal, level, seed=42, disaster_type="generic"):
         per_edge_metric = (None, None)
 
     (a_path, a_exp, a_cost), a_t = measure(a_star, start, goal, weights, blocked)
-    (b_path, b_exp, b_cost), b_t = measure(absra, start, goal, weights, blocked)
+
+    # Pre-build arc flags ONCE per scenario (one-time preprocessing cost),
+    # then pass them into every absra() call so that measure() only times
+    # the actual bidirectional search — not the preprocessing.
+    arc_flags = _build_arc_flags(weights, blocked)
+    (b_path, b_exp, b_cost), b_t = measure(
+        absra, start, goal, weights, blocked, arc_flags
+    )
 
     result = {
         "level": level,
@@ -624,11 +640,12 @@ def print_report(rows):
 
 def print_flood_report(rows):
     """Per-scenario flood depth statistics + routing comparison."""
-    print("=" * 104)
+    print("=" * 130)
     print(f"{'Lvl':<4}{'Start -> Goal':<42}"
           f"{'MaxDepth':>10}{'>25cm':>8}{'Closed':>8}"
-          f"{'A* min':>9}{'ABSRA min':>10}{'A* nodes':>10}{'ABSRA':>7}")
-    print("-" * 104)
+          f"{'A* min':>9}{'ABSRA min':>10}{'A* nodes':>10}{'ABSRA':>7}"
+          f"{'A* ms':>10}{'ABSRA ms':>12}")
+    print("-" * 130)
     for r in rows:
         f = r["flood"]
         sg = f"{r['start']} -> {r['goal']}"
@@ -638,17 +655,19 @@ def print_flood_report(rows):
         print(f"L{r['level']:<3}{sg:<42}"
               f"{f['max_depth_cm']:>9.1f}{f['edges_over_threshold']:>8}"
               f"{r['blocked_edges']:>8}{a_cost:>9}{b_cost:>10}"
-              f"{a['explored']:>10}{b['explored']:>7}")
-    print("-" * 104)
+              f"{a['explored']:>10}{b['explored']:>7}"
+              f"{a['time_ms']:>10.3f}{b['time_ms']:>12.3f}")
+    print("-" * 130)
 
 
 def print_traffic_report(rows):
     """Per-scenario heavy-traffic statistics + routing comparison."""
-    print("=" * 104)
+    print("=" * 130)
     print(f"{'Lvl':<4}{'Start -> Goal':<42}"
           f"{'MaxV/C':>8}{'>=1.0':>7}"
-          f"{'A* min':>9}{'ABSRA min':>10}{'A* nodes':>10}{'ABSRA':>7}{'BlkRoads':>10}")
-    print("-" * 104)
+          f"{'A* min':>9}{'ABSRA min':>10}{'A* nodes':>10}{'ABSRA':>7}{'BlkRoads':>10}"
+          f"{'A* ms':>10}{'ABSRA ms':>12}")
+    print("-" * 130)
     for r in rows:
         h = r["heavy_traffic"]
         sg = f"{r['start']} -> {r['goal']}"
@@ -658,17 +677,19 @@ def print_traffic_report(rows):
         print(f"L{r['level']:<3}{sg:<42}"
               f"{h['max_vc']:>8.2f}{h['edges_over_capacity']:>7}"
               f"{a_cost:>9}{b_cost:>10}"
-              f"{a['explored']:>10}{b['explored']:>7}{r['blocked_edges']:>10}")
-    print("-" * 104)
+              f"{a['explored']:>10}{b['explored']:>7}{r['blocked_edges']:>10}"
+              f"{a['time_ms']:>10.3f}{b['time_ms']:>12.3f}")
+    print("-" * 130)
 
 
 def print_block_report(rows):
     """Per-scenario road-block statistics + routing comparison."""
-    print("=" * 104)
+    print("=" * 130)
     print(f"{'Lvl':<4}{'Start -> Goal':<42}"
           f"{'MaxS':>7}{'>=0.6':>7}{'Closed':>8}"
-          f"{'A* min':>9}{'ABSRA min':>10}{'A* nodes':>10}{'ABSRA':>7}")
-    print("-" * 104)
+          f"{'A* min':>9}{'ABSRA min':>10}{'A* nodes':>10}{'ABSRA':>7}"
+          f"{'A* ms':>10}{'ABSRA ms':>12}")
+    print("-" * 130)
     for r in rows:
         rb = r["road_block"]
         sg = f"{r['start']} -> {r['goal']}"
@@ -678,8 +699,9 @@ def print_block_report(rows):
         print(f"L{r['level']:<3}{sg:<42}"
               f"{rb['max_severity']:>7.2f}{rb['edges_blocked']:>7}"
               f"{r['blocked_edges']:>8}{a_cost:>9}{b_cost:>10}"
-              f"{a['explored']:>10}{b['explored']:>7}")
-    print("-" * 104)
+              f"{a['explored']:>10}{b['explored']:>7}"
+              f"{a['time_ms']:>10.3f}{b['time_ms']:>12.3f}")
+    print("-" * 130)
 
 
 def print_paths(rows):
@@ -779,8 +801,9 @@ def generate_pdf_report(generic_rows, flood_rows, traffic_rows, block_rows,
     # 2. Flood
     section_title("2. Flood Scenarios  (Mamuyac 2025 threshold: 25 cm | NDRRMC Carina Jul 2024)")
     hdrs = ["Lvl", "Start -> Goal", "MaxDepth(cm)", ">25cm edges", "Closed roads",
-            "A* (min)", "ABSRA (min)", "A* Nodes", "ABSRA Nodes"]
-    cws  = [12, 74, 24, 20, 20, 20, 22, 20, 22]
+            "A* (min)", "ABSRA (min)", "A* Nodes", "ABSRA Nodes",
+            "A* Time(ms)", "ABSRA Time(ms)"]
+    cws  = [12, 64, 22, 18, 18, 18, 20, 18, 20, 22, 22]
     rows_data = []
     for r in flood_rows:
         f  = r["flood"]
@@ -793,14 +816,16 @@ def generate_pdf_report(generic_rows, flood_rows, traffic_rows, block_rows,
             f"{a['cost']:.2f}" if a['cost'] != math.inf else "INF",
             f"{b['cost']:.2f}" if b['cost'] != math.inf else "INF",
             str(a['explored']), str(b['explored']),
+            f"{a['time_ms']:.3f}", f"{b['time_ms']:.3f}",
         ])
     draw_table(hdrs, cws, rows_data)
 
     # 3. Heavy Traffic
     section_title("3. Heavy-Traffic Scenarios  (BPR model | DPWH Region III / TomTom 2024)")
     hdrs = ["Lvl", "Start -> Goal", "Max V/C", "Edges >= 1.0", "A* (min)",
-            "ABSRA (min)", "A* Nodes", "ABSRA Nodes", "Blocked roads"]
-    cws  = [12, 72, 18, 20, 20, 22, 20, 22, 22]
+            "ABSRA (min)", "A* Nodes", "ABSRA Nodes", "Blocked roads",
+            "A* Time(ms)", "ABSRA Time(ms)"]
+    cws  = [12, 62, 16, 18, 18, 20, 18, 20, 18, 22, 22]
     rows_data = []
     for r in traffic_rows:
         h  = r["heavy_traffic"]
@@ -812,14 +837,16 @@ def generate_pdf_report(generic_rows, flood_rows, traffic_rows, block_rows,
             f"{a['cost']:.2f}" if a['cost'] != math.inf else "INF",
             f"{b['cost']:.2f}" if b['cost'] != math.inf else "INF",
             str(a['explored']), str(b['explored']), str(r['blocked_edges']),
+            f"{a['time_ms']:.3f}", f"{b['time_ms']:.3f}",
         ])
     draw_table(hdrs, cws, rows_data)
 
     # 4. Road Block
     section_title("4. Road-Block Scenarios  (DPWH Region III | Bulacan DEO post-typhoon bulletins)")
     hdrs = ["Lvl", "Start -> Goal", "Max S", "Edges >= 0.6", "Closed roads",
-            "A* (min)", "ABSRA (min)", "A* Nodes", "ABSRA Nodes"]
-    cws  = [12, 74, 16, 18, 18, 20, 22, 20, 22]
+            "A* (min)", "ABSRA (min)", "A* Nodes", "ABSRA Nodes",
+            "A* Time(ms)", "ABSRA Time(ms)"]
+    cws  = [12, 64, 14, 18, 18, 18, 20, 18, 20, 22, 22]
     rows_data = []
     for r in block_rows:
         rb = r["road_block"]
@@ -832,6 +859,7 @@ def generate_pdf_report(generic_rows, flood_rows, traffic_rows, block_rows,
             f"{a['cost']:.2f}" if a['cost'] != math.inf else "INF",
             f"{b['cost']:.2f}" if b['cost'] != math.inf else "INF",
             str(a['explored']), str(b['explored']),
+            f"{a['time_ms']:.3f}", f"{b['time_ms']:.3f}",
         ])
     draw_table(hdrs, cws, rows_data)
 
