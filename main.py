@@ -3,9 +3,9 @@ import socket
 import math
 import heapq
 import os
-import time  # <--- Added for System Analytics
-import random   # <--- For OTP generation
-import smtplib  # <--- For sending email OTPs
+import time
+import random
+import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import requests 
@@ -236,6 +236,7 @@ class RouterCache:
     def __init__(self):
         self._base_weights = None
         self._arc_flags    = None
+        self._rev_adj      = None
         self._query_count  = 0
 
     @property
@@ -243,6 +244,17 @@ class RouterCache:
         if self._base_weights is None:
             self._base_weights = build_base_weights()
         return self._base_weights
+
+    @property
+    def rev_adj(self):
+        """Reverse adjacency list; built once, O(0) amortized per query."""
+        if self._rev_adj is None:
+            ra = {n: [] for n in NODE_LOCATIONS}
+            for u in GRAPH_CONNECTIONS:
+                for v in GRAPH_CONNECTIONS[u]:
+                    ra[v].append(u)
+            self._rev_adj = ra
+        return self._rev_adj
 
     def get_arc_flags(self):
         """Returns (fwd_flags, bwd_flags); built once, O(0) amortized per query."""
@@ -254,6 +266,7 @@ class RouterCache:
     def invalidate(self):
         """Call when graph topology changes (new constraints) to force arc-flag rebuild."""
         self._arc_flags = None
+        self._rev_adj   = None
 
 _ROUTER_CACHE = RouterCache()
 
@@ -361,10 +374,7 @@ def absra_search(start, goal, avoid_nodes=[], weights=None):
     start_region = NODE_REGIONS.get(start)
     _w = weights or _ROUTER_CACHE.base_weights  # O(1) amortized
 
-    rev_adj = {n: [] for n in NODE_LOCATIONS}
-    for u in GRAPH_CONNECTIONS:
-        for v in GRAPH_CONNECTIONS[u]:
-            rev_adj[v].append(u)
+    rev_adj = _ROUTER_CACHE.rev_adj  # O(0) amortized — built once, cached
 
     fwd_g = {n: float('inf') for n in NODE_LOCATIONS}; fwd_g[start] = 0.0
     fwd_par = {start: None}
@@ -777,21 +787,15 @@ def create_app():
             return redirect(url_for('manage_users'))
         show_all = current_user.show_routes
 
-        # --- NEW LOGIC: Calculate Dashboard Stats ---
-        # 1. Active Reports (Tasks that are currently being handled)
         active_count = DisasterReport.query.filter(DisasterReport.status.in_(['In Progress', 'En Route'])).count()
-        
-        # 2. Pending Tasks (Tasks waiting for assignment)
         pending_count = DisasterReport.query.filter_by(status='Pending').count()
         
-        # 3. Resources Available (Teams without an active task)
         all_teams = Team.query.all()
         available_teams = 0
         for t in all_teams:
             has_active_task = DisasterReport.query.filter_by(assigned_team=t.team_id).filter(DisasterReport.status.in_(['In Progress', 'En Route'])).first()
             if not has_active_task:
                 available_teams += 1
-        # --------------------------------------------
 
         if current_user.role == "Responder":
             team = get_responder_team()
@@ -814,7 +818,7 @@ def create_app():
                 if t: r_dict['team_coords'] = {'lat': t.lat, 'lon': t.lon}
             reports_display.append(r_dict)
         
-        # Pass the calculated stats into the HTML template
+
         return render_template("dashboard.html", 
                                reports=reports_display, 
                                user=current_user, 
@@ -884,14 +888,14 @@ def create_app():
         can_reroute = current_user.role == "Responder"
         return render_template("monitor.html", user=current_user, show_all_routes=show_all, can_reroute=can_reroute)
 
-    # --- NEW: SYSTEM ANALYTICS VIEW ---
+
     @app.route("/analytics")
     @login_required
     def analytics_view():
         if current_user.role != "Programmer": return redirect(url_for('dashboard_view'))
         return render_template("analytics.html", user=current_user)
 
-    # --- UPDATED: SYSTEM ANALYTICS DATA API ---
+
     @app.route("/analytics_data")
     @login_required
     def analytics_data():
@@ -1257,7 +1261,7 @@ def create_app():
             db.session.commit()
         return redirect(url_for("teams_view"))
 
-    # --- UPDATED: RESPONDER DATA API ---
+
     @app.route("/responder_data")
     @login_required
     def responder_data():
@@ -1268,7 +1272,7 @@ def create_app():
             reports = DisasterReport.query.order_by(DisasterReport.date_submitted.desc()).all()
         
         data = []
-        for i, r in enumerate(reports): # <--- Added enumerate(reports) to get the index
+        for i, r in enumerate(reports):
             team_display = "Pending Assignment"
             team_start_loc = None
             if r.assigned_team:
@@ -1277,7 +1281,7 @@ def create_app():
                     team_display = f"{team.team_id} ({team.leader})"
                     team_start_loc = {"lat": team.lat, "lon": team.lon}
             data.append({
-                "index": i, # <--- Passing the index for the 'View' button redirect
+                "index": i,
                 "task_id": r.task_id, "disaster_type": r.disaster_type, "location": r.location,
                 "team_location": team_start_loc, "assigned_team": team_display,
                 "status": r.status, "time": r.time_str, "severity": r.severity, "lat": r.lat, "lon": r.lon
@@ -1629,7 +1633,7 @@ def create_app():
 
         coords = [[NODE_LOCATIONS[node]['lat'], NODE_LOCATIONS[node]['lon']] for node in path]
         
-        # This is the vital return statement that was missing!
+
         return jsonify({
             "path": path, "coords": coords, "distance": f"{dist_km} km", "eta": f"{eta_min} mins",
             "is_rerouted": is_rerouted, "original_distance": f"{baseline_dist} km", "message": message
