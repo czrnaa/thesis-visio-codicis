@@ -1,4 +1,5 @@
 import statistics
+# for chapter 4 and 5 only
 
 def get_user_input(metric_name):
     """Prompts the user to input data for a specific metric."""
