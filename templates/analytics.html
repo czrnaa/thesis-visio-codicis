@@ -300,15 +300,33 @@
                     statsTable.style.display = 'table';
 
                     let totalNodeRed = 0, totalTimeImp = 0;
+                    let nodeMetricCount = 0, timeMetricCount = 0;
 
                     data.forEach(row => {
-                        const nodeRed  = parseFloat(row.node_reduction)  || 0;
-                        const timeImp  = parseFloat(row.time_improvement) || 0;
-                        totalNodeRed  += nodeRed;
-                        totalTimeImp  += timeImp;
+                        const nodeRed = parseFloat(row.node_reduction);
+                        const timeImp = parseFloat(row.time_improvement);
+                        if (Number.isFinite(nodeRed)) {
+                            totalNodeRed += nodeRed;
+                            nodeMetricCount += 1;
+                        }
+                        if (Number.isFinite(timeImp)) {
+                            totalTimeImp += timeImp;
+                            timeMetricCount += 1;
+                        }
 
-                        const redColor  = nodeRed  > 0 ? '#155724' : '#555';
-                        const timeColor = timeImp  > 0 ? '#155724' : '#555';
+                        const redColor = Number.isFinite(nodeRed)
+                            ? (nodeRed > 0 ? '#155724' : (nodeRed < 0 ? '#b00020' : '#555'))
+                            : '#b00020';
+                        const timeColor = Number.isFinite(timeImp)
+                            ? (timeImp > 0 ? '#155724' : (timeImp < 0 ? '#b00020' : '#555'))
+                            : '#b00020';
+                        const absraOk = row.absra_status !== 'Failed';
+                        const absraNodes = absraOk
+                            ? `<span class="node-count" style="background:#cce5ff;color:#004085;">${row.absra_nodes}</span>`
+                            : `<span style="color:#b00020; font-weight:700;">Failed</span>`;
+                        const absraTime = absraOk
+                            ? row.absra_time
+                            : `<span style="color:#b00020; font-weight:700;">Failed</span>`;
 
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
@@ -318,8 +336,8 @@
                             <td style="background:#f5f5f5;"><span class="node-count">${row.a_nodes}</span></td>
                             <td style="background:#f5f5f5;" class="tech-font">${row.a_time}</td>
                             <td style="background:#f5f5f5;">${row.a_eta}</td>
-                            <td style="background:#e8f4f8;"><span class="node-count" style="background:#cce5ff;color:#004085;">${row.absra_nodes}</span></td>
-                            <td style="background:#e8f4f8;" class="tech-font" style="color:#004085;">${row.absra_time}</td>
+                            <td style="background:#e8f4f8;">${absraNodes}</td>
+                            <td style="background:#e8f4f8; color:#004085;" class="tech-font">${absraTime}</td>
                             <td style="background:#e8f4f8;">${row.absra_eta}</td>
                             <td style="background:#eafaf1; font-weight:700; color:${redColor};">${row.node_reduction}</td>
                             <td style="background:#eafaf1; font-weight:700; color:${timeColor};">${row.time_improvement}</td>
@@ -328,15 +346,17 @@
                     });
 
                     // Summary footer row
-                    const avgNodeRed = (totalNodeRed / data.length).toFixed(1);
-                    const avgTimeImp = (totalTimeImp / data.length).toFixed(1);
+                    const avgNodeRed = nodeMetricCount ? `${(totalNodeRed / nodeMetricCount).toFixed(1)}%` : 'N/A';
+                    const avgTimeImp = timeMetricCount ? `${(totalTimeImp / timeMetricCount).toFixed(1)}%` : 'N/A';
+                    const avgNodeColor = avgNodeRed !== 'N/A' && parseFloat(avgNodeRed) < 0 ? '#b00020' : '#155724';
+                    const avgTimeColor = avgTimeImp !== 'N/A' && parseFloat(avgTimeImp) < 0 ? '#b00020' : '#155724';
                     statsFooter.innerHTML = `
                         <tr>
                             <td colspan="3" style="text-align:right; padding-right:12px;">Average across ${data.length} task(s):</td>
                             <td colspan="3" style="background:#f5f5f5;"></td>
                             <td colspan="3" style="background:#e8f4f8;"></td>
-                            <td style="background:#eafaf1; color:#155724;">${avgNodeRed}%</td>
-                            <td style="background:#eafaf1; color:#155724;">${avgTimeImp}%</td>
+                            <td style="background:#eafaf1; color:${avgNodeColor};">${avgNodeRed}</td>
+                            <td style="background:#eafaf1; color:${avgTimeColor};">${avgTimeImp}</td>
                         </tr>
                     `;
                 })

@@ -19,6 +19,13 @@ import time
 import random
 from copy import deepcopy
 
+from barangay_loader import (
+    build_graph_connections as build_barangay_graph_connections,
+    build_node_locations as build_barangay_node_locations,
+    build_risk_profile as build_barangay_risk_profile,
+    load_barangays,
+)
+
 # (Optional) PDF export - requires: pip install fpdf2
 try:
     from fpdf import FPDF
@@ -94,10 +101,32 @@ BULACAN_RISK_PROFILE = {
     "San Miguel (Viola St)": {"flood": 0.30, "traffic": 0.55, "vuln": 0.55},
 }
 
+BARANGAY_ROUTING_ENABLED = False
+BARANGAY_ROWS = ()
+try:
+    BARANGAY_ROWS = load_barangays()
+    barangay_locations = build_barangay_node_locations()
+    if barangay_locations:
+        NODE_LOCATIONS = barangay_locations
+        GRAPH_CONNECTIONS = build_barangay_graph_connections(k_neighbors=5)
+        NODE_REGIONS = {row.barangay_id: row.municipality_code for row in BARANGAY_ROWS}
+        REGIONS = sorted({region for region in NODE_REGIONS.values()})
+        BULACAN_RISK_PROFILE = build_barangay_risk_profile()
+        BARANGAY_ROUTING_ENABLED = True
+        print(
+            f"[simulation] Loaded barangay graph: {len(NODE_LOCATIONS)} nodes, "
+            f"{sum(len(v) for v in GRAPH_CONNECTIONS.values())} directed edges"
+        )
+except Exception as e:
+    print(f"[simulation] WARNING: using old municipal fallback graph: {e}")
+
 
 def edge_risk(u, v, kind):
     """Average the two endpoints' risk scores for the given hazard kind."""
-    return 0.5 * (BULACAN_RISK_PROFILE[u][kind] + BULACAN_RISK_PROFILE[v][kind])
+    return 0.5 * (
+        BULACAN_RISK_PROFILE.get(u, {}).get(kind, 0.5)
+        + BULACAN_RISK_PROFILE.get(v, {}).get(kind, 0.5)
+    )
 
 
 def haversine_km(a, b):
@@ -459,10 +488,14 @@ def absra(start, goal, weights, blocked, _prebuilt_flags=None):
     best_cost = math.inf
     meeting = None
 
+    def open_min_g(heap, g_table, closed):
+        vals = [g_table[n] for _, n in heap if n not in closed]
+        return min(vals) if vals else math.inf
+
     while fwd_open or bwd_open:
         f_min = fwd_open[0][0] if fwd_open else math.inf
         b_min = bwd_open[0][0] if bwd_open else math.inf
-        if f_min + b_min >= best_cost:
+        if open_min_g(fwd_open, fwd_g, fwd_closed) + open_min_g(bwd_open, bwd_g, bwd_closed) >= best_cost:
             break
 
         if f_min <= b_min and fwd_open:
@@ -549,7 +582,15 @@ def _undirected_values(per_edge):
     return vals
 
 
-def run_scenario(start, goal, level, seed=42, disaster_type="generic"):
+_SCENARIO_CACHE = {}
+
+
+def _get_scenario_state(level, seed=42, disaster_type="generic"):
+    """Build disaster-modified weights and arc flags once per scenario."""
+    key = (disaster_type, level, seed)
+    if key in _SCENARIO_CACHE:
+        return _SCENARIO_CACHE[key]
+
     if disaster_type == "flood":
         weights, blocked, depths = simulate_flood_disaster(level, seed=seed)
         per_edge_metric = ("flood", depths)
@@ -563,12 +604,28 @@ def run_scenario(start, goal, level, seed=42, disaster_type="generic"):
         weights, blocked = simulate_disaster(level, seed=seed)
         per_edge_metric = (None, None)
 
+    arc_flags = _build_arc_flags(weights, blocked)
+    state = {
+        "weights": weights,
+        "blocked": blocked,
+        "per_edge_metric": per_edge_metric,
+        "arc_flags": arc_flags,
+    }
+    _SCENARIO_CACHE[key] = state
+    return state
+
+
+def run_scenario(start, goal, level, seed=42, disaster_type="generic"):
+    state = _get_scenario_state(level, seed=seed, disaster_type=disaster_type)
+    weights = state["weights"]
+    blocked = state["blocked"]
+    per_edge_metric = state["per_edge_metric"]
+    arc_flags = state["arc_flags"]
+
     (a_path, a_exp, a_cost), a_t = measure(a_star, start, goal, weights, blocked)
 
-    # Pre-build arc flags ONCE per scenario (one-time preprocessing cost),
-    # then pass them into every absra() call so that measure() only times
-    # the actual bidirectional search — not the preprocessing.
-    arc_flags = _build_arc_flags(weights, blocked)
+    # Arc flags are prebuilt once per disaster type/level/seed and reused across
+    # all route pairs so timing reflects per-query search, not preprocessing.
     (b_path, b_exp, b_cost), b_t = measure(
         absra, start, goal, weights, blocked, arc_flags
     )
@@ -601,7 +658,7 @@ def run_scenario(start, goal, level, seed=42, disaster_type="generic"):
             "max_vc":     max(vals) if vals else 1.0,
             "mean_vc":    (sum(congested) / len(congested)) if congested else 1.0,
             "edges_congested": len(congested),
-            "edges_over_capacity": sum(1 for vc in vals if vc >= 1.0),
+            "edges_over_capacity": sum(1 for vc in vals if vc > 1.0),
         }
     elif kind == "road_block":
         vals = _undirected_values(table)
@@ -623,13 +680,70 @@ def fmt_path(p):
     return " -> ".join(p)
 
 
+def node_label(node):
+    info = NODE_LOCATIONS.get(node, {})
+    return info.get("label") or node
+
+
+def scenario_label(start, goal):
+    return f"{node_label(start)} -> {node_label(goal)}"
+
+
+def _first_barangay_in(municipality):
+    for row in BARANGAY_ROWS:
+        if row.municipality == municipality:
+            return row.barangay_id
+    return None
+
+
+def build_test_cases():
+    if not BARANGAY_ROUTING_ENABLED:
+        return [
+            ("HQ_Malolos", "Hagonoy"),
+            ("HQ_Malolos", "San Miguel (Viola St)"),
+            ("HQ_Malolos", "Bocaue (Crossing)"),
+            ("HQ_Malolos", "Calumpit (Market)"),
+            ("Plaridel", "Bocaue"),
+            ("Guiguinto", "San Miguel"),
+            ("Malolos (City Hall)", "Balagtas"),
+            ("Paombong", "Plaridel (Muni Hall)"),
+            ("Calumpit", "Guiguinto (Plaza)"),
+            ("Bocaue", "Hagonoy"),
+            ("San Miguel", "HQ_Malolos"),
+            ("Plaridel (Muni Hall)", "Calumpit (Market)"),
+            ("Balagtas", "Paombong"),
+            ("Guiguinto (Plaza)", "San Miguel (Viola St)"),
+            ("Hagonoy", "Bocaue (Crossing)")
+        ]
+
+    candidates = []
+    rows = list(BARANGAY_ROWS)
+    for i, start in enumerate(rows):
+        for goal in rows[i + 1:]:
+            if start.municipality == goal.municipality:
+                continue
+            muni_pair = tuple(sorted((start.municipality, goal.municipality)))
+            candidates.append((haversine_km(start.barangay_id, goal.barangay_id), muni_pair, start, goal))
+
+    cases = []
+    used_municipality_pairs = set()
+    for _, muni_pair, start, goal in sorted(candidates, key=lambda item: item[0], reverse=True):
+        if muni_pair in used_municipality_pairs:
+            continue
+        cases.append((start.barangay_id, goal.barangay_id))
+        used_municipality_pairs.add(muni_pair)
+        if len(cases) == 15:
+            break
+    return cases
+
+
 def print_report(rows):
     level_names = {0: "No Disaster", 1: "Minor", 2: "Moderate", 3: "Severe"}
     print("=" * 88)
     print(f"{'Lvl':<4}{'Start -> Goal':<42}{'Algo':<8}{'Cost(min)':>10}{'Nodes':>8}{'Time(ms)':>12}")
     print("-" * 88)
     for r in rows:
-        sg = f"{r['start']} -> {r['goal']}"
+        sg = scenario_label(r["start"], r["goal"])
         lvl = f"{r['level']}({level_names[r['level']][0]})"
         for algo_key, algo_label in [("a_star", "A*"), ("absra", "ABSRA")]:
             a = r[algo_key]
@@ -648,7 +762,7 @@ def print_flood_report(rows):
     print("-" * 130)
     for r in rows:
         f = r["flood"]
-        sg = f"{r['start']} -> {r['goal']}"
+        sg = scenario_label(r["start"], r["goal"])
         a, b = r["a_star"], r["absra"]
         a_cost = f"{a['cost']:.2f}" if a['cost'] != math.inf else "INF"
         b_cost = f"{b['cost']:.2f}" if b['cost'] != math.inf else "INF"
@@ -664,13 +778,13 @@ def print_traffic_report(rows):
     """Per-scenario heavy-traffic statistics + routing comparison."""
     print("=" * 130)
     print(f"{'Lvl':<4}{'Start -> Goal':<42}"
-          f"{'MaxV/C':>8}{'>=1.0':>7}"
+          f"{'MaxV/C':>8}{'>1.0':>7}"
           f"{'A* min':>9}{'ABSRA min':>10}{'A* nodes':>10}{'ABSRA':>7}{'BlkRoads':>10}"
           f"{'A* ms':>10}{'ABSRA ms':>12}")
     print("-" * 130)
     for r in rows:
         h = r["heavy_traffic"]
-        sg = f"{r['start']} -> {r['goal']}"
+        sg = scenario_label(r["start"], r["goal"])
         a, b = r["a_star"], r["absra"]
         a_cost = f"{a['cost']:.2f}" if a['cost'] != math.inf else "INF"
         b_cost = f"{b['cost']:.2f}" if b['cost'] != math.inf else "INF"
@@ -692,7 +806,7 @@ def print_block_report(rows):
     print("-" * 130)
     for r in rows:
         rb = r["road_block"]
-        sg = f"{r['start']} -> {r['goal']}"
+        sg = scenario_label(r["start"], r["goal"])
         a, b = r["a_star"], r["absra"]
         a_cost = f"{a['cost']:.2f}" if a['cost'] != math.inf else "INF"
         b_cost = f"{b['cost']:.2f}" if b['cost'] != math.inf else "INF"
@@ -790,7 +904,7 @@ def generate_pdf_report(generic_rows, flood_rows, traffic_rows, block_rows,
     cws  = [14, 84, 16, 24, 20, 24]
     rows_data = []
     for r in generic_rows:
-        sg  = f"{r['start']} -> {r['goal']}"
+        sg  = scenario_label(r["start"], r["goal"])
         lbl = f"L{r['level']} {level_names[r['level']]}"
         for key, albl in [("a_star", "A*"), ("absra", "ABSRA")]:
             a = r[key]
@@ -807,7 +921,7 @@ def generate_pdf_report(generic_rows, flood_rows, traffic_rows, block_rows,
     rows_data = []
     for r in flood_rows:
         f  = r["flood"]
-        sg = f"{r['start']} -> {r['goal']}"
+        sg = scenario_label(r["start"], r["goal"])
         a, b = r["a_star"], r["absra"]
         rows_data.append([
             f"L{r['level']}", sg,
@@ -822,14 +936,14 @@ def generate_pdf_report(generic_rows, flood_rows, traffic_rows, block_rows,
 
     # 3. Heavy Traffic
     section_title("3. Heavy-Traffic Scenarios  (BPR model | DPWH Region III / TomTom 2024)")
-    hdrs = ["Lvl", "Start -> Goal", "Max V/C", "Edges >= 1.0", "A* (min)",
+    hdrs = ["Lvl", "Start -> Goal", "Max V/C", "Edges > 1.0", "A* (min)",
             "ABSRA (min)", "A* Nodes", "ABSRA Nodes", "Blocked roads",
             "A* Time(ms)", "ABSRA Time(ms)"]
     cws  = [12, 62, 16, 18, 18, 20, 18, 20, 18, 22, 22]
     rows_data = []
     for r in traffic_rows:
         h  = r["heavy_traffic"]
-        sg = f"{r['start']} -> {r['goal']}"
+        sg = scenario_label(r["start"], r["goal"])
         a, b = r["a_star"], r["absra"]
         rows_data.append([
             f"L{r['level']}", sg,
@@ -850,7 +964,7 @@ def generate_pdf_report(generic_rows, flood_rows, traffic_rows, block_rows,
     rows_data = []
     for r in block_rows:
         rb = r["road_block"]
-        sg = f"{r['start']} -> {r['goal']}"
+        sg = scenario_label(r["start"], r["goal"])
         a, b = r["a_star"], r["absra"]
         rows_data.append([
             f"L{r['level']}", sg,
@@ -894,13 +1008,12 @@ def generate_pdf_report(generic_rows, flood_rows, traffic_rows, block_rows,
 
 # MAIN
 def main():
-    test_cases = [
-        ("HQ_Malolos", "Hagonoy"),
-        ("HQ_Malolos", "San Miguel (Viola St)"),
-        ("HQ_Malolos", "Bocaue (Crossing)"),
-        ("HQ_Malolos", "Calumpit (Market)"),
-        ("Plaridel",   "Bocaue"),
-    ]
+    test_cases = build_test_cases()
+    print(
+        f"\n### GRAPH LOADED: {len(NODE_LOCATIONS)} nodes, "
+        f"{sum(len(v) for v in GRAPH_CONNECTIONS.values())} directed edges, "
+        f"{len(test_cases)} route pairs ###"
+    )
 
     def aggregate(rows, header):
         print()

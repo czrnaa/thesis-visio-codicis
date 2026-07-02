@@ -240,14 +240,22 @@
                                     </div>
 
                                     <div class="form-group">
-                                        <select id="municipality_select" name="municipality" required onchange="enableStreetInput()">
-                                            <option value="">-- Select Municipality --</option>
-                                            <option value="Malolos">Malolos</option><option value="Hagonoy">Hagonoy</option><option value="Calumpit">Calumpit</option><option value="Plaridel">Plaridel</option><option value="Baliuag">Baliuag</option><option value="Guiguinto">Guiguinto</option><option value="Balagtas">Balagtas</option><option value="Bocaue">Bocaue</option><option value="Santa Maria">Santa Maria</option><option value="San Jose del Monte">San Jose del Monte</option><option value="Marilao">Marilao</option><option value="Meycauayan">Meycauayan</option><option value="Obando">Obando</option><option value="Bulakan">Bulakan</option><option value="Paombong">Paombong</option><option value="Pulilan">Pulilan</option><option value="Bustos">Bustos</option><option value="San Rafael">San Rafael</option><option value="San Ildefonso">San Ildefonso</option><option value="San Miguel">San Miguel</option><option value="Norzagaray">Norzagaray</option><option value="Angat">Angat</option><option value="Pandi">Pandi</option>
+                                        <select id="municipality_select" name="municipality_code" required onchange="loadBarangays()">
+                                            <option value="">-- Select Municipality / City --</option>
+                                            {% for m in municipalities %}
+                                            <option value="{{ m.municipality_code }}" data-name="{{ m.municipality }}">{{ m.municipality }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <select id="barangay_select" name="barangay_id" required disabled onchange="selectBarangay()">
+                                            <option value="">-- Select Barangay --</option>
                                         </select>
                                     </div>
 
                                     <div class="form-group" style="position: relative;">
-                                        <input type="text" id="address_input" name="address" placeholder="Search Street..." disabled autocomplete="off" onkeyup="searchRestrictedLocation()">
+                                        <input type="text" id="address_input" name="address" placeholder="Select barangay first..." disabled autocomplete="off" onkeyup="searchRestrictedLocation()">
                                         <div id="search_results" class="search-results"></div>
                                     </div>
 
@@ -263,6 +271,8 @@
                     
                     <input type="hidden" id="lat" name="lat">
                     <input type="hidden" id="lon" name="lon">
+                    <input type="hidden" id="municipality_name" name="municipality">
+                    <input type="hidden" id="barangay_name" name="barangay_name">
                     <div id="mini-map"></div>
                 </form>
             </div>
@@ -276,21 +286,85 @@
         let marker = null;
         let searchTimeout = null;
 
-        function enableStreetInput() {
-            let muni = document.getElementById('municipality_select').value;
-            let input = document.getElementById('address_input');
-            if (muni) {
-                input.disabled = false;
-                input.placeholder = `Search street in ${muni}...`;
-            } else {
+        function setReportPoint(lat, lon, label) {
+            document.getElementById('lat').value = lat;
+            document.getElementById('lon').value = lon;
+            document.getElementById('submitBtn').disabled = false;
+            if (marker) map.removeLayer(marker);
+            marker = L.marker([lat, lon]).addTo(map).bindPopup(label || 'Selected barangay').openPopup();
+            map.setView([lat, lon], 14);
+        }
+
+        function loadBarangays() {
+            const municipalitySelect = document.getElementById('municipality_select');
+            const selectedOption = municipalitySelect.options[municipalitySelect.selectedIndex];
+            const municipalityCode = municipalitySelect.value;
+            const municipalityName = selectedOption ? selectedOption.getAttribute('data-name') || '' : '';
+            const barangaySelect = document.getElementById('barangay_select');
+            const input = document.getElementById('address_input');
+
+            document.getElementById('municipality_name').value = municipalityName;
+            document.getElementById('barangay_name').value = '';
+            document.getElementById('lat').value = '';
+            document.getElementById('lon').value = '';
+            document.getElementById('submitBtn').disabled = true;
+            barangaySelect.innerHTML = '<option value="">-- Select Barangay --</option>';
+            barangaySelect.disabled = true;
+            input.disabled = true;
+            input.value = '';
+            input.placeholder = 'Select barangay first...';
+            if (marker) { map.removeLayer(marker); marker = null; }
+
+            if (!municipalityCode) return;
+
+            fetch(`/api/barangays?municipality_code=${encodeURIComponent(municipalityCode)}`)
+                .then(res => res.json())
+                .then(rows => {
+                    rows.forEach(row => {
+                        const option = document.createElement('option');
+                        option.value = row.barangay_id;
+                        option.textContent = row.barangay;
+                        option.dataset.name = row.barangay;
+                        option.dataset.lat = row.lat;
+                        option.dataset.lon = row.lon;
+                        option.dataset.label = row.label;
+                        barangaySelect.appendChild(option);
+                    });
+                    barangaySelect.disabled = false;
+                })
+                .catch(() => {
+                    barangaySelect.innerHTML = '<option value="">Unable to load barangays</option>';
+                });
+        }
+
+        function selectBarangay() {
+            const municipalityName = document.getElementById('municipality_name').value;
+            const barangaySelect = document.getElementById('barangay_select');
+            const selectedOption = barangaySelect.options[barangaySelect.selectedIndex];
+            const input = document.getElementById('address_input');
+
+            if (!barangaySelect.value || !selectedOption) {
+                document.getElementById('barangay_name').value = '';
+                document.getElementById('lat').value = '';
+                document.getElementById('lon').value = '';
+                document.getElementById('submitBtn').disabled = true;
                 input.disabled = true;
-                input.placeholder = "Select Municipality first...";
+                input.placeholder = 'Select barangay first...';
+                return;
             }
+
+            const barangayName = selectedOption.dataset.name || selectedOption.textContent;
+            const label = selectedOption.dataset.label || `${barangayName}, ${municipalityName}`;
+            document.getElementById('barangay_name').value = barangayName;
+            input.disabled = false;
+            input.placeholder = `Search street in ${label} (optional)...`;
+            setReportPoint(parseFloat(selectedOption.dataset.lat), parseFloat(selectedOption.dataset.lon), label);
         }
 
         // --- DROPDOWN AUTOSUGGESTION LOGIC ---
         function searchRestrictedLocation() {
-            let city = document.getElementById('municipality_select').value;
+            let city = document.getElementById('municipality_name').value;
+            let barangay = document.getElementById('barangay_name').value;
             let street = document.getElementById('address_input').value;
             let resultsDiv = document.getElementById('search_results');
 
@@ -298,7 +372,7 @@
 
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
-                let query = `${street}, ${city}, Bulacan`;
+                let query = `${street}, ${barangay}, ${city}, Bulacan`;
                 fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=5`)
                     .then(res => res.json())
                     .then(data => {
@@ -323,9 +397,6 @@
         function selectLocation(place, simpleName) {
             document.getElementById('address_input').value = simpleName;
             document.getElementById('search_results').style.display = 'none';
-            document.getElementById('lat').value = place.lat;
-            document.getElementById('lon').value = place.lon;
-            document.getElementById('submitBtn').disabled = false;
         }
 
         function toggleCheckbox(listId, displayId) {

@@ -13,6 +13,9 @@ class DisasterReport(db.Model):
     lat = db.Column(db.Float, nullable=False)
     lon = db.Column(db.Float, nullable=False)
     location = db.Column(db.String(100), nullable=False)
+    municipality_code = db.Column(db.String(20), nullable=True)
+    barangay_id = db.Column(db.String(20), nullable=True)
+    barangay_name = db.Column(db.String(100), nullable=True)
     full_address = db.Column(db.String(200), nullable=False)
     resources = db.Column(db.String(200))
     constraints = db.Column(db.String(200))
@@ -52,14 +55,14 @@ class Team(db.Model):
             'last_updated': self.last_updated.strftime("%H:%M:%S") if self.last_updated else "Never"
         }
 
-# --- TABLE 3: USERS (Updated for Profile) ---
+# --- TABLE 3: USERS ---
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     account_id = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(100), nullable=False)
     role = db.Column(db.String(20), default="Operator")
     
-    # NEW PROFILE FIELDS
+
     first_name = db.Column(db.String(50), default="Jane Doe")
     last_name = db.Column(db.String(50), default="Yamada")
     phone = db.Column(db.String(20), default="09XX XXX XXXX")

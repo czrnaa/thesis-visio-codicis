@@ -11,6 +11,15 @@ from email.mime.multipart import MIMEMultipart
 import requests 
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
+from barangay_loader import (
+    build_graph_connections as build_barangay_graph_connections,
+    build_node_locations as build_barangay_node_locations,
+    build_risk_profile as build_barangay_risk_profile,
+    find_barangay,
+    get_barangays_by_municipality,
+    get_municipalities,
+    load_barangays,
+)
 from models import db, DisasterReport, Team, User, RouteLog, RoadConstraint, Notification, VehicleResource
 
 # ==========================================
@@ -146,8 +155,7 @@ def a_star_search(start, goal, avoid_nodes=[], penalty_nodes=None, penalty_facto
                     came_from[neighbor] = current
                     g_score[neighbor] = tentative_g
                     f_score[neighbor] = tentative_g + heuristic(neighbor, goal)
-                    if neighbor not in [i[1] for i in open_set]:
-                        heapq.heappush(open_set, (f_score[neighbor], neighbor))
+                    heapq.heappush(open_set, (f_score[neighbor], neighbor))
     return None, nodes_explored_count
 
 NODE_REGIONS = {
@@ -192,11 +200,41 @@ BULACAN_RISK_PROFILE = {
     "San Miguel (Viola St)": {"flood": 0.30, "traffic": 0.55, "vuln": 0.55},
 }
 
+BARANGAY_ROUTING_ENABLED = False
+try:
+    _barangay_locations = build_barangay_node_locations()
+    if _barangay_locations:
+        _barangay_rows = load_barangays()
+        NODE_LOCATIONS = _barangay_locations
+        GRAPH_CONNECTIONS = build_barangay_graph_connections(k_neighbors=5)
+        NODE_REGIONS = {row.barangay_id: row.municipality_code for row in _barangay_rows}
+        REGIONS = sorted({region for region in NODE_REGIONS.values()})
+        BULACAN_RISK_PROFILE = build_barangay_risk_profile()
+        LOCAL_DESTINATIONS = {}
+        BARANGAY_ROUTING_ENABLED = True
+        print(
+            f"[barangay-routing] loaded {len(NODE_LOCATIONS)} barangay nodes "
+            f"and {sum(len(v) for v in GRAPH_CONNECTIONS.values())} directed edges "
+            f"across {len(REGIONS)} municipality/city arc-flag regions"
+        )
+except Exception as e:
+    print(f"[barangay-routing] WARNING: using municipal fallback graph: {e}")
+
 def edge_risk(u, v, kind):
     """Average hazard score for edge (u,v); O(1) dict lookup amortized."""
     r_u = BULACAN_RISK_PROFILE.get(u, {}).get(kind, 0.5)
     r_v = BULACAN_RISK_PROFILE.get(v, {}).get(kind, 0.5)
     return 0.5 * (r_u + r_v)
+
+def node_label(node):
+    info = NODE_LOCATIONS.get(node, {})
+    return info.get('label') or node
+
+def nearest_graph_node(lat, lon):
+    return min(
+        NODE_LOCATIONS.keys(),
+        key=lambda k: math.hypot(NODE_LOCATIONS[k]['lat'] - lat, NODE_LOCATIONS[k]['lon'] - lon)
+    )
 
 def build_base_weights():
     """
@@ -208,6 +246,29 @@ def build_base_weights():
         for v in neighbors:
             w[(u, v)] = haversine_km(u, v) / BASE_SPEED_KMH * 60.0
     return w
+
+def _edge_weight(weights, u, v):
+    if weights and (u, v) in weights:
+        return weights[(u, v)]
+    return haversine_km(u, v) / BASE_SPEED_KMH * 60.0
+
+def _normalize_avoid_nodes(avoid_nodes):
+    return {node for node in (avoid_nodes or []) if node in NODE_LOCATIONS}
+
+def _build_weighted_adjacency(weights=None, avoid_nodes=None):
+    blocked = _normalize_avoid_nodes(avoid_nodes)
+    adj = {n: [] for n in NODE_LOCATIONS}
+    rev_adj = {n: [] for n in NODE_LOCATIONS}
+    for u, neighbors in GRAPH_CONNECTIONS.items():
+        if u in blocked:
+            continue
+        for v in neighbors:
+            if v in blocked:
+                continue
+            cost = _edge_weight(weights, u, v)
+            adj[u].append((v, cost))
+            rev_adj[v].append((u, cost))
+    return adj, rev_adj
 
 class RouterCache:
     """
@@ -223,8 +284,8 @@ class RouterCache:
       Total per query: O(E log V) — heap dominates adjacency-list scan O(E)
 
     Arc flags (build_arc_flags):
-      Build cost : O(R · (V + E) log V)  using reverse Dijkstra per region
-                   R = 3 regions; preprocessing is ONE-TIME and amortized over Q queries.
+        Build cost : O(R · (V + E) log V)  using reverse Dijkstra per region
+                   R = number of arc-flag regions; preprocessing is ONE-TIME and amortized over Q queries.
                    Amortized per-query overhead = O(R · V · E log V / Q) → O(0) as Q → ∞
       Pruning    : Each edge flag check is O(1) set membership; reduces nodes explored
                    by 30-60 % vs plain bidirectional A* on this graph size.
@@ -249,19 +310,28 @@ class RouterCache:
     def rev_adj(self):
         """Reverse adjacency list; built once, O(0) amortized per query."""
         if self._rev_adj is None:
-            ra = {n: [] for n in NODE_LOCATIONS}
-            for u in GRAPH_CONNECTIONS:
-                for v in GRAPH_CONNECTIONS[u]:
-                    ra[v].append(u)
-            self._rev_adj = ra
+            _, rev_adj = _build_weighted_adjacency(self.base_weights)
+            self._rev_adj = {node: [u for u, _ in edges] for node, edges in rev_adj.items()}
         return self._rev_adj
 
     def get_arc_flags(self):
         """Returns (fwd_flags, bwd_flags); built once, O(0) amortized per query."""
         if self._arc_flags is None:
-            self._arc_flags = build_arc_flags()
+            self._arc_flags = build_arc_flags(self.base_weights)
         self._query_count += 1
         return self._arc_flags
+
+    def get_base_absra_state(self):
+        needs_preprocess = self._arc_flags is None or self._rev_adj is None
+        t0 = time.perf_counter()
+        flags = self.get_arc_flags()
+        rev_adj = self.rev_adj
+        preprocess_ms = (time.perf_counter() - t0) * 1000 if needs_preprocess else 0.0
+        return {
+            "arc_flags": flags,
+            "rev_adj": rev_adj,
+            "preprocess_ms": preprocess_ms,
+        }
 
     def invalidate(self):
         """Call when graph topology changes (new constraints) to force arc-flag rebuild."""
@@ -288,7 +358,7 @@ def _dijkstra_graph(source, adj):
                 heapq.heappush(heap, (nd, v))
     return dist
 
-def build_arc_flags():
+def build_arc_flags(weights=None, avoid_nodes=None):
     """
     Build BOTH forward and backward arc flags (matching simulation.py _build_arc_flags).
 
@@ -311,25 +381,26 @@ def build_arc_flags():
             fwd_flags[(u, v)] = set()
             bwd_flags[(u, v)] = set()
 
-    w = _ROUTER_CACHE.base_weights  # O(1) amortized
+    w = weights or _ROUTER_CACHE.base_weights  # O(1) amortized for base graph
+    blocked = _normalize_avoid_nodes(avoid_nodes)
 
     # Build adjacency lists for Dijkstra
-    adj = {n: [] for n in NODE_LOCATIONS}
-    rev_adj = {n: [] for n in NODE_LOCATIONS}
-    for (u, v), cost in w.items():
-        adj[u].append((v, cost))
-        rev_adj[v].append((u, cost))
+    adj, rev_adj = _build_weighted_adjacency(w, blocked)
 
     for region in REGIONS:
-        region_nodes = [n for n, r in NODE_REGIONS.items() if r == region]
+        region_nodes = [n for n, r in NODE_REGIONS.items() if r == region and n not in blocked]
 
         # --- Forward flags: reverse Dijkstra from each TARGET in region ---
         # dist[u] = min cost u → t;  flag (u,v) if edge lies on shortest path to t
         for t in region_nodes:
             d = _dijkstra_graph(t, rev_adj)
             for u in GRAPH_CONNECTIONS:
+                if u in blocked:
+                    continue
                 for v in GRAPH_CONNECTIONS[u]:
-                    edge_w = w.get((u, v), 0.0)
+                    if v in blocked:
+                        continue
+                    edge_w = _edge_weight(w, u, v)
                     if d[u] < float('inf') and d[v] < float('inf'):
                         if abs(d[u] - (edge_w + d[v])) < 1e-9:
                             fwd_flags[(u, v)].add(region)
@@ -339,8 +410,12 @@ def build_arc_flags():
         for s in region_nodes:
             d = _dijkstra_graph(s, adj)
             for u in GRAPH_CONNECTIONS:
+                if u in blocked:
+                    continue
                 for v in GRAPH_CONNECTIONS[u]:
-                    edge_w = w.get((u, v), 0.0)
+                    if v in blocked:
+                        continue
+                    edge_w = _edge_weight(w, u, v)
                     if d[u] < float('inf') and d[v] < float('inf'):
                         if abs(d[v] - (d[u] + edge_w)) < 1e-9:
                             bwd_flags[(u, v)].add(region)
@@ -351,7 +426,25 @@ def get_arc_flags():
     """Returns (fwd_flags, bwd_flags) — both built once, O(0) amortized per call."""
     return _ROUTER_CACHE.get_arc_flags()
 
-def absra_search(start, goal, avoid_nodes=[], weights=None):
+def build_absra_state(weights=None, avoid_nodes=None):
+    """Prepare the arc flags and reverse graph for the exact route graph used."""
+    base_weights = _ROUTER_CACHE.base_weights
+    blocked = _normalize_avoid_nodes(avoid_nodes)
+    if (weights is None or weights is base_weights) and not blocked:
+        return _ROUTER_CACHE.get_base_absra_state()
+
+    t0 = time.perf_counter()
+    w = weights or base_weights
+    flags = build_arc_flags(w, blocked)
+    _, weighted_rev_adj = _build_weighted_adjacency(w, blocked)
+    rev_adj = {node: [u for u, _ in edges] for node, edges in weighted_rev_adj.items()}
+    return {
+        "arc_flags": flags,
+        "rev_adj": rev_adj,
+        "preprocess_ms": (time.perf_counter() - t0) * 1000,
+    }
+
+def absra_search(start, goal, avoid_nodes=None, weights=None, absra_state=None):
     """
     Arc-flag Bidirectional A* (ABSRA).
     Amortized complexity:
@@ -369,12 +462,14 @@ def absra_search(start, goal, avoid_nodes=[], weights=None):
     if start == goal:
         return [start], 0
 
-    fwd_flags, bwd_flags = get_arc_flags()
+    state = absra_state or build_absra_state(weights=weights, avoid_nodes=avoid_nodes)
+    fwd_flags, bwd_flags = state["arc_flags"]
     goal_region  = NODE_REGIONS.get(goal)
     start_region = NODE_REGIONS.get(start)
     _w = weights or _ROUTER_CACHE.base_weights  # O(1) amortized
+    blocked = _normalize_avoid_nodes(avoid_nodes)
 
-    rev_adj = _ROUTER_CACHE.rev_adj  # O(0) amortized — built once, cached
+    rev_adj = state["rev_adj"]
 
     fwd_g = {n: float('inf') for n in NODE_LOCATIONS}; fwd_g[start] = 0.0
     fwd_par = {start: None}
@@ -390,24 +485,30 @@ def absra_search(start, goal, avoid_nodes=[], weights=None):
     best_cost = float('inf')
     meeting = None
 
+    def open_min_g(heap, g_table, closed):
+        vals = [g_table[n] for _, n in heap if n not in closed]
+        return min(vals) if vals else float('inf')
+
     while fwd_open or bwd_open:
         fwd_min = fwd_open[0][0] if fwd_open else float('inf')
         bwd_min = bwd_open[0][0] if bwd_open else float('inf')
-        if fwd_min + bwd_min >= best_cost:
+        if open_min_g(fwd_open, fwd_g, fwd_closed) + open_min_g(bwd_open, bwd_g, bwd_closed) >= best_cost:
             break
 
         if fwd_min <= bwd_min:
             _, u = heapq.heappop(fwd_open)
             if u in fwd_closed:
                 continue
+            if u in blocked and u != start:
+                continue
             fwd_closed.add(u)
             nodes_explored += 1
             for v in GRAPH_CONNECTIONS.get(u, []):
-                if v in avoid_nodes:
+                if v in blocked:
                     continue
                 if goal_region and v != goal and goal_region not in fwd_flags.get((u, v), {goal_region}):
                     continue
-                new_g = fwd_g[u] + _w.get((u, v), haversine_km(u, v) / BASE_SPEED_KMH * 60.0)
+                new_g = fwd_g[u] + _edge_weight(_w, u, v)
                 if new_g < fwd_g[v]:
                     fwd_g[v] = new_g
                     fwd_par[v] = u
@@ -420,14 +521,16 @@ def absra_search(start, goal, avoid_nodes=[], weights=None):
             _, u = heapq.heappop(bwd_open)
             if u in bwd_closed:
                 continue
+            if u in blocked and u != goal:
+                continue
             bwd_closed.add(u)
             nodes_explored += 1
             for v in rev_adj.get(u, []):
-                if v in avoid_nodes:
+                if v in blocked:
                     continue
                 if start_region and v != start and start_region not in bwd_flags.get((v, u), {start_region}):
                     continue
-                new_g = bwd_g[u] + _w.get((v, u), haversine_km(v, u) / BASE_SPEED_KMH * 60.0)
+                new_g = bwd_g[u] + _edge_weight(_w, v, u)
                 if new_g < bwd_g[v]:
                     bwd_g[v] = new_g
                     bwd_par[v] = u
@@ -918,17 +1021,14 @@ def create_app():
         # denied permission or it isn't available yet), fall back to the depot.
         user_lat = request.args.get('user_lat', type=float)
         user_lon = request.args.get('user_lon', type=float)
-        DEPOT_NODE = "Marilao (Municipal Hall)"
+        DEPOT_LAT, DEPOT_LON = 14.774252085429513, 120.95924868037731
+        DEPOT_NODE = nearest_graph_node(DEPOT_LAT, DEPOT_LON)
 
         if user_lat is not None and user_lon is not None:
             if _in_bulacan(user_lat, user_lon):
                 # Snap viewer's location to nearest graph node and route from there.
-                actual_start_node = min(
-                    NODE_LOCATIONS.keys(),
-                    key=lambda k: math.hypot(NODE_LOCATIONS[k]['lat'] - user_lat,
-                                             NODE_LOCATIONS[k]['lon'] - user_lon)
-                )
-                from_label = actual_start_node
+                actual_start_node = nearest_graph_node(user_lat, user_lon)
+                from_label = node_label(actual_start_node)
             else:
                 # Viewer is outside Bulacan — can't route from out-of-graph coords,
                 # so use the depot for routing but flag the label.
@@ -936,12 +1036,16 @@ def create_app():
                 from_label = "OUTSIDE Bulacan"
         else:
             actual_start_node = DEPOT_NODE
-            from_label = DEPOT_NODE
+            from_label = node_label(DEPOT_NODE)
 
         reports = DisasterReport.query.order_by(DisasterReport.date_submitted.desc()).all()
         data = []
         base_w = _ROUTER_CACHE.base_weights
         REPS = 5  # repeated runs → take min time (matches simulation.py measure())
+        analytics_absra_state = build_absra_state(weights=base_w) if reports else None
+
+        def fmt_percent(value):
+            return "N/A" if value is None else f"{value}%"
 
         for i, r in enumerate(reports):
             start_node = actual_start_node
@@ -950,11 +1054,9 @@ def create_app():
             # "Bocaue" because form values like "Malolos" don't match the internal label
             # "HQ_Malolos", making all rows show identical metrics.
             if r.lat and r.lon:
-                end_node = min(NODE_LOCATIONS.keys(),
-                               key=lambda k: math.hypot(NODE_LOCATIONS[k]['lat'] - r.lat,
-                                                        NODE_LOCATIONS[k]['lon'] - r.lon))
+                end_node = nearest_graph_node(r.lat, r.lon)
             else:
-                end_node = r.location if r.location in NODE_LOCATIONS else "Bocaue"
+                end_node = r.location if r.location in NODE_LOCATIONS else DEPOT_NODE
             # Mirror calculate_route: when start == end, route to local sub-destination
             if end_node == start_node and start_node in LOCAL_DESTINATIONS:
                 end_node = LOCAL_DESTINATIONS[start_node]
@@ -971,7 +1073,7 @@ def create_app():
             path_cost = 0.0
             if path and len(path) > 1:
                 dist = round(sum(haversine_km(path[j], path[j+1]) for j in range(len(path)-1)), 2)
-                path_cost = sum(base_w.get((path[j], path[j+1]), 0) for j in range(len(path)-1))
+                path_cost = sum(_edge_weight(base_w, path[j], path[j+1]) for j in range(len(path)-1))
                 # Last-mile: end node → actual task GPS (mirrors calculate_route logic)
                 if r.lat and r.lon:
                     ln = NODE_LOCATIONS[path[-1]]
@@ -984,13 +1086,16 @@ def create_app():
             best_b_time = float('inf')
             for _ in range(REPS):
                 t0 = time.perf_counter()
-                absra_path, absra_nodes = absra_search(start_node, end_node, weights=base_w)
+                absra_path, absra_nodes = absra_search(
+                    start_node, end_node, weights=base_w, absra_state=analytics_absra_state
+                )
                 best_b_time = min(best_b_time, time.perf_counter() - t0)
-            absra_exec_time = round(best_b_time * 1000, 3)
+            absra_query_time = round(best_b_time * 1000, 3)
 
-            if absra_path and len(absra_path) > 1:
+            absra_status = "OK" if absra_path else "Failed"
+            if absra_path:
                 absra_dist = round(sum(haversine_km(absra_path[j], absra_path[j+1]) for j in range(len(absra_path)-1)), 2)
-                absra_cost = sum(base_w.get((absra_path[j], absra_path[j+1]), 0) for j in range(len(absra_path)-1))
+                absra_cost = sum(_edge_weight(base_w, absra_path[j], absra_path[j+1]) for j in range(len(absra_path)-1))
                 # Last-mile for ABSRA
                 if r.lat and r.lon:
                     ln = NODE_LOCATIONS[absra_path[-1]]
@@ -999,31 +1104,51 @@ def create_app():
                     absra_cost += lm / BASE_SPEED_KMH * 60.0
                 absra_eta = f"{math.ceil(absra_cost)} mins"
             else:
-                absra_nodes, absra_exec_time, absra_dist, absra_eta = nodes, exec_time, dist, eta
+                absra_dist, absra_eta = None, "Failed"
 
-            # Improvement percentages (never negative — ABSRA should always be ≤ A*)
-            node_reduction = round(max(0, (nodes - absra_nodes) / nodes * 100), 1) if nodes else 0
-            time_improvement = round(max(0, (exec_time - absra_exec_time) / exec_time * 100), 1) if exec_time else 0
+            # Signed percentages: negative values are meaningful regressions, not hidden.
+            if path and absra_path and nodes:
+                node_reduction = round((nodes - absra_nodes) / nodes * 100, 1)
+            else:
+                node_reduction = None
+            if path and absra_path and exec_time:
+                time_improvement = round((exec_time - absra_query_time) / exec_time * 100, 1)
+            else:
+                time_improvement = None
 
             data.append({
                 "num": i + 1,
                 "task_id": r.task_id,
                 "from": from_label,
-                "to": end_node,
+                "to": node_label(end_node),
                 "location": r.location,
                 "a_nodes": nodes,
                 "a_time": f"{exec_time} ms",
                 "a_eta": eta,
                 "a_dist": f"{dist} km",
                 "absra_nodes": absra_nodes,
-                "absra_time": f"{absra_exec_time} ms",
+                "absra_status": absra_status,
+                "absra_time": f"{absra_query_time} ms",
+                "absra_query_time": f"{absra_query_time} ms",
                 "absra_eta": absra_eta,
-                "absra_dist": f"{absra_dist} km",
-                "node_reduction": f"{node_reduction}%",
-                "time_improvement": f"{time_improvement}%",
+                "absra_dist": "N/A" if absra_dist is None else f"{absra_dist} km",
+                "node_reduction": fmt_percent(node_reduction),
+                "time_improvement": fmt_percent(time_improvement),
             })
 
         return jsonify(data)
+
+    @app.route("/api/barangays")
+    @login_required
+    def api_barangays():
+        municipality_code = (request.args.get('municipality_code') or '').strip()
+        if municipality_code:
+            rows = get_barangays_by_municipality(municipality_code)
+        else:
+            rows = []
+            for municipality in get_municipalities():
+                rows.extend(get_barangays_by_municipality(municipality['municipality_code']))
+        return jsonify([row.to_dict() for row in rows])
 
     @app.route("/profile_settings", methods=["GET", "POST"])
     @login_required
@@ -1158,18 +1283,37 @@ def create_app():
         if current_user.role == "Responder": return redirect(url_for('dashboard_view'))
         now = datetime.datetime.now()
         return render_template("user.html", task_id=f"TASK-{DisasterReport.query.count() + 1:03d}", 
-            auto_date=now.strftime("%m/%d/%Y"), auto_day=now.strftime("%A"), auto_time=now.strftime("%I:%M %p"), user=current_user)
+            auto_date=now.strftime("%m/%d/%Y"), auto_day=now.strftime("%A"), auto_time=now.strftime("%I:%M %p"),
+            user=current_user, municipalities=get_municipalities())
 
     @app.route("/submit_report", methods=["POST"])
     @login_required
     def submit_report():
         if current_user.role == "Responder": return redirect(url_for('dashboard_view'))
-        try: lat, lon = float(request.form.get("lat")), float(request.form.get("lon"))
-        except: return "Invalid Coordinates", 400
+        barangay = find_barangay(request.form.get("barangay_id") or "")
+        if barangay:
+            lat, lon = barangay.lat, barangay.lon
+            municipality = barangay.municipality
+            municipality_code = barangay.municipality_code
+            barangay_id = barangay.barangay_id
+            barangay_name = barangay.barangay
+            location_label = barangay.label
+        else:
+            try: lat, lon = float(request.form.get("lat")), float(request.form.get("lon"))
+            except: return "Invalid Coordinates", 400
+            municipality = request.form.get("municipality")
+            municipality_code = request.form.get("municipality_code")
+            barangay_id = request.form.get("barangay_id")
+            barangay_name = request.form.get("barangay_name")
+            location_label = f"{barangay_name}, {municipality}" if barangay_name and municipality else municipality
+
+        full_address = (request.form.get("address") or "").strip() or location_label
         new_report = DisasterReport(
             task_id=request.form.get("task_id"), disaster_type=request.form.get("disaster_type"),
             severity=request.form.get("severity"), lat=lat, lon=lon,
-            location=request.form.get("municipality"), full_address=request.form.get("address"),
+            location=location_label, municipality_code=municipality_code,
+            barangay_id=barangay_id, barangay_name=barangay_name,
+            full_address=full_address,
             resources=", ".join(request.form.getlist("resources")), constraints=", ".join(request.form.getlist("constraints")),
             status="Pending", date_str=request.form.get("date"), day_str=request.form.get("day"), 
             time_str=request.form.get("time"), affected=request.form.get("affected"),
@@ -1406,16 +1550,21 @@ def create_app():
         obstacle_lat = request.args.get('obstacle_lat')
         obstacle_lon = request.args.get('obstacle_lon')
 
-        start_node = request.args.get('start', 'Marilao (Municipal Hall)')
-        end_node = request.args.get('end', 'Bocaue')
+        start_node = request.args.get('start') or nearest_graph_node(14.774252085429513, 120.95924868037731)
+        end_node = request.args.get('end') or nearest_graph_node(14.7960, 120.9250)
 
         if team_lat and team_lon:
             t_lat, t_lon = float(team_lat), float(team_lon)
-            start_node = min(NODE_LOCATIONS.keys(), key=lambda k: math.hypot(NODE_LOCATIONS[k]['lat'] - t_lat, NODE_LOCATIONS[k]['lon'] - t_lon))
+            start_node = nearest_graph_node(t_lat, t_lon)
  
         if task_lat and task_lon:
             t_lat, t_lon = float(task_lat), float(task_lon)
-            end_node = min(NODE_LOCATIONS.keys(), key=lambda k: math.hypot(NODE_LOCATIONS[k]['lat'] - t_lat, NODE_LOCATIONS[k]['lon'] - t_lon))
+            end_node = nearest_graph_node(t_lat, t_lon)
+
+        if start_node not in NODE_LOCATIONS:
+            start_node = nearest_graph_node(14.774252085429513, 120.95924868037731)
+        if end_node not in NODE_LOCATIONS:
+            end_node = nearest_graph_node(14.7960, 120.9250)
 
         if start_node == end_node and start_node in LOCAL_DESTINATIONS:
             end_node = LOCAL_DESTINATIONS[start_node]
@@ -1478,14 +1627,25 @@ def create_app():
             if middle_node not in avoid_nodes:
                 avoid_nodes.append(middle_node)
 
+        routing_w = base_w if modified_w == base_w else modified_w
+
         # 2. Actual route with constraints applied
+        route_query_ms = 0.0
         if use_absra:
-            path, _ = absra_search(start_node, end_node,
-                                   avoid_nodes=avoid_nodes, weights=modified_w)
+            absra_state = build_absra_state(weights=routing_w, avoid_nodes=avoid_nodes)
+            t0 = time.perf_counter()
+            path, _ = absra_search(
+                start_node, end_node,
+                avoid_nodes=avoid_nodes, weights=routing_w,
+                absra_state=absra_state,
+            )
+            route_query_ms = round((time.perf_counter() - t0) * 1000, 3)
         else:
+            t0 = time.perf_counter()
             path, _ = a_star_search(start_node, end_node, avoid_nodes=avoid_nodes,
                                     penalty_nodes=penalty_nodes,
-                                    penalty_factor=penalty_factor, weights=modified_w)
+                                    penalty_factor=penalty_factor, weights=routing_w)
+            route_query_ms = round((time.perf_counter() - t0) * 1000, 3)
 
         # ERROR HANDLING
         if not path:
@@ -1494,11 +1654,14 @@ def create_app():
             db.session.add(failed_log)
             db.session.commit()
             return jsonify({"path": [], "coords": [], "distance": "N/A", "eta": "Blocked",
-                            "is_rerouted": False, "message": "Error: Destination unreachable due to closures."})
+                            "is_rerouted": False,
+                            "algorithm": "ABSRA" if use_absra else "A*",
+                            "query_time_ms": route_query_ms,
+                            "message": "Error: Destination unreachable due to closures."})
 
         graph_dist_km = sum(haversine_km(path[j], path[j+1]) for j in range(len(path) - 1))
         graph_cost    = sum(
-            modified_w.get((path[j], path[j+1]), haversine_km(path[j], path[j+1]) / BASE_SPEED_KMH * 60.0)
+            _edge_weight(routing_w, path[j], path[j+1])
             for j in range(len(path) - 1)
         )
 
@@ -1520,9 +1683,16 @@ def create_app():
         eta_min   = math.ceil(graph_cost + extra_km / BASE_SPEED_KMH * 60.0)
 
         is_rerouted = (path != baseline_path) or want_alternative
-        message = (f"REROUTED: Avoiding {', '.join(avoid_nodes)}. "
-                   f"Added {round(dist_km - baseline_dist, 2)} km."
-                   if is_rerouted else "Optimal Route Found.")
+        if is_rerouted:
+            if avoid_nodes:
+                reroute_reason = f"Avoiding {', '.join(avoid_nodes)}"
+            elif constraint == 'heavy_traffic':
+                reroute_reason = "Heavy-traffic adjusted route"
+            else:
+                reroute_reason = "Alternative route"
+            message = f"REROUTED: {reroute_reason}. Added {round(dist_km - baseline_dist, 2)} km."
+        else:
+            message = "Optimal Route Found."
 
         # LOGGING
         constraint_labels = {'road_block': 'Road Block', 'heavy_traffic': 'Heavy Traffic', 'flooded_road': 'Flooded Road'}
@@ -1550,13 +1720,7 @@ def create_app():
                 try:
                     pin_lat = float(obstacle_lat)
                     pin_lon = float(obstacle_lon)
-                    pin_node = min(
-                        NODE_LOCATIONS.keys(),
-                        key=lambda k: math.hypot(
-                            NODE_LOCATIONS[k]['lat'] - pin_lat,
-                            NODE_LOCATIONS[k]['lon'] - pin_lon,
-                        ),
-                    )
+                    pin_node = nearest_graph_node(pin_lat, pin_lon)
                 except (TypeError, ValueError):
                     pin_lat = pin_lon = None
 
@@ -1574,13 +1738,7 @@ def create_app():
                 try:
                     pin_lat = float(team_lat)
                     pin_lon = float(team_lon)
-                    pin_node = min(
-                        NODE_LOCATIONS.keys(),
-                        key=lambda k: math.hypot(
-                            NODE_LOCATIONS[k]['lat'] - pin_lat,
-                            NODE_LOCATIONS[k]['lon'] - pin_lon,
-                        ),
-                    )
+                    pin_node = nearest_graph_node(pin_lat, pin_lon)
                 except (TypeError, ValueError):
                     pin_lat = pin_lon = None
 
@@ -1589,13 +1747,7 @@ def create_app():
                 try:
                     pin_lat = float(task_lat)
                     pin_lon = float(task_lon)
-                    pin_node = min(
-                        NODE_LOCATIONS.keys(),
-                        key=lambda k: math.hypot(
-                            NODE_LOCATIONS[k]['lat'] - pin_lat,
-                            NODE_LOCATIONS[k]['lon'] - pin_lon,
-                        ),
-                    )
+                    pin_node = nearest_graph_node(pin_lat, pin_lon)
                 except (TypeError, ValueError):
                     pin_lat = pin_lon = None
 
@@ -1636,7 +1788,10 @@ def create_app():
 
         return jsonify({
             "path": path, "coords": coords, "distance": f"{dist_km} km", "eta": f"{eta_min} mins",
-            "is_rerouted": is_rerouted, "original_distance": f"{baseline_dist} km", "message": message
+            "is_rerouted": is_rerouted, "original_distance": f"{baseline_dist} km",
+            "algorithm": "ABSRA" if use_absra else "A*",
+            "query_time_ms": route_query_ms,
+            "message": message
         })
 
     @app.route("/api/routing_logs")
@@ -1730,9 +1885,37 @@ def create_app():
 
     # Idempotent: top-up legacy databases with any newly-added columns
     # so the app works without a separate manual migration step.
+    _auto_migrate_disaster_report_location(app)
     _auto_migrate_road_constraint(app)
 
     return app
+
+
+def _auto_migrate_disaster_report_location(app):
+    """Ensure disaster_report has barangay-level location columns."""
+    from sqlalchemy import text, inspect
+    with app.app_context():
+        try:
+            inspector = inspect(db.engine)
+            if 'disaster_report' not in inspector.get_table_names():
+                return
+            existing = {col['name'] for col in inspector.get_columns('disaster_report')}
+            wanted = [
+                ('municipality_code', 'VARCHAR(20)'),
+                ('barangay_id', 'VARCHAR(20)'),
+                ('barangay_name', 'VARCHAR(100)'),
+            ]
+            added = []
+            with db.engine.begin() as conn:
+                for name, sqltype in wanted:
+                    if name in existing:
+                        continue
+                    conn.execute(text(f"ALTER TABLE disaster_report ADD COLUMN {name} {sqltype}"))
+                    added.append(name)
+            if added:
+                print(f"[auto-migrate] disaster_report: added columns {added}")
+        except Exception as e:
+            print(f"[auto-migrate] WARNING: could not auto-migrate disaster_report: {e}")
 
 
 
@@ -1791,6 +1974,7 @@ def setup_database():
         db.session.commit()
     # After tables exist & are seeded, top-up any newly-added columns on
     # legacy databases that pre-date the constraint-marker feature.
+    _auto_migrate_disaster_report_location(app)
     _auto_migrate_road_constraint(app)
 
 if __name__ == "__main__":
