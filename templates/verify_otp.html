@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Verify OTP - Disaster Logistics</title>
+    <style>
+        body, html { height:100%; margin:0; font-family:'Segoe UI',Tahoma,sans-serif; }
+        .container { display:flex; height:100vh; width:100%; }
+        .brand-panel { background:#d90429; width:35%; color:white; display:flex; flex-direction:column; justify-content:center; padding:40px; }
+        .brand-text { font-size:3rem; font-weight:bold; line-height:1.2; }
+        .login-panel { width:65%; background:white; display:flex; flex-direction:column; justify-content:center; align-items:center; }
+        .login-box { width:100%; max-width:440px; padding:20px; }
+        h1 { color:#d90429; font-size:2.3rem; margin-bottom:10px; text-align:center; }
+        .subtitle { text-align:center; color:#666; margin-bottom:25px; font-size:0.95rem; line-height:1.5; }
+        .masked-target { color:#d90429; font-weight:700; font-family:monospace; }
+        .otp-inputs { display:flex; justify-content:space-between; gap:8px; margin-bottom:20px; }
+        .otp-inputs input { width:55px; height:60px; text-align:center; font-size:1.6rem; font-weight:700; border:2px solid #ccc; border-radius:8px; background:#fff; box-sizing:border-box; }
+        .otp-inputs input:focus { border-color:#d90429; outline:none; }
+        label { display:block; margin-bottom:8px; color:#333; font-weight:500; }
+        input.text-input { width:100%; padding:14px; margin-bottom:18px; border:1px solid #ccc; border-radius:5px; background:#f4f4f4; font-size:1rem; box-sizing:border-box; }
+        .btn-primary { width:100%; padding:14px; background:#d90429; color:white; border:none; border-radius:5px; font-size:1rem; font-weight:600; cursor:pointer; }
+        .btn-primary:hover { background:#a50020; }
+        .back-link { display:block; text-align:center; margin-top:18px; color:#666; text-decoration:none; font-size:0.9rem; }
+        .back-link:hover { color:#d90429; }
+        .error { background:#f8d7da; color:#721c24; padding:12px; border-radius:5px; margin-bottom:18px; border:1px solid #f5c6cb; font-size:0.9rem; }
+        .info { background:#d1ecf1; color:#0c5460; padding:12px; border-radius:5px; margin-bottom:18px; border:1px solid #bee5eb; font-size:0.9rem; }
+        .success-banner { background:#d4edda; color:#155724; padding:12px; border-radius:5px; margin-bottom:18px; border:1px solid #c3e6cb; font-size:0.9rem; }
+        .demo-banner { background:#fff3cd; color:#856404; padding:14px; border-radius:5px; margin-bottom:18px; border:2px dashed #ffc107; font-size:0.85rem; }
+        .demo-banner strong { font-family:monospace; font-size:1.4rem; letter-spacing:3px; color:#d90429; display:block; text-align:center; margin-top:6px; }
+        .timer { text-align:center; color:#999; font-size:0.85rem; margin-top:10px; }
+        .pw-section { margin-top:8px; padding-top:18px; border-top:1px solid #eee; }
+        .pw-section h3 { font-size:1rem; color:#333; margin:0 0 12px 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="brand-panel">
+        <div class="brand-text">Disaster<br>Response<br>Logistics<br>Platform</div>
+    </div>
+
+    <div class="login-panel">
+        <div class="login-box">
+            <h1>Verify OTP</h1>
+            <p class="subtitle">
+                We sent a 6-digit code to <span class="masked-target">{{ masked_target }}</span>.<br>
+                Check your inbox (and spam folder) — it expires in 5 minutes.
+            </p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, msg in messages %}
+                    <div class="{{ 'error' if category=='error' else 'info' }}">{{ msg }}</div>
+                {% endfor %}
+            {% endwith %}
+
+            {% if email_sent %}
+            <div class="success-banner">✅ Email sent successfully to {{ masked_target }}</div>
+            {% endif %}
+
+            {% if demo_otp %}
+            <div class="demo-banner">
+                <span>🛠 <b>Demo Backup</b> — In case email is delayed, your code is:</span>
+                <strong>{{ demo_otp }}</strong>
+            </div>
+            {% endif %}
+
+            <form method="POST" action="{{ submit_url }}" onsubmit="return assembleOtp()">
+                <label>One-Time Code</label>
+                <div class="otp-inputs" id="otpInputs">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="\d" autofocus>
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="\d">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="\d">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="\d">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="\d">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="\d">
+                </div>
+                <input type="hidden" name="otp" id="otpHidden">
+
+                {% if needs_password %}
+                <div class="pw-section">
+                    <h3>Set a New Password</h3>
+                    <label>New Password</label>
+                    <input type="password" name="new_password" class="text-input" placeholder="At least 6 characters" minlength="6" required>
+                    <label>Confirm New Password</label>
+                    <input type="password" name="confirm_password" class="text-input" placeholder="Repeat new password" minlength="6" required>
+                </div>
+                {% endif %}
+
+                <button type="submit" class="btn-primary">Verify &amp; Continue</button>
+                <a href="{{ cancel_url or '/login' }}" class="back-link">← Cancel</a>
+                <div class="timer">Code expires in <span id="countdown">5:00</span></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const inputs = document.querySelectorAll('#otpInputs input');
+    inputs.forEach((box, idx) => {
+        box.addEventListener('input', () => {
+            box.value = box.value.replace(/\D/g, '').slice(0, 1);
+            if (box.value && idx < inputs.length - 1) inputs[idx + 1].focus();
+        });
+        box.addEventListener('keydown', e => {
+            if (e.key === 'Backspace' && !box.value && idx > 0) inputs[idx - 1].focus();
+        });
+        box.addEventListener('paste', e => {
+            e.preventDefault();
+            const txt = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6);
+            txt.split('').forEach((d, i) => { if (inputs[i]) inputs[i].value = d; });
+            if (inputs[txt.length]) inputs[txt.length].focus();
+        });
+    });
+    function assembleOtp() {
+        const code = Array.from(inputs).map(i => i.value).join('');
+        document.getElementById('otpHidden').value = code;
+        if (code.length !== 6) { alert('Please enter all 6 digits.'); return false; }
+        return true;
+    }
+    let remaining = 300;
+    const cd = document.getElementById('countdown');
+    const tick = setInterval(() => {
+        remaining--;
+        const m = Math.floor(remaining/60), s = remaining%60;
+        cd.textContent = m + ':' + (s<10?'0':'') + s;
+        if (remaining <= 0) { clearInterval(tick); cd.textContent = 'Expired'; cd.style.color = '#d90429'; }
+    }, 1000);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>System Analytics</title>
+    <style>
+        :root { --primary-red: #d90429; --sidebar-bg: #e0e0e0; --header-gray: #ccc; --border-color: #333; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background-color: #f4f4f4; }
+        
+        /* HEADER */
+        .top-bar { background-color: var(--primary-red); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; height: 60px; box-sizing: border-box; }
+        .top-bar h2 { margin: 0; font-size: 1.3rem; font-weight: 600; }
+        .user-profile { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
+        .user-circle { width: 32px; height: 32px; background: #ddd; border-radius: 50%; }
+        
+        /* LAYOUT */
+        .main-container { display: flex; flex: 1; height: calc(100vh - 60px); }
+        .sidebar { width: 260px; background: var(--sidebar-bg); border-right: 1px solid #ccc; display: flex; flex-direction: column; padding-top: 10px; }
+        .nav-item { padding: 15px 25px; color: #333; cursor: pointer; display: flex; align-items: center; gap: 15px; text-decoration: none; font-size: 1rem; font-weight: 500; transition: 0.2s; border-left: 5px solid transparent; }
+        .nav-item:hover { background: #d0d0d0; }
+        .nav-item.active { background: #ccc; border-left-color: #333; font-weight: 700; }
+        .icon { width: 20px; text-align: center; }
+
+        /* CONTENT */
+        .content { flex: 1; padding: 30px; overflow-y: auto; background: #fff; display: flex; flex-direction: column; gap: 20px; }
+
+        .page-title { flex-shrink: 0; font-size: 1.5rem; font-weight: 700; color: #333; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+        .section-title { flex-shrink: 0; font-size: 1.2rem; font-weight: 600; color: #d90429; margin-top: 10px; margin-bottom: -10px;}
+
+        /* ANALYTICS TABLE */
+        .table-container { 
+            flex-shrink: 0; /* Prevents flexbox from crushing the tables! */
+            border: 1px solid #333; 
+            border-radius: 5px; 
+            background: white; 
+            margin-bottom: 20px; 
+            max-height: 350px; 
+            overflow-y: auto; 
+        }
+        .table-container thead { position: sticky; top: 0; z-index: 5; background: #d9d9d9; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        thead { border-bottom: 2px solid #333; }
+        th, td { padding: 15px; text-align: left; border-right: 1px solid #999; }
+        th:last-child, td:last-child { border-right: none; }
+        td { border-bottom: 1px solid #eee; }
+        
+        th { font-weight: 700; color: #222; text-transform: uppercase; font-size: 0.8rem; }
+        
+        .tech-font { font-family: 'Courier New', monospace; font-weight: bold; color: #006600; }
+        .node-count { background: #e0e0e0; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+        
+        .status-success { color: #006600; font-weight: bold; }
+        .status-error { color: #d90429; font-weight: bold; }
+
+        /* Geolocation banner */
+        .geo-banner {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 4px;
+            border: 1px solid #b8daff;
+            background: #d1ecf1;
+            color: #0c5460;
+            font-size: 0.9rem;
+        }
+        .geo-banner.success { background: #d4edda; color: #155724; border-color: #c3e6cb; }
+        .geo-banner.warn    { background: #fff3cd; color: #856404; border-color: #ffeeba; }
+        .geo-banner button  {
+            background: #d90429; color: white; border: none;
+            padding: 6px 14px; border-radius: 4px; font-weight: 600;
+            cursor: pointer; font-size: 0.85rem;
+        }
+        .geo-banner button:hover { background: #b00220; }
+        .geo-banner button.secondary { background: #6c757d; }
+        .geo-banner button.secondary:hover { background: #5a6268; }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <h2>Disaster Response Logistics Platform</h2>
+        <div class="user-profile">
+            <span style="font-weight: 600;">{{ user.account_id }}</span>
+            <img src="{{ url_for('static', filename='assets/person_profile.svg') }}" alt="Profile" class="user-circle" style="object-fit: cover; background: white;">
+        </div>
+    </div>
+    
+    <div class="main-container">
+        <div class="sidebar">
+            <a href="/dashboard" class="nav-item"><span class="icon"></span> Dashboard</a>
+            <a href="/reports" class="nav-item"><span class="icon"></span> Reports</a>
+            {% if user.role != 'Responder' %}
+            <a href="/teams" class="nav-item"><span class="icon"></span> Teams & Resources</a>
+            {% endif %}
+            <a href="/monitor" class="nav-item"><span class="icon"></span> Monitor Routing</a>
+            <a href="/analytics" class="nav-item active"><span class="icon"></span> System Analytics</a>
+            {% if user.role == 'Admin' %}
+            <a href="/manage_users" class="nav-item"><span class="icon"></span> Manage Users</a>
+            {% endif %}
+            <a href="/profile_settings" class="nav-item"><span class="icon"></span> Profile Settings</a>
+        </div>
+        
+        <div class="content">
+            <div class="page-title">System Analytics & Logs</div>
+
+            <div id="geo-banner" class="geo-banner">
+                <span id="geo-banner-text">📍 This page can use your current location as the route origin. Click "Share location" to enable.</span>
+                <span>
+                    <button id="geo-share-btn" type="button" onclick="requestUserLocation()">Share location</button>
+                    <button id="geo-clear-btn" type="button" class="secondary" onclick="clearUserLocation()" style="display:none;">Use Marilao HQ</button>
+                </span>
+            </div>
+
+            <div class="section-title">Algorithm Comparison: A* vs ABSRA</div>
+            <div class="table-container" style="max-height:420px;">
+                <div id="stats-empty" style="text-align:center; padding: 50px 20px; background:#fff; display: block;">
+                    <div style="display:flex; flex-direction:column; align-items:center; opacity:0.9;">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px;">
+                            <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
+                            <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" stroke="#d90429"></path>
+                        </svg>
+                        <span style="color: #222; font-size: 1.15rem; font-weight: 700; margin-bottom: 4px;">No Data Available</span>
+                        <span style="color: #777; font-size: 0.9rem;">Data will be shown once it's available.</span>
+                    </div>
+                </div>
+                <table id="stats-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th rowspan="2" style="width:36px; vertical-align:bottom;">#</th>
+                            <th rowspan="2" style="vertical-align:bottom;">Task ID</th>
+                            <th rowspan="2" style="vertical-align:bottom;">Route (From → To)</th>
+                            <th colspan="3" style="text-align:center; background:#f5f5f5; border-bottom:1px solid #bbb;">A* (Baseline)</th>
+                            <th colspan="3" style="text-align:center; background:#e8f4f8; border-bottom:1px solid #bbb;">ABSRA (Optimized)</th>
+                            <th colspan="2" style="text-align:center; background:#eafaf1; border-bottom:1px solid #bbb;">Improvement</th>
+                        </tr>
+                        <tr>
+                            <th style="background:#f5f5f5;">Nodes</th>
+                            <th style="background:#f5f5f5;">Time</th>
+                            <th style="background:#f5f5f5;">ETA</th>
+                            <th style="background:#e8f4f8; color:#004085;">Nodes</th>
+                            <th style="background:#e8f4f8; color:#004085;">Time</th>
+                            <th style="background:#e8f4f8; color:#004085;">ETA</th>
+                            <th style="background:#eafaf1; color:#155724;">Nodes ↓</th>
+                            <th style="background:#eafaf1; color:#155724;">Time ↓</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stats-body"></tbody>
+                    <tfoot id="stats-footer" style="background:#f9f9f9; font-weight:700; border-top:2px solid #333;"></tfoot>
+                </table>
+            </div>
+
+            <div class="section-title">Routing & Detour Logs</div>
+            <div class="table-container">
+                <div id="log-empty" style="text-align:center; padding: 50px 20px; background:#fff; display: block;">
+                    <div style="display:flex; flex-direction:column; align-items:center; opacity:0.9;">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px;">
+                            <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
+                            <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" stroke="#d90429"></path>
+                        </svg>
+                        <span style="color: #222; font-size: 1.15rem; font-weight: 700; margin-bottom: 4px;">No Data Available</span>
+                        <span style="color: #777; font-size: 0.9rem;">Data will be shown once it's available.</span>
+                    </div>
+                </div>
+                <table id="log-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">Log ID</th>
+                            <th>Task ID</th>
+                            <th>Time Triggered</th>
+                            <th>From &rarr; To</th>
+                            <th>New Distance</th>
+                            <th>Reason / Constraint</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log_table_body"></tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // ─── Browser Geolocation ────────────────────────────────────────────
+        // Stores the viewer's lat/lon and sends it to /analytics_data so the
+        // FROM column reflects where the user actually is (or "OUTSIDE Bulacan").
+        let userLocation = null;
+
+        function setBanner(text, kind) {
+            const banner = document.getElementById('geo-banner');
+            const txt    = document.getElementById('geo-banner-text');
+            banner.classList.remove('success', 'warn');
+            if (kind) banner.classList.add(kind);
+            txt.innerHTML = text;
+        }
+
+        function requestUserLocation() {
+            if (!navigator.geolocation) {
+                setBanner('⚠️ Your browser does not support geolocation. The FROM column will use Marilao HQ.', 'warn');
+                return;
+            }
+            setBanner('⏳ Requesting your location… please allow the browser prompt.', null);
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    userLocation = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+                    setBanner(
+                        `📍 Using your location (<strong>${userLocation.lat.toFixed(5)}, ${userLocation.lon.toFixed(5)}</strong>) as the route origin. The FROM column will show your nearest Bulacan node, or "OUTSIDE Bulacan" if you're not in the province.`,
+                        'success'
+                    );
+                    document.getElementById('geo-share-btn').textContent = 'Refresh location';
+                    document.getElementById('geo-clear-btn').style.display = 'inline-block';
+                    loadStats(); // refresh immediately with the new origin
+                },
+                (err) => {
+                    let msg = '⚠️ Location access denied or unavailable. The FROM column will use Marilao HQ.';
+                    if (err && err.code === 1) msg = '⚠️ You denied location access. The FROM column will use Marilao HQ. <a href="#" onclick="requestUserLocation(); return false;">Try again</a>';
+                    else if (err && err.code === 3) msg = '⚠️ Location request timed out. <a href="#" onclick="requestUserLocation(); return false;">Try again</a>';
+                    setBanner(msg, 'warn');
+                },
+                { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+            );
+        }
+
+        function clearUserLocation() {
+            userLocation = null;
+            setBanner('📍 Using Marilao HQ as the route origin. <a href="#" onclick="requestUserLocation(); return false;">Share my location instead</a>', null);
+            document.getElementById('geo-share-btn').textContent = 'Share location';
+            document.getElementById('geo-clear-btn').style.display = 'none';
+            loadStats();
+        }
+
+        // --- 1. Fetch Active Reports ---
+        function loadActiveReports() {
+            fetch('/api/all_monitor_reports')
+            .then(res => {
+                if (!res.ok) throw new Error("HTTP error");
+                return res.json();
+            })
+            .then(data => {
+                const emptyUI = document.getElementById('active-reports-empty');
+                const tableUI = document.getElementById('active-reports-table');
+                const tbody = document.getElementById('active-reports-body');
+                tbody.innerHTML = '';
+                
+                if(!data || data.length === 0) {
+                    emptyUI.style.display = 'block';
+                    tableUI.style.display = 'none';
+                    return;
+                }
+                
+                emptyUI.style.display = 'none';
+                tableUI.style.display = 'table';
+                
+                data.forEach(r => {
+                    let tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><strong>${r.task_id}</strong></td>
+                        <td>${r.location}</td>
+                        <td><span style="background:#eef; padding:2px 8px; border-radius:10px; font-weight:bold;">${r.status}</span></td>
+                        <td>${r.disaster_type}</td>
+                        <td>${r.severity}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            })
+            .catch(err => {
+                console.error("Error loading active reports:", err);
+                document.getElementById('active-reports-empty').style.display = 'block';
+                document.getElementById('active-reports-table').style.display = 'none';
+            });
+        }
+
+        // --- 2. Fetch Algorithm Performance Data (A* vs ABSRA side-by-side) ---
+        function loadStats() {
+            let url = '/analytics_data';
+            if (userLocation) {
+                url += `?user_lat=${userLocation.lat}&user_lon=${userLocation.lon}`;
+            }
+            fetch(url)
+                .then(res => { if (!res.ok) throw new Error("HTTP error"); return res.json(); })
+                .then(data => {
+                    const statsEmpty  = document.getElementById('stats-empty');
+                    const statsTable  = document.getElementById('stats-table');
+                    const statsBody   = document.getElementById('stats-body');
+                    const statsFooter = document.getElementById('stats-footer');
+
+                    statsBody.innerHTML   = '';
+                    statsFooter.innerHTML = '';
+
+                    if (!data || data.length === 0) {
+                        statsEmpty.style.display = 'block';
+                        statsTable.style.display = 'none';
+                        return;
+                    }
+
+                    statsEmpty.style.display = 'none';
+                    statsTable.style.display = 'table';
+
+                    let totalNodeRed = 0, totalTimeImp = 0;
+                    let nodeMetricCount = 0, timeMetricCount = 0;
+
+                    data.forEach(row => {
+                        const nodeRed = parseFloat(row.node_reduction);
+                        const timeImp = parseFloat(row.time_improvement);
+                        if (Number.isFinite(nodeRed)) {
+                            totalNodeRed += nodeRed;
+                            nodeMetricCount += 1;
+                        }
+                        if (Number.isFinite(timeImp)) {
+                            totalTimeImp += timeImp;
+                            timeMetricCount += 1;
+                        }
+
+                        const redColor = Number.isFinite(nodeRed)
+                            ? (nodeRed > 0 ? '#155724' : (nodeRed < 0 ? '#b00020' : '#555'))
+                            : '#b00020';
+                        const timeColor = Number.isFinite(timeImp)
+                            ? (timeImp > 0 ? '#155724' : (timeImp < 0 ? '#b00020' : '#555'))
+                            : '#b00020';
+                        const absraOk = row.absra_status !== 'Failed';
+                        const absraNodes = absraOk
+                            ? `<span class="node-count" style="background:#cce5ff;color:#004085;">${row.absra_nodes}</span>`
+                            : `<span style="color:#b00020; font-weight:700;">Failed</span>`;
+                        const absraTime = absraOk
+                            ? row.absra_time
+                            : `<span style="color:#b00020; font-weight:700;">Failed</span>`;
+
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${row.num}</td>
+                            <td><strong>${row.task_id}</strong></td>
+                            <td>${row.from} &rarr; ${row.to}</td>
+                            <td style="background:#f5f5f5;"><span class="node-count">${row.a_nodes}</span></td>
+                            <td style="background:#f5f5f5;" class="tech-font">${row.a_time}</td>
+                            <td style="background:#f5f5f5;">${row.a_eta}</td>
+                            <td style="background:#e8f4f8;">${absraNodes}</td>
+                            <td style="background:#e8f4f8; color:#004085;" class="tech-font">${absraTime}</td>
+                            <td style="background:#e8f4f8;">${row.absra_eta}</td>
+                            <td style="background:#eafaf1; font-weight:700; color:${redColor};">${row.node_reduction}</td>
+                            <td style="background:#eafaf1; font-weight:700; color:${timeColor};">${row.time_improvement}</td>
+                        `;
+                        statsBody.appendChild(tr);
+                    });
+
+                    // Summary footer row
+                    const avgNodeRed = nodeMetricCount ? `${(totalNodeRed / nodeMetricCount).toFixed(1)}%` : 'N/A';
+                    const avgTimeImp = timeMetricCount ? `${(totalTimeImp / timeMetricCount).toFixed(1)}%` : 'N/A';
+                    const avgNodeColor = avgNodeRed !== 'N/A' && parseFloat(avgNodeRed) < 0 ? '#b00020' : '#155724';
+                    const avgTimeColor = avgTimeImp !== 'N/A' && parseFloat(avgTimeImp) < 0 ? '#b00020' : '#155724';
+                    statsFooter.innerHTML = `
+                        <tr>
+                            <td colspan="3" style="text-align:right; padding-right:12px;">Average across ${data.length} task(s):</td>
+                            <td colspan="3" style="background:#f5f5f5;"></td>
+                            <td colspan="3" style="background:#e8f4f8;"></td>
+                            <td style="background:#eafaf1; color:${avgNodeColor};">${avgNodeRed}</td>
+                            <td style="background:#eafaf1; color:${avgTimeColor};">${avgTimeImp}</td>
+                        </tr>
+                    `;
+                })
+                .catch(err => {
+                    console.error("Error loading stats:", err);
+                    document.getElementById('stats-empty').style.display = 'block';
+                    document.getElementById('stats-table').style.display = 'none';
+                });
+        }
+
+        // --- 3. Fetch System Routing Logs ---
+        function loadLogs() {
+            fetch('/api/routing_logs')
+            .then(res => {
+                if (!res.ok) throw new Error("HTTP error");
+                return res.json();
+            })
+            .then(data => {
+                const emptyUI = document.getElementById('log-empty');
+                const tableUI = document.getElementById('log-table');
+                const tbody = document.getElementById('log_table_body');
+                tbody.innerHTML = '';
+                
+                if(!data || data.length === 0) {
+                    emptyUI.style.display = 'block';
+                    tableUI.style.display = 'none';
+                    return;
+                }
+
+                emptyUI.style.display = 'none';
+                tableUI.style.display = 'table';
+
+                data.forEach((log) => {
+                    let statusClass = log.status.toLowerCase().includes('success') ? 'status-success' : 'status-error';
+                    let tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${log.id}</td>
+                        <td><strong>${log.task_id}</strong></td>
+                        <td class="tech-font">${log.timestamp}</td>
+                        <td>${log.origin} &rarr; ${log.destination}</td>
+                        <td>${log.new_distance}</td>
+                        <td>${log.reason}</td>
+                        <td class="${statusClass}">${log.status}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            })
+            .catch(err => {
+                console.error("Error loading logs:", err);
+                document.getElementById('log-empty').style.display = 'block';
+                document.getElementById('log-table').style.display = 'none';
+            });
+        }
+
+        // Initialize and set refresh intervals
+        loadActiveReports();
+        loadStats();
+        loadLogs();
+
+        // Prompt the viewer for their location right away so the FROM column
+        // reflects where they actually are. If they deny, we silently fall back.
+        requestUserLocation();
+        
+        setInterval(loadActiveReports, 5000); 
+        setInterval(loadStats, 3000); 
+        setInterval(loadLogs, 5000);  
+    </script>
+</body>
+</html>

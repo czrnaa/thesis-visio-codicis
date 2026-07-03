@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Teams & Resources</title>
+    <style>
+        :root {
+            --primary-red: #d90429;
+            --sidebar-bg: #e0e0e0;
+            --header-gray: #ccc;
+            --border-color: #333;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-color: #f4f4f4;
+        }
+
+        .top-bar {
+            background-color: var(--primary-red);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+            box-sizing: border-box;
+        }
+
+        .top-bar h2 {
+            margin: 0;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+        }
+
+        .user-circle {
+            width: 32px;
+            height: 32px;
+            background: #ddd;
+            border-radius: 50%;
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 60px);
+        }
+
+        .sidebar {
+            width: 260px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+            padding-top: 10px;
+        }
+
+        .nav-item {
+            padding: 15px 25px;
+            color: #333;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: 0.2s;
+            border-left: 5px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: #d0d0d0;
+        }
+
+        .nav-item.active {
+            background: #ccc;
+            border-left-color: #333;
+            font-weight: 700;
+        }
+
+        .icon {
+            width: 20px;
+            text-align: center;
+        }
+
+        .content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        /* TABLE STYLE */
+        .table-container {
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            background: white;
+            margin-bottom: 25px;
+        }
+
+        .table-header {
+            background-color: var(--header-gray);
+            border-bottom: 2px solid var(--border-color);
+            padding-right: 15px;
+        }
+
+        .table-scroll {
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            table-layout: fixed;
+        }
+
+        th,
+        td {
+            padding: 12px 15px;
+            text-align: left;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        td {
+            border-bottom: 1px solid #ccc;
+        }
+
+        th:last-child,
+        td:last-child {
+            border-right: none;
+        }
+
+        .col-tid {
+            width: 15%;
+        }
+
+        .col-ldr {
+            width: 20%;
+        }
+
+        .col-loc {
+            width: 25%;
+        }
+
+        .col-tsk {
+            width: 15%;
+        }
+
+        .col-av {
+            width: 15%;
+        }
+
+        .col-dt {
+            width: 10%;
+        }
+
+        .col-act {
+            width: 10%;
+            text-align: center;
+        }
+
+        .status-available {
+            color: green;
+            font-weight: bold;
+        }
+
+        .status-busy {
+            color: orange;
+            font-weight: bold;
+        }
+
+        .btn-assign {
+            background-color: #d94343;
+            color: white;
+            border: 1px solid #333;
+            padding: 5px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+
+        .btn-assign:hover {
+            background-color: #b00220;
+        }
+
+        /* ASSIGN FORM */
+        select {
+            padding: 8px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #e0e0e0;
+            min-width: 200px;
+        }
+
+        .assign-section {
+            margin-top: 5px;
+        }
+
+        .assign-section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #222;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #d90429;
+        }
+
+        .assign-bar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            background: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 14px 18px;
+        }
+
+        .assign-bar label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #444;
+            margin-right: 2px;
+            white-space: nowrap;
+        }
+
+        .assign-bar select {
+            padding: 8px 12px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #e0e0e0;
+            font-size: 0.88rem;
+            min-width: 190px;
+        }
+
+        .truck-qty-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .qty-btn {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #e0e0e0;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s, transform 0.1s;
+            user-select: none;
+            color: #333;
+        }
+
+        .qty-btn:hover {
+            background: #ccc;
+        }
+
+        .qty-btn:active {
+            transform: scale(0.92);
+        }
+
+        .qty-display {
+            width: 36px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #222;
+        }
+
+        .qty-avail {
+            font-size: 0.75rem;
+            color: #888;
+            white-space: nowrap;
+        }
+
+        .assigned-trucks {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            min-height: 30px;
+        }
+
+        .truck-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #d90429;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 14px;
+        }
+
+        .truck-tag .remove-tag {
+            cursor: pointer;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-left: 2px;
+        }
+
+        .truck-tag .remove-tag:hover {
+            opacity: 1;
+        }
+
+        .btn-add-truck {
+            background: #28a745;
+            color: white;
+            border: 1px solid #1e7e34;
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.82rem;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.15s;
+        }
+
+        .btn-add-truck:hover {
+            background: #218838;
+        }
+
+        .assign-divider {
+            width: 1px;
+            height: 32px;
+            background: #ccc;
+        }
+
+        .btn-confirm {
+            background-color: #ccc;
+            color: white;
+            border: none;
+            padding: 8px 22px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: not-allowed;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        .btn-confirm.active {
+            background-color: #d94343;
+            cursor: pointer;
+        }
+
+        .btn-confirm.active:hover {
+            background-color: #b00220;
+        }
+
+        .selected-task-label {
+            font-size: 0.85rem;
+            color: #333;
+            font-weight: 600;
+            background: #eaf4fb;
+            padding: 5px 12px;
+            border-radius: 4px;
+            border: 1px solid #b8daff;
+            white-space: nowrap;
+        }
+
+        .no-task-label {
+            font-size: 0.85rem;
+            color: #999;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="top-bar">
+        <h2>Disaster Response Logistics Platform</h2>
+        <div class="user-profile">
+            <span style="font-weight: 600;">{{ user.account_id }}</span>
+            <img src="{{ url_for('static', filename='assets/person_profile.svg') }}" alt="Profile" class="user-circle"
+                style="object-fit: cover; background: white;">
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <a href="/dashboard" class="nav-item"><span class="icon"></span> Dashboard</a>
+            <a href="/reports" class="nav-item"><span class="icon"></span> Reports</a>
+
+            {% if user.role != 'Responder' %}
+            <a href="/teams" class="nav-item active"><span class="icon"></span> Teams & Resources</a>
+            {% endif %}
+
+            <a href="/monitor" class="nav-item"><span class="icon"></span> Monitor Routing</a>
+            {% if user.role == 'Programmer' %}
+            <a href="/analytics" class="nav-item"><span class="icon"></span> System Analytics</a>
+            {% endif %}
+            {% if user.role == 'Admin' %}
+            <a href="/manage_users" class="nav-item"><span class="icon"></span> Manage Users</a>
+            {% endif %}
+            <a href="/profile_settings" class="nav-item"><span class="icon"></span> Profile Settings</a>
+        </div>
+
+        <div class="content">
+
+            <div
+                style="font-size:1rem;font-weight:700;color:#222;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #d90429;">
+                Teams</div>
+            <div class="table-container">
+                <div class="table-header">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="col-tid">Team ID</th>
+                                <th class="col-ldr">Squad Leader</th>
+                                <th class="col-loc">Location</th>
+                                <th class="col-tsk">Assigned Task</th>
+                                <th class="col-av">Availability</th>
+                                <th class="col-dt">Date</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+                <div class="table-scroll">
+                    <table>
+                        <tbody>
+                            {% for team in teams %}
+                            <tr>
+                                <td class="col-tid"><strong>{{ team.id }}</strong></td>
+                                <td class="col-ldr">{{ team.leader }}</td>
+                                <td class="col-loc">{{ team.location }}</td>
+                                <td class="col-tsk">{{ team.task }}</td>
+                                <td class="col-av">
+                                    <span
+                                        class="{% if team.status == 'Available' %}status-available{% else %}status-busy{% endif %}">
+                                        {{ team.status }}
+                                    </span>
+                                </td>
+                                <td class="col-dt">{{ team.last_updated }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div
+                style="font-size:1rem;font-weight:700;color:#222;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #d90429;">
+                Resources Available</div>
+            <div class="table-container">
+                <div class="table-header">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:35%;">Vehicle Type</th>
+                                <th style="width:20%;">Total</th>
+                                <th style="width:20%;">Assigned</th>
+                                <th style="width:25%;">Available</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+                <div class="table-scroll">
+                    <table>
+                        <tbody>
+                            {% for v in vehicles %}
+                            <tr>
+                                <td style="width:35%;"><strong>{{ v.vehicle_type }}</strong></td>
+                                <td style="width:20%;">{{ v.total }}</td>
+                                <td style="width:20%;">{{ v.currently_assigned }}</td>
+                                <td style="width:25%;">
+                                    {% if v.available == 0 %}
+                                    <span style="color:#dc3545; font-weight:bold;">0</span>
+                                    {% elif v.available == v.total %}
+                                    <span style="color:#28a745; font-weight:bold;">{{ v.available }}</span>
+                                    {% else %}
+                                    <span style="color:#856404; font-weight:bold;">{{ v.available }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" style="text-align:center; padding: 20px;">No vehicle resources
+                                    configured.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div
+                style="font-size:1rem;font-weight:700;color:#222;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #d90429;">
+                All Master Tasks</div>
+            <div class="table-container">
+                <div class="table-header">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="col-tid">Task ID</th>
+                                <th class="col-ldr">Assigned Team</th>
+                                <th class="col-loc">Location</th>
+                                <th class="col-tsk">Incident Type</th>
+                                <th class="col-av">Status</th>
+                                <th class="col-act">Actions</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+                <div class="table-scroll">
+                    <table>
+                        <tbody id="task-table-body">
+                            {% for r in reports %}
+                            <tr>
+                                <td class="col-tid"><strong>{{ r.task_id }}</strong></td>
+                                <td class="col-ldr">{{ r.assigned_team if r.assigned_team else '<span
+                                        style="color:#bbb;font-style:italic;">— Unassigned</span>'|safe }}</td>
+                                <td class="col-loc">{{ r.location }}</td>
+                                <td class="col-tsk">{{ r.disaster_type }}</td>
+                                <td class="col-av">
+                                    {% if r.status == 'Resolved' %}
+                                    <span
+                                        style="color:#383d41; background:#e2e3e5; padding:2px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold;">Resolved</span>
+                                    {% elif r.status == 'Pending' or not r.assigned_team %}
+                                    <span
+                                        style="color:#856404; background:#fff3cd; padding:2px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold;">Pending</span>
+                                    {% else %}
+                                    <span
+                                        style="color:#155724; background:#d4edda; padding:2px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold;">{{
+                                        r.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="col-act">
+                                    {% if r.status == 'Resolved' %}
+                                    <span style="color:#28a745; font-size:0.85rem; font-weight:bold;">Done</span>
+                                    {% elif not r.assigned_team or r.status == 'Pending' %}
+                                    {% if user.role != 'Admin' %}
+                                    <button class="btn-assign" data-resources="{{ r.resources or '' }}"
+                                        onclick="selectTask('{{ r.task_id }}', this)">Assign</button>
+                                    {% else %}
+                                    <span style="color:#999; font-size:0.85rem;">Pending</span>
+                                    {% endif %}
+                                    {% else %}
+                                    <span style="color:#999; font-size:0.85rem;">Assigned</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" style="text-align:center; padding: 20px;">No tasks found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {% if user.role != 'Admin' %}
+            <div class="assign-section">
+                <div class="assign-section-title">Assign Resources</div>
+                <form action="/assign_team" method="POST" id="assignForm" class="assign-bar">
+                    <input type="hidden" name="task_id" id="selected_task_id">
+                    <input type="hidden" name="resources" id="resources_hidden">
+
+                    <div>
+                        <label>Task:</label>
+                        <span id="task-label" class="no-task-label">Click "Assign" on a task above</span>
+                    </div>
+
+                    <div class="assign-divider"></div>
+
+                    <div>
+                        <label for="team_select">Team:</label>
+                        <select name="team_id" id="team_select" onchange="checkSelection()">
+                            <option value="">-- Select Team --</option>
+                            {% for team in teams %}
+                            {% if team.status == 'Available' %}
+                            <option value="{{ team.id }}">{{ team.id }} &#8212; {{ team.leader }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="assign-divider"></div>
+
+                    <div>
+                        <label for="truck_select">Truck:</label>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <select id="truck_select">
+                                <option value="">-- Select Truck --</option>
+                                {% for v in vehicles %}
+                                {% if v.available > 0 %}
+                                <option value="{{ v.vehicle_type }}" data-available="{{ v.available }}">{{
+                                    v.vehicle_type }}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                            <div class="truck-qty-group">
+                                <button type="button" class="qty-btn" onclick="adjustQty(-1)">&#8722;</button>
+                                <span class="qty-display" id="qty-display">1</span>
+                                <button type="button" class="qty-btn" onclick="adjustQty(1)">+</button>
+                            </div>
+                            <span class="qty-avail" id="qty-avail-label"></span>
+                            <button type="button" class="btn-add-truck" onclick="addTruck()">+ Add</button>
+                        </div>
+                    </div>
+
+                    <div class="assign-divider"></div>
+
+                    <div>
+                        <label>Resources:</label>
+                        <div class="assigned-trucks" id="assigned-trucks">
+                            <span class="no-task-label" id="no-trucks-label">None selected</span>
+                        </div>
+                    </div>
+
+                    <div class="assign-divider"></div>
+
+                    <button type="submit" id="btn-confirm" class="btn-confirm" disabled>Assign</button>
+                </form>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <script>
+        let currentQty = 1;
+        let assignedTrucks = [];
+        let localAvail = {};
+        // Keep a copy of the original availability so we can reset when switching tasks
+        let origAvail = {};
+        {% for v in vehicles %}
+        localAvail["{{ v.vehicle_type }}"] = {{ v.available }};
+        origAvail["{{ v.vehicle_type }}"] = {{ v.available }};
+        {% endfor %}
+
+        function selectTask(taskId, btnEl) {
+            document.getElementById('selected_task_id').value = taskId;
+            const lbl = document.getElementById('task-label');
+            lbl.textContent = taskId;
+            lbl.className = 'selected-task-label';
+            document.querySelectorAll('#task-table-body tr').forEach(r => r.style.background = '');
+            if (btnEl) btnEl.closest('tr').style.background = '#eaf4fb';
+
+            // --- Auto-populate resources from the report ---
+            // Reset availability & clear old selections
+            Object.keys(origAvail).forEach(k => { localAvail[k] = origAvail[k]; });
+            assignedTrucks = [];
+            const sel = document.getElementById('truck_select');
+            if (sel) {
+                for (let i = 0; i < sel.options.length; i++) sel.options[i].disabled = false;
+                sel.value = '';
+            }
+
+            // Parse resources string from the report (e.g. "Ambulances x5, Food Trucks x2")
+            const resStr = btnEl ? (btnEl.getAttribute('data-resources') || '') : '';
+            if (resStr.trim()) {
+                const parts = resStr.split(',');
+                parts.forEach(part => {
+                    part = part.trim();
+                    if (!part) return;
+                    // Match patterns like "Ambulances x5" or "Food Trucks x 2"
+                    const match = part.match(/^(.+?)\s*x\s*(\d+)$/i);
+                    if (match) {
+                        const vtype = match[1].trim();
+                        const qty = parseInt(match[2]);
+                        if (qty > 0 && localAvail.hasOwnProperty(vtype)) {
+                            assignedTrucks.push({ type: vtype, qty: qty });
+                            localAvail[vtype] = Math.max(0, localAvail[vtype] - qty);
+                            // Disable in dropdown if depleted
+                            if (sel && localAvail[vtype] <= 0) {
+                                for (let i = 0; i < sel.options.length; i++) {
+                                    if (sel.options[i].value === vtype) { sel.options[i].disabled = true; break; }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            renderTruckTags();
+            updateResourcesHidden();
+            currentQty = 1;
+            if (document.getElementById('qty-display')) document.getElementById('qty-display').textContent = 1;
+            if (document.getElementById('qty-avail-label')) document.getElementById('qty-avail-label').textContent = '';
+            checkSelection();
+        }
+
+        function getMaxAvail() {
+            const sel = document.getElementById('truck_select');
+            const opt = sel.options[sel.selectedIndex];
+            if (!opt || !opt.value) return 0;
+            return localAvail[opt.value] || 0;
+        }
+
+        function adjustQty(delta) {
+            const maxA = getMaxAvail();
+            if (maxA <= 0) return;
+            currentQty = Math.max(1, Math.min(currentQty + delta, maxA));
+            document.getElementById('qty-display').textContent = currentQty;
+        }
+
+        document.getElementById('truck_select').addEventListener('change', function () {
+            currentQty = 1;
+            document.getElementById('qty-display').textContent = 1;
+            const maxA = getMaxAvail();
+            const lbl = document.getElementById('qty-avail-label');
+            lbl.textContent = this.value ? '(' + maxA + ' available)' : '';
+        });
+
+        function addTruck() {
+            const sel = document.getElementById('truck_select');
+            const vtype = sel.value;
+            if (!vtype) return;
+            const maxA = localAvail[vtype] || 0;
+            if (maxA <= 0) return;
+            const qty = Math.min(currentQty, maxA);
+
+            const existing = assignedTrucks.find(t => t.type === vtype);
+            if (existing) {
+                existing.qty += qty;
+            } else {
+                assignedTrucks.push({ type: vtype, qty: qty });
+            }
+            localAvail[vtype] = Math.max(0, (localAvail[vtype] || 0) - qty);
+
+            renderTruckTags();
+            updateResourcesHidden();
+            checkSelection();
+
+            currentQty = 1;
+            document.getElementById('qty-display').textContent = 1;
+            const newMax = localAvail[vtype] || 0;
+            document.getElementById('qty-avail-label').textContent = newMax > 0 ? '(' + newMax + ' available)' : '(0 available)';
+            if (newMax <= 0) {
+                for (let i = 0; i < sel.options.length; i++) {
+                    if (sel.options[i].value === vtype) { sel.options[i].disabled = true; break; }
+                }
+                sel.value = '';
+                document.getElementById('qty-avail-label').textContent = '';
+            }
+        }
+
+        function removeTruck(idx) {
+            const item = assignedTrucks[idx];
+            localAvail[item.type] = (localAvail[item.type] || 0) + item.qty;
+            assignedTrucks.splice(idx, 1);
+            const sel = document.getElementById('truck_select');
+            for (let i = 0; i < sel.options.length; i++) {
+                if (sel.options[i].value === item.type) { sel.options[i].disabled = false; break; }
+            }
+            renderTruckTags();
+            updateResourcesHidden();
+            checkSelection();
+        }
+
+        function renderTruckTags() {
+            const container = document.getElementById('assigned-trucks');
+            container.innerHTML = '';
+            if (assignedTrucks.length === 0) {
+                container.innerHTML = '<span class="no-task-label">None selected</span>';
+                return;
+            }
+            assignedTrucks.forEach((t, i) => {
+                const tag = document.createElement('span');
+                tag.className = 'truck-tag';
+                tag.innerHTML = t.type + ' \u00d7' + t.qty +
+                    ' <span class="remove-tag" onclick="removeTruck(' + i + ')">&times;</span>';
+                container.appendChild(tag);
+            });
+        }
+
+        function updateResourcesHidden() {
+            const str = assignedTrucks.map(t => t.type + ' x' + t.qty).join(', ');
+            document.getElementById('resources_hidden').value = str;
+        }
+
+        function checkSelection() {
+            const task = document.getElementById('selected_task_id').value;
+            const team = document.getElementById('team_select').value;
+            const btn = document.getElementById('btn-confirm');
+            if (task && team) {
+                btn.disabled = false;
+                btn.classList.add('active');
+            } else {
+                btn.disabled = true;
+                btn.classList.remove('active');
+            }
+        }
+    </script>
+</body>
+
+</html>

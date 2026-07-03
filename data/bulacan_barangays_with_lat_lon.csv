@@ -1,0 +1,556 @@
+barangay_id,psgc_barangay_code,municipality_code,psgc_municipality_code,municipality,barangay,lat,lon,region,flood_risk,traffic_risk,vuln_risk,source_url
+BRGY-001,31401001,M-001,31401000,Angat,Banaban,14.9404009,121.0459649,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-002,31401002,M-001,31401000,Angat,Baybay,14.94237,121.0380329,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-003,31401003,M-001,31401000,Angat,Binagbag,14.9519839,121.0230598,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-004,31401005,M-001,31401000,Angat,Donacion,14.9425977,120.9824511,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-005,31401006,M-001,31401000,Angat,Encanto,14.9201591,121.0064673,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-006,31401007,M-001,31401000,Angat,Laog,14.9191588,121.0386729,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-007,31401008,M-001,31401000,Angat,Marungko,14.952383,121.0130551,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-008,31401009,M-001,31401000,Angat,Niugan,14.9455123,120.9707236,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-009,31401010,M-001,31401000,Angat,Paltok,14.9203043,120.9637549,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-010,31401013,M-001,31401000,Angat,Pulong Yantok,14.893327,121.0167937,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-011,31401016,M-001,31401000,Angat,Santa Lucia,14.9429359,121.0265593,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-012,31401018,M-001,31401000,Angat,Sulucan,14.9418798,121.0019369,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-013,31401019,M-001,31401000,Angat,Taboc,14.9363002,120.9870297,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-014,31402002,M-002,31402000,Balagtas,Borol 2nd,14.8348626,120.904888,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-015,31402003,M-002,31402000,Balagtas,Borol 1st,14.8309102,120.9086557,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-016,31402004,M-002,31402000,Balagtas,Dalig,14.8408545,120.9213886,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-017,31402005,M-002,31402000,Balagtas,Longos,14.827737,120.9148473,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-018,31402007,M-002,31402000,Balagtas,Panginay,14.8185206,120.8959036,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-019,31402008,M-002,31402000,Balagtas,Pulong Gubat,14.8608573,120.9052043,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-020,31402009,M-002,31402000,Balagtas,San Juan,14.8163326,120.9138666,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-021,31402010,M-002,31402000,Balagtas,Santol,14.8516966,120.9145622,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-022,31403001,M-003,31403000,Baliuag,Bagong Nayon,14.9613406,120.8978652,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-023,31403002,M-003,31403000,Baliuag,Barangca,14.9876913,120.8965439,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-024,31403003,M-003,31403000,Baliuag,Calantipay,14.9708404,120.8581041,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-025,31403004,M-003,31403000,Baliuag,Catulinan,14.9641065,120.8766021,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-026,31403005,M-003,31403000,Baliuag,Concepcion,14.9533613,120.8892595,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-027,31403006,M-003,31403000,Baliuag,Hinukay,15.0092993,120.8833551,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-028,31403007,M-003,31403000,Baliuag,Makinabang,14.9197959,120.8862589,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-029,31403008,M-003,31403000,Baliuag,Matangtubig,14.9553984,120.8620799,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-030,31403010,M-003,31403000,Baliuag,Pagala,14.968099,120.8920738,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-031,31403011,M-003,31403000,Baliuag,Paitan,15.0089288,120.9002645,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-032,31403012,M-003,31403000,Baliuag,Piel,14.9860992,120.885846,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-033,31403013,M-003,31403000,Baliuag,Pinagbarilan,14.9574874,120.8769767,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-034,31403014,M-003,31403000,Baliuag,Poblacion,14.9526703,120.9006359,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-035,31403016,M-003,31403000,Baliuag,Sabang,14.9650422,120.9095522,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-036,31403017,M-003,31403000,Baliuag,San Jose,14.9486191,120.8941185,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-037,31403018,M-003,31403000,Baliuag,San Roque,14.9962324,120.8917997,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-038,31403019,M-003,31403000,Baliuag,Santa Barbara,14.9395672,120.8901846,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-039,31403020,M-003,31403000,Baliuag,Santo Cristo,14.9551829,120.8943902,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-040,31403021,M-003,31403000,Baliuag,Santo Niño,14.9845328,120.8930793,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-041,31403022,M-003,31403000,Baliuag,Subic,14.9611241,120.904523,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-042,31403023,M-003,31403000,Baliuag,Sulivan,14.9801993,120.8843035,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-043,31403024,M-003,31403000,Baliuag,Tangos,14.9681746,120.8961868,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-044,31403025,M-003,31403000,Baliuag,Tarcan,14.9298735,120.8870948,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-045,31403026,M-003,31403000,Baliuag,Tiaong,14.9440834,120.8959767,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-046,31403027,M-003,31403000,Baliuag,Tibag,14.9564701,120.9030201,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-047,31403028,M-003,31403000,Baliuag,Tilapayong,14.9791471,120.8778659,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-048,31403030,M-003,31403000,Baliuag,Virgen delas Flores,14.9448216,120.885725,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-049,31404001,M-004,31404000,Bocaue,Antipona,14.7968602,120.925475,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-050,31404002,M-004,31404000,Bocaue,Bagumbayan,14.8038937,120.9164332,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-051,31404003,M-004,31404000,Bocaue,Bambang,14.7882627,120.9281679,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-052,31404004,M-004,31404000,Bocaue,Batia,14.830117,120.9442824,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-053,31404005,M-004,31404000,Bocaue,Biñang 1st,14.8021125,120.9328784,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-054,31404006,M-004,31404000,Bocaue,Biñang 2nd,14.7947352,120.9345743,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-055,31404007,M-004,31404000,Bocaue,Bolacan,14.8007325,120.9457498,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-056,31404008,M-004,31404000,Bocaue,Bundukan,14.7883152,120.9423079,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-057,31404009,M-004,31404000,Bocaue,Bunlo,14.7870024,120.9381314,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-058,31404010,M-004,31404000,Bocaue,Caingin,14.8078367,120.9265742,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-059,31404011,M-004,31404000,Bocaue,Duhat,14.7903132,120.9536304,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-060,31404012,M-004,31404000,Bocaue,Igulot,14.7968478,120.9411046,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-061,31404013,M-004,31404000,Bocaue,Lolomboy,14.7811638,120.9353354,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-062,31404014,M-004,31404000,Bocaue,Poblacion,14.7949017,120.9254911,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-063,31404015,M-004,31404000,Bocaue,Sulucan,14.7930851,120.9251981,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-064,31404016,M-004,31404000,Bocaue,Taal,14.8129527,120.9330809,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-065,31404017,M-004,31404000,Bocaue,Tambobong,14.8148552,120.9393774,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-066,31404018,M-004,31404000,Bocaue,Turo,14.8081205,120.9424684,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-067,31404019,M-004,31404000,Bocaue,Wakas,14.805878,120.9190062,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-068,31405001,M-005,31405000,Bulacan,Bagumbayan,14.7904982,120.8786108,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-069,31405002,M-005,31405000,Bulacan,Balubad,14.8010924,120.8742287,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-070,31405003,M-005,31405000,Bulacan,Bambang,14.7763652,120.8821838,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-071,31405004,M-005,31405000,Bulacan,Matungao,14.8030969,120.8804129,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-072,31405005,M-005,31405000,Bulacan,Maysantol,14.7975461,120.872034,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-073,31405006,M-005,31405000,Bulacan,Perez,14.7692461,120.8951164,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-074,31405007,M-005,31405000,Bulacan,Pitpitan,14.8071298,120.8599662,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-075,31405009,M-005,31405000,Bulacan,San Francisco,14.8158381,120.8675161,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-076,31405012,M-005,31405000,Bulacan,San Nicolas,14.798081,120.8670042,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-077,31405013,M-005,31405000,Bulacan,Santa Ana,14.7871417,120.8836265,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-078,31405014,M-005,31405000,Bulacan,Santa Ines,14.7859047,120.8810972,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-079,31405015,M-005,31405000,Bulacan,Taliptip,14.765883,120.8972368,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-080,31405016,M-005,31405000,Bulacan,Tibig,14.7986593,120.8715049,Southern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-081,31406001,M-006,31406000,Bustos,Bonga Mayor,14.9543123,120.9392944,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-082,31406002,M-006,31406000,Bustos,Bonga Menor,14.9507672,120.9336685,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-083,31406003,M-006,31406000,Bustos,Buisan,14.9046909,120.9209454,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-084,31406004,M-006,31406000,Bustos,Camachilihan,14.9022592,120.9124412,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-085,31406005,M-006,31406000,Bustos,Cambaog,14.9275949,120.8967036,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-086,31406006,M-006,31406000,Bustos,Catacte,14.9196357,120.9439909,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-087,31406007,M-006,31406000,Bustos,Liciada,14.9075871,120.9292322,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-088,31406008,M-006,31406000,Bustos,Malamig,14.9418293,120.9267584,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-089,31406009,M-006,31406000,Bustos,Malawak,14.9115847,120.9535638,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-090,31406010,M-006,31406000,Bustos,Poblacion,14.9557258,120.9094224,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-091,31406011,M-006,31406000,Bustos,San Pedro,14.9493303,120.9079635,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-092,31406012,M-006,31406000,Bustos,Talampas,14.9309368,120.9070878,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-093,31406013,M-006,31406000,Bustos,Tanawan,14.9518958,120.925591,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-094,31406014,M-006,31406000,Bustos,Tibagan,14.9579648,120.9462842,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-095,31407001,M-007,31407000,Calumpit,Balite,14.8994466,120.7849292,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-096,31407002,M-007,31407000,Calumpit,Balungao,14.9143838,120.7624081,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-097,31407004,M-007,31407000,Calumpit,Buguion,14.896477,120.7982951,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-098,31407005,M-007,31407000,Calumpit,Bulusan,14.9086635,120.7423785,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-099,31407006,M-007,31407000,Calumpit,Calizon,14.912507,120.752996,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-100,31407007,M-007,31407000,Calumpit,Calumpang,14.8845257,120.7838322,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-101,31407008,M-007,31407000,Calumpit,Caniogan,14.9054322,120.7732998,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-102,31407009,M-007,31407000,Calumpit,Corazon,14.9135691,120.7685193,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-103,31407010,M-007,31407000,Calumpit,Frances,14.9153664,120.7523847,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-104,31407011,M-007,31407000,Calumpit,Gatbuca,14.9224522,120.7693213,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-105,31407012,M-007,31407000,Calumpit,Gugo,14.9014445,120.7548143,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-106,31407013,M-007,31407000,Calumpit,Iba Este,14.8898721,120.7673258,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-107,31407014,M-007,31407000,Calumpit,Iba O'Este,14.8894497,120.7642015,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-108,31407015,M-007,31407000,Calumpit,Longos,14.8763936,120.784517,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-109,31407016,M-007,31407000,Calumpit,Meysulao,14.9038939,120.7370391,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-110,31407017,M-007,31407000,Calumpit,Meyto,14.8829652,120.7297529,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-111,31407018,M-007,31407000,Calumpit,Palimbang,14.8994454,120.7755756,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-112,31407019,M-007,31407000,Calumpit,Panducot,14.8744817,120.7380495,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-113,31407020,M-007,31407000,Calumpit,Pio Cruzcosa,14.8940555,120.7802575,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-114,31407021,M-007,31407000,Calumpit,Poblacion,14.9171149,120.7675762,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-115,31407022,M-007,31407000,Calumpit,Pungo,14.9026572,120.7905436,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-116,31407023,M-007,31407000,Calumpit,San Jose,14.8849023,120.7311121,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-117,31407024,M-007,31407000,Calumpit,San Marcos,14.8974397,120.7784886,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-118,31407025,M-007,31407000,Calumpit,San Miguel,14.9169337,120.7426871,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-119,31407026,M-007,31407000,Calumpit,Santa Lucia,14.8946699,120.7324821,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-120,31407027,M-007,31407000,Calumpit,Santo Niño,14.9048411,120.7800494,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-121,31407028,M-007,31407000,Calumpit,Sapang Bayan,14.9182648,120.7698374,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-122,31407029,M-007,31407000,Calumpit,Sergio Bayan,14.8975959,120.7908313,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-123,31407030,M-007,31407000,Calumpit,Sucol,14.9139553,120.7699069,Northern,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-124,31408001,M-008,31408000,Guiguinto,Cutcut,14.8622446,120.8957621,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-125,31408002,M-008,31408000,Guiguinto,Daungan,14.8555753,120.8867311,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-126,31408003,M-008,31408000,Guiguinto,Ilang-Ilang,14.830452,120.8764757,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-127,31408004,M-008,31408000,Guiguinto,Malis,14.8392045,120.8809706,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-128,31408005,M-008,31408000,Guiguinto,Panginay,14.8173064,120.8907504,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-129,31408006,M-008,31408000,Guiguinto,Poblacion,14.8282403,120.8804977,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-130,31408007,M-008,31408000,Guiguinto,Pritil,14.8544683,120.8683721,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-131,31408008,M-008,31408000,Guiguinto,Pulong Gubat,14.8548526,120.8971738,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-132,31408009,M-008,31408000,Guiguinto,Santa Cruz,14.8401056,120.8677579,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-133,31408010,M-008,31408000,Guiguinto,Santa Rita,14.8602237,120.8588227,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-134,31408011,M-008,31408000,Guiguinto,Tabang,14.8315041,120.8630844,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-135,31408012,M-008,31408000,Guiguinto,Tabe,14.8373242,120.8859761,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-136,31408013,M-008,31408000,Guiguinto,Tiaong,14.8471156,120.890725,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-137,31408015,M-008,31408000,Guiguinto,Tuktukan,14.8274978,120.8920782,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-138,31409001,M-009,31409000,Hagonoy,Abulalas,14.8534595,120.76312,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-139,31409002,M-009,31409000,Hagonoy,Carillo,14.8605028,120.7621339,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-140,31409003,M-009,31409000,Hagonoy,Iba,14.8654618,120.7568237,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-141,31409004,M-009,31409000,Hagonoy,Mercado,14.8230155,120.7255974,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-142,31409005,M-009,31409000,Hagonoy,Palapat,14.8625861,120.746177,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-143,31409006,M-009,31409000,Hagonoy,Pugad,14.7676131,120.74214,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-144,31409007,M-009,31409000,Hagonoy,Sagrada Familia,14.8180859,120.7353256,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-145,31409008,M-009,31409000,Hagonoy,San Agustin,14.8421193,120.7392649,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-146,31409009,M-009,31409000,Hagonoy,San Isidro,14.8661151,120.7391597,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-147,31409011,M-009,31409000,Hagonoy,San Jose,14.8303014,120.7304335,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-148,31409012,M-009,31409000,Hagonoy,San Juan,14.8666958,120.741821,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-149,31409013,M-009,31409000,Hagonoy,San Miguel,14.8563865,120.733341,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-150,31409014,M-009,31409000,Hagonoy,San Nicolas,14.8266547,120.7289287,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-151,31409015,M-009,31409000,Hagonoy,San Pablo,14.8353431,120.7522166,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-152,31409016,M-009,31409000,Hagonoy,San Pascual,14.816437,120.7196724,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-153,31409017,M-009,31409000,Hagonoy,San Pedro,14.8395745,120.763396,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-154,31409018,M-009,31409000,Hagonoy,San Roque,14.8138618,120.7251707,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-155,31409019,M-009,31409000,Hagonoy,San Sebastian,14.8321724,120.7349369,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-156,31409020,M-009,31409000,Hagonoy,Santa Cruz,14.8161273,120.7257745,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-157,31409021,M-009,31409000,Hagonoy,Santa Elena,14.8181589,120.7525295,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-158,31409022,M-009,31409000,Hagonoy,Santa Monica,14.8406352,120.7345292,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-159,31409024,M-009,31409000,Hagonoy,Santo Rosario,14.8167944,120.7280759,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-160,31409025,M-009,31409000,Hagonoy,Tampok,14.847831,120.7360661,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-161,31409026,M-009,31409000,Hagonoy,Tibaguin,14.7735091,120.752067,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-162,31409027,M-009,31409000,Hagonoy,Iba-Ibayo,14.8738928,120.7709363,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-163,31410001,M-010,31410000,City of Malolos,Anilao,14.8421925,120.7976327,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-164,31410002,M-010,31410000,City of Malolos,Atlag,14.82968,120.821115,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-165,31410003,M-010,31410000,City of Malolos,Babatnin,14.7818823,120.8171064,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-166,31410004,M-010,31410000,City of Malolos,Bagna,14.8265093,120.8233439,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-167,31410005,M-010,31410000,City of Malolos,Bagong Bayan,14.8391173,120.8351776,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-168,31410006,M-010,31410000,City of Malolos,Balayong,14.828608,120.8291389,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-169,31410007,M-010,31410000,City of Malolos,Balite,14.8295174,120.8367223,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-170,31410008,M-010,31410000,City of Malolos,Bangkal,14.8235946,120.8488468,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-171,31410010,M-010,31410000,City of Malolos,Barihan,14.8798937,120.8319027,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-172,31410012,M-010,31410000,City of Malolos,Bulihan,14.8582597,120.8012928,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-173,31410013,M-010,31410000,City of Malolos,Bungahan,14.8612921,120.8429539,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-174,31410014,M-010,31410000,City of Malolos,Dakila,14.8508755,120.8360183,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-175,31410015,M-010,31410000,City of Malolos,Guinhawa,14.855015,120.8170411,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-176,31410016,M-010,31410000,City of Malolos,Caingin,14.8449396,120.8089646,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-177,31410017,M-010,31410000,City of Malolos,Calero,14.8307631,120.8097015,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-178,31410018,M-010,31410000,City of Malolos,Caliligawan,14.7707257,120.8082671,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-179,31410019,M-010,31410000,City of Malolos,Canalate,14.8408543,120.8026989,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-180,31410020,M-010,31410000,City of Malolos,Caniogan,14.8460859,120.818211,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-181,31410021,M-010,31410000,City of Malolos,Catmon,14.8512612,120.814046,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-182,31410022,M-010,31410000,City of Malolos,Ligas,14.8628478,120.8510539,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-183,31410023,M-010,31410000,City of Malolos,Liang,14.8464228,120.8142454,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-184,31410025,M-010,31410000,City of Malolos,Longos,14.8763936,120.784517,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-185,31410026,M-010,31410000,City of Malolos,Look 1st,14.8840844,120.8107522,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-186,31410027,M-010,31410000,City of Malolos,Look 2nd,14.8221222,120.8611588,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-187,31410028,M-010,31410000,City of Malolos,Lugam,14.8822563,120.818731,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-188,31410029,M-010,31410000,City of Malolos,Mabolo,14.8423548,120.8265987,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-189,31410031,M-010,31410000,City of Malolos,Mambog,14.8099523,120.8499657,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-190,31410032,M-010,31410000,City of Malolos,Masile,14.7847642,120.8106419,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-191,31410033,M-010,31410000,City of Malolos,Matimbo,14.816438,120.8374897,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-192,31410034,M-010,31410000,City of Malolos,Mojon,14.86715,120.821093,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-193,31410035,M-010,31410000,City of Malolos,Namayan,14.7763297,120.811125,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-194,31410036,M-010,31410000,City of Malolos,Niugan,14.8197211,120.8546863,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-195,31410037,M-010,31410000,City of Malolos,Pamarawan,14.7607115,120.8134804,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-196,31410038,M-010,31410000,City of Malolos,Panasahan,14.8224957,120.8271942,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-197,31410039,M-010,31410000,City of Malolos,Pinagbakahan,14.8716095,120.8216431,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-198,31410041,M-010,31410000,City of Malolos,San Agustin,14.8458699,120.8109695,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-199,31410042,M-010,31410000,City of Malolos,San Gabriel,14.8476242,120.812593,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-200,31410043,M-010,31410000,City of Malolos,San Juan,14.8351438,120.8161083,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-201,31410044,M-010,31410000,City of Malolos,San Pablo,14.8431476,120.8459291,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-202,31410046,M-010,31410000,City of Malolos,Santiago,14.8424319,120.806905,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-203,31410047,M-010,31410000,City of Malolos,Santisima Trinidad,14.875471,120.8257328,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-204,31410048,M-010,31410000,City of Malolos,Santo Cristo,14.8319274,120.8187932,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-205,31410051,M-010,31410000,City of Malolos,Santor,14.8325223,120.8549378,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-206,31410052,M-010,31410000,City of Malolos,Sumapang Bata,14.8586393,120.8341826,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-207,31410053,M-010,31410000,City of Malolos,Sumapang Matanda,14.8573562,120.827508,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-208,31410054,M-010,31410000,City of Malolos,Taal,14.8139361,120.8542437,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-209,31410055,M-010,31410000,City of Malolos,Tikay,14.8423817,120.8532404,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-210,31410056,M-010,31410000,City of Malolos,Cofradia,14.8430926,120.8331387,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-211,31411001,M-011,31411000,Marilao,Abangan Norte,14.7721424,120.9400468,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-212,31411002,M-011,31411000,Marilao,Abangan Sur,14.764231,120.9441559,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-213,31411003,M-011,31411000,Marilao,Ibayo,14.7543869,120.9534963,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-214,31411004,M-011,31411000,Marilao,Lambakin,14.7738056,120.9784272,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-215,31411005,M-011,31411000,Marilao,Lias,14.7602819,120.9623186,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-216,31411006,M-011,31411000,Marilao,Loma de Gato,14.7750433,121.017749,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-217,31411007,M-011,31411000,Marilao,Nagbalon,14.7503707,120.9508262,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-218,31411008,M-011,31411000,Marilao,Patubig,14.7765926,120.9589997,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-219,31411009,M-011,31411000,Marilao,Poblacion I,14.7560229,120.948839,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-220,31411010,M-011,31411000,Marilao,Poblacion II,14.7594531,120.9467208,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-221,31411011,M-011,31411000,Marilao,Prenza I,14.7865932,120.9857864,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-222,31411012,M-011,31411000,Marilao,Prenza II,14.7830954,120.9860614,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-223,31411013,M-011,31411000,Marilao,Santa Rosa I,14.7787261,120.9741873,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-224,31411014,M-011,31411000,Marilao,Santa Rosa II,14.7843571,120.970178,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-225,31411015,M-011,31411000,Marilao,Saog,14.7635582,120.9560002,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-226,31411016,M-011,31411000,Marilao,Tabing Ilog,14.7648557,120.9488035,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-227,31412001,M-012,31412000,City of Meycauayan,Bagbaguin,14.7580088,121.0061806,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-228,31412002,M-012,31412000,City of Meycauayan,Bahay Pare,14.7681018,121.0128437,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-229,31412003,M-012,31412000,City of Meycauayan,Bancal,14.7246519,120.9580772,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-230,31412004,M-012,31412000,City of Meycauayan,Banga,14.7278746,120.961278,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-231,31412005,M-012,31412000,City of Meycauayan,Bayugo,14.7316821,120.9523072,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-232,31412006,M-012,31412000,City of Meycauayan,Calvario,14.7336026,120.9613897,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-233,31412007,M-012,31412000,City of Meycauayan,Camalig,14.7732193,120.9929973,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-234,31412008,M-012,31412000,City of Meycauayan,Hulo,14.7320375,120.9585026,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-235,31412009,M-012,31412000,City of Meycauayan,Iba,14.754257,120.9820723,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-236,31412010,M-012,31412000,City of Meycauayan,Langka,14.739524,120.9810718,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-237,31412011,M-012,31412000,City of Meycauayan,Lawa,14.7341434,120.9780198,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-238,31412012,M-012,31412000,City of Meycauayan,Libtong,14.7447635,120.9801908,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-239,31412013,M-012,31412000,City of Meycauayan,Liputan,14.7389306,120.9273558,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-240,31412014,M-012,31412000,City of Meycauayan,Longos,14.7349272,120.9495064,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-241,31412015,M-012,31412000,City of Meycauayan,Malhacan,14.7440435,120.9717779,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-242,31412016,M-012,31412000,City of Meycauayan,Pajo,14.7773583,121.0025887,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-243,31412017,M-012,31412000,City of Meycauayan,Pandayan,14.7496577,120.9656795,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-244,31412018,M-012,31412000,City of Meycauayan,Pantoc,14.766432,120.9839317,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-245,31412019,M-012,31412000,City of Meycauayan,Perez,14.7648306,120.9971706,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-246,31412020,M-012,31412000,City of Meycauayan,Poblacion,14.7357006,120.9574133,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-247,31412021,M-012,31412000,City of Meycauayan,Saluysoy,14.742168,120.9568232,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-248,31412022,M-012,31412000,City of Meycauayan,Saint Francis (Gasak),14.7351353,120.9569693,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-249,31412023,M-012,31412000,City of Meycauayan,Tugatog,14.7249506,120.9644655,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-250,31412024,M-012,31412000,City of Meycauayan,Ubihan,14.7532803,120.9228751,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-251,31412025,M-012,31412000,City of Meycauayan,Zamora,14.7352681,120.9545405,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-252,31412026,M-012,31412000,City of Meycauayan,Caingin,14.7274281,120.9707874,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-253,31413003,M-013,31413000,Norzagaray,Bangkal,14.9265142,121.0998528,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-254,31413004,M-013,31413000,Norzagaray,Baraka,14.9080941,121.1021192,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-255,31413006,M-013,31413000,Norzagaray,Bigte,14.8571686,121.0855646,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-256,31413007,M-013,31413000,Norzagaray,Bitungol,14.882347,121.0611498,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-257,31413015,M-013,31413000,Norzagaray,Matictic,14.9100826,121.0564604,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-258,31413016,M-013,31413000,Norzagaray,Minuyan,14.8677388,121.0803344,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-259,31413020,M-013,31413000,Norzagaray,Partida,14.8930929,121.0291055,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-260,31413021,M-013,31413000,Norzagaray,Pinagtulayan,14.9346183,121.0715005,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-261,31413022,M-013,31413000,Norzagaray,Poblacion,14.9102921,121.0492221,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-262,31413024,M-013,31413000,Norzagaray,San Mateo,14.8734577,121.1277123,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-263,31413031,M-013,31413000,Norzagaray,Tigbe,14.8669758,121.0378146,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-264,31413032,M-013,31413000,Norzagaray,San Lorenzo,14.9002016,121.151433,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-265,31413033,M-013,31413000,Norzagaray,Friendship Village Resources,14.8611039,121.0464564,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-266,31414001,M-014,31414000,Obando,Binuangan,14.7158828,120.9065632,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-267,31414002,M-014,31414000,Obando,Catanghalan,14.7051092,120.9409508,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-268,31414003,M-014,31414000,Obando,Hulo,14.7214356,120.9272546,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-269,31414004,M-014,31414000,Obando,Lawa,14.7257757,120.9257117,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-270,31414005,M-014,31414000,Obando,Salambao,14.7140557,120.9065903,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-271,31414006,M-014,31414000,Obando,Paco,14.730998,120.9218445,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-272,31414008,M-014,31414000,Obando,Paliwas,14.7126784,120.9351595,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-273,31414009,M-014,31414000,Obando,Panghulo,14.6982748,120.9468742,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-274,31414010,M-014,31414000,Obando,San Pascual,14.7204584,120.9294031,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-275,31414011,M-014,31414000,Obando,Tawiran,14.744784,120.9108573,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-276,31415001,M-015,31415000,Pandi,Bagbaguin,14.8903669,120.9212334,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-277,31415002,M-015,31415000,Pandi,Bagong Barrio,14.8960437,120.9530083,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-278,31415003,M-015,31415000,Pandi,Bunsuran III,14.8667298,120.9298525,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-279,31415004,M-015,31415000,Pandi,Bunsuran I,14.8627306,120.93737,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-280,31415005,M-015,31415000,Pandi,Bunsuran II,14.8601538,120.9268798,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-281,31415006,M-015,31415000,Pandi,Cacarong Bata,14.8960206,120.9677682,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-282,31415007,M-015,31415000,Pandi,Cacarong Matanda,14.9041618,120.9677172,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-283,31415008,M-015,31415000,Pandi,Cupang,14.8956033,120.9371808,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-284,31415009,M-015,31415000,Pandi,Malibong Bata,14.8464416,120.930467,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-285,31415010,M-015,31415000,Pandi,Malibong Matanda,14.8477612,120.9389886,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-286,31415011,M-015,31415000,Pandi,Manatal,14.873865,120.9181827,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-287,31415012,M-015,31415000,Pandi,Mapulang Lupa,14.8820436,120.9642216,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-288,31415013,M-015,31415000,Pandi,Masagana,14.8854525,120.9302902,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-289,31415014,M-015,31415000,Pandi,Masuso,14.8819658,120.9408368,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-290,31415015,M-015,31415000,Pandi,Pinagkuartelan,14.8968542,120.9795323,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-291,31415016,M-015,31415000,Pandi,Poblacion,14.8671724,120.9575755,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-292,31415017,M-015,31415000,Pandi,Real de Cacarong,14.916624,120.9760648,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-293,31415018,M-015,31415000,Pandi,San Roque,14.858133,120.9562156,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-294,31415019,M-015,31415000,Pandi,Siling Bata,14.890374,120.9690885,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-295,31415020,M-015,31415000,Pandi,Siling Matanda,14.9041477,120.989765,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-296,31415021,M-015,31415000,Pandi,Baka-bakahan,14.8498638,120.9505463,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-297,31415022,M-015,31415000,Pandi,Santo Niño,14.8691754,120.9377551,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-298,31416001,M-016,31416000,Paombong,Binakod,14.7812653,120.7837282,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-299,31416002,M-016,31416000,Paombong,Kapitangan,14.8647113,120.788091,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-300,31416003,M-016,31416000,Paombong,Malumot,14.8284145,120.7888052,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-301,31416004,M-016,31416000,Paombong,Masukol,14.7645415,120.7695701,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-302,31416006,M-016,31416000,Paombong,Pinalagdan,14.8528168,120.7772058,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-303,31416007,M-016,31416000,Paombong,Poblacion,14.8363003,120.7876484,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-304,31416009,M-016,31416000,Paombong,San Isidro I,14.8377658,120.7840779,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-305,31416010,M-016,31416000,Paombong,San Isidro II,14.8359881,120.7715133,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-306,31416011,M-016,31416000,Paombong,San Jose,14.8312272,120.7892306,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-307,31416012,M-016,31416000,Paombong,San Roque,14.8309783,120.7872755,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-308,31416013,M-016,31416000,Paombong,San Vicente,14.8352159,120.7902601,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-309,31416014,M-016,31416000,Paombong,Santa Cruz,14.7619061,120.7900697,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-310,31416015,M-016,31416000,Paombong,Santo Niño,14.8396774,120.7937253,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-311,31416016,M-016,31416000,Paombong,Santo Rosario,14.8452188,120.7881568,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-312,31417001,M-017,31417000,Plaridel,Agnaya,14.8847992,120.8527777,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-313,31417002,M-017,31417000,Plaridel,Bagong Silang,14.8706745,120.8787381,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-314,31417003,M-017,31417000,Plaridel,Banga I,14.8870531,120.8662699,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-315,31417004,M-017,31417000,Plaridel,Banga II,14.888265,120.8698118,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-316,31417005,M-017,31417000,Plaridel,Bintog,14.9027084,120.8890133,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-317,31417006,M-017,31417000,Plaridel,Bulihan,14.8725061,120.9020704,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-318,31417007,M-017,31417000,Plaridel,Culianin,14.9146191,120.8948658,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-319,31417008,M-017,31417000,Plaridel,Dampol,14.9004332,120.8222482,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-320,31417010,M-017,31417000,Plaridel,Lagundi,14.891038,120.8183378,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-321,31417011,M-017,31417000,Plaridel,Lalangan,14.8773647,120.8483273,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-322,31417012,M-017,31417000,Plaridel,Lumang Bayan,14.8953508,120.8536972,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-323,31417014,M-017,31417000,Plaridel,Parulan,14.8909405,120.8746689,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-324,31417015,M-017,31417000,Plaridel,Poblacion,14.8855093,120.863031,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-325,31417016,M-017,31417000,Plaridel,Rueda,14.8974308,120.8082734,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-326,31417017,M-017,31417000,Plaridel,San Jose,14.9057479,120.8966227,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-327,31417018,M-017,31417000,Plaridel,Santa Ines,14.8823873,120.8560435,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-328,31417019,M-017,31417000,Plaridel,Santo Niño,14.883176,120.838062,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-329,31417020,M-017,31417000,Plaridel,Sipat,14.8944749,120.8301402,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-330,31417021,M-017,31417000,Plaridel,Tabang,14.8729525,120.8616064,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-331,31418001,M-018,31418000,Pulilan,Balatong A,14.9308722,120.8441765,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-332,31418002,M-018,31418000,Pulilan,Balatong B,14.9415002,120.844743,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-333,31418003,M-018,31418000,Pulilan,Cutcot,14.9018745,120.8639422,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-334,31418005,M-018,31418000,Pulilan,Dampol I,14.9016324,120.832167,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-335,31418006,M-018,31418000,Pulilan,Dampol II-A,14.903433,120.8147303,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-336,31418007,M-018,31418000,Pulilan,Dampol II-B,14.902709,120.807345,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-337,31418008,M-018,31418000,Pulilan,Dulong Malabon,14.9215347,120.8173533,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-338,31418009,M-018,31418000,Pulilan,Inaon,14.9436493,120.8279169,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-339,31418010,M-018,31418000,Pulilan,Longos,14.8973635,120.8660791,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-340,31418011,M-018,31418000,Pulilan,Lumbac,14.9015818,120.8409391,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-341,31418018,M-018,31418000,Pulilan,Paltao,14.9022052,120.8560722,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-342,31418020,M-018,31418000,Pulilan,Penabatan,14.931981,120.8428642,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-343,31418022,M-018,31418000,Pulilan,Poblacion,14.902206,120.8487909,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-344,31418025,M-018,31418000,Pulilan,Santa Peregrina,14.9457891,120.8383593,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-345,31418026,M-018,31418000,Pulilan,Santo Cristo,14.8962694,120.8730009,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-346,31418033,M-018,31418000,Pulilan,Taal,14.9081279,120.8807417,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-347,31418034,M-018,31418000,Pulilan,Tabon,14.9106304,120.8287723,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-348,31418035,M-018,31418000,Pulilan,Tibag,14.9059082,120.8230485,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-349,31418037,M-018,31418000,Pulilan,Tinejero,14.9231929,120.8452628,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-350,31419001,M-019,31419000,San Ildefonso,Akle,15.0497274,121.0706326,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-351,31419002,M-019,31419000,San Ildefonso,Alagao,15.0509446,121.0449962,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-352,31419003,M-019,31419000,San Ildefonso,Anyatam,15.1036633,120.9441914,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-353,31419006,M-019,31419000,San Ildefonso,Bagong Barrio,15.0131807,120.988708,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-354,31419007,M-019,31419000,San Ildefonso,Basuit,15.0414018,120.9912942,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-355,31419008,M-019,31419000,San Ildefonso,Bubulong Munti,15.0976023,121.0134644,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-356,31419009,M-019,31419000,San Ildefonso,Bubulong Malaki,15.0874723,120.993707,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-357,31419010,M-019,31419000,San Ildefonso,Buhol na Mangga,15.1021258,121.0472034,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-358,31419011,M-019,31419000,San Ildefonso,Bulusukan,15.0820484,121.017499,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-359,31419012,M-019,31419000,San Ildefonso,Calasag,15.0722634,120.9283805,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-360,31419013,M-019,31419000,San Ildefonso,Calawitan,15.074325,120.9177241,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-361,31419014,M-019,31419000,San Ildefonso,Casalat,15.0228885,121.0548363,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-362,31419015,M-019,31419000,San Ildefonso,Gabihan,15.0500509,121.0110944,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-363,31419016,M-019,31419000,San Ildefonso,Garlang,15.1120152,120.9471252,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-364,31419017,M-019,31419000,San Ildefonso,Lapnit,15.0780752,120.9363805,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-365,31419018,M-019,31419000,San Ildefonso,Maasim,15.0481912,120.9367651,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-366,31419019,M-019,31419000,San Ildefonso,Makapilapil,15.0891401,120.9385715,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-367,31419020,M-019,31419000,San Ildefonso,Malipampang,15.0574769,120.9383985,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-368,31419021,M-019,31419000,San Ildefonso,Matimbubong,15.0675626,120.944919,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-369,31419022,M-019,31419000,San Ildefonso,Nabaong Garlang,15.1060697,120.9618081,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-370,31419023,M-019,31419000,San Ildefonso,Palapala,15.0605048,120.9816894,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-371,31419024,M-019,31419000,San Ildefonso,Pasong Bangkal,15.0138121,121.0087757,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-372,31419025,M-019,31419000,San Ildefonso,Pinaod,15.072519,120.9610734,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-373,31419026,M-019,31419000,San Ildefonso,Poblacion,15.0776336,120.9426203,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-374,31419027,M-019,31419000,San Ildefonso,Pulong Tamo,15.0641801,120.9078509,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-375,31419028,M-019,31419000,San Ildefonso,San Juan,15.0834672,120.9377092,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-376,31419029,M-019,31419000,San Ildefonso,Santa Catalina Bata,15.1001008,120.9717008,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-377,31419030,M-019,31419000,San Ildefonso,Santa Catalina Matanda,15.0983723,120.9802316,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-378,31419031,M-019,31419000,San Ildefonso,Sapang Dayap,15.0358328,121.0225891,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-379,31419032,M-019,31419000,San Ildefonso,Sapang Putik,15.0342105,120.9620817,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-380,31419033,M-019,31419000,San Ildefonso,Sapang Putol,15.074123,120.9425345,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-381,31419034,M-019,31419000,San Ildefonso,Sumandig,15.0761541,120.9829883,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-382,31419035,M-019,31419000,San Ildefonso,Telepatio,15.0543532,120.9220786,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-383,31419036,M-019,31419000,San Ildefonso,Upig,15.0252107,120.9918053,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-384,31419037,M-019,31419000,San Ildefonso,Umpucan,15.0709607,121.0111487,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-385,31419038,M-019,31419000,San Ildefonso,Mataas na Parang,15.0947998,120.9601834,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-386,31420001,M-020,31420000,City of San Jose Del Monte,Bagong Buhay I,14.8557724,121.0586835,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-387,31420002,M-020,31420000,City of San Jose Del Monte,Dulong Bayan,14.8268096,121.0446766,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-388,31420003,M-020,31420000,City of San Jose Del Monte,Gaya-gaya,14.7949734,121.0523351,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-389,31420004,M-020,31420000,City of San Jose Del Monte,Kaypian,14.821589,121.062591,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-390,31420005,M-020,31420000,City of San Jose Del Monte,Kaybanban,14.8142207,121.0959227,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-391,31420006,M-020,31420000,City of San Jose Del Monte,Minuyan I,14.850805,121.0798261,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-392,31420007,M-020,31420000,City of San Jose Del Monte,Muzon,14.8019416,121.034661,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-393,31420008,M-020,31420000,City of San Jose Del Monte,Poblacion,14.8149526,121.0417923,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-394,31420009,M-020,31420000,City of San Jose Del Monte,Santo Cristo,14.8253115,121.0789065,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-395,31420010,M-020,31420000,City of San Jose Del Monte,Sapang Palay,14.8388037,121.0426,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-396,31420011,M-020,31420000,City of San Jose Del Monte,Tungkong Mangga,14.7891205,121.0746756,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-397,31420012,M-020,31420000,City of San Jose Del Monte,Citrus,14.849182,121.0647266,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-398,31420013,M-020,31420000,City of San Jose Del Monte,San Martin I,14.8630676,121.0585374,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-399,31420014,M-020,31420000,City of San Jose Del Monte,Santa Cruz I,14.8520857,121.0526794,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-400,31420015,M-020,31420000,City of San Jose Del Monte,Fatima I,14.8467462,121.0450311,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-401,31420016,M-020,31420000,City of San Jose Del Monte,San Pedro,14.8460864,121.0558739,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-402,31420017,M-020,31420000,City of San Jose Del Monte,San Rafael II,14.8544936,121.0459403,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-403,31420018,M-020,31420000,City of San Jose Del Monte,Santo Niño I,14.8620346,121.0642022,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-404,31420019,M-020,31420000,City of San Jose Del Monte,Assumption,14.8627994,121.0638066,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-405,31420020,M-020,31420000,City of San Jose Del Monte,Bagong Buhay II,14.8590376,121.0588297,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-406,31420021,M-020,31420000,City of San Jose Del Monte,Bagong Buhay III,14.8542978,121.0627672,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-407,31420022,M-020,31420000,City of San Jose Del Monte,Ciudad Real,14.7704914,121.0923191,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-408,31420023,M-020,31420000,City of San Jose Del Monte,Fatima II,14.8432525,121.0440454,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-409,31420024,M-020,31420000,City of San Jose Del Monte,Fatima III,14.8453371,121.0453623,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-410,31420025,M-020,31420000,City of San Jose Del Monte,Fatima IV,14.8434917,121.0465325,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-411,31420026,M-020,31420000,City of San Jose Del Monte,Fatima V,14.8477333,121.0508287,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-412,31420027,M-020,31420000,City of San Jose Del Monte,Francisco Homes-Guijo,14.8142714,121.0597681,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-413,31420028,M-020,31420000,City of San Jose Del Monte,Francisco Homes-Mulawin,14.8064172,121.0669524,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-414,31420029,M-020,31420000,City of San Jose Del Monte,Francisco Homes-Narra,14.8085593,121.056878,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-415,31420030,M-020,31420000,City of San Jose Del Monte,Francisco Homes-Yakal,14.8075143,121.0543639,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-416,31420031,M-020,31420000,City of San Jose Del Monte,Graceville,14.7874186,121.0608193,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-417,31420032,M-020,31420000,City of San Jose Del Monte,Gumaoc Central,14.8001745,121.0659331,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-418,31420033,M-020,31420000,City of San Jose Del Monte,Gumaoc East,14.7992724,121.0677856,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-419,31420034,M-020,31420000,City of San Jose Del Monte,Gumaoc West,14.7996622,121.0604062,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-420,31420035,M-020,31420000,City of San Jose Del Monte,Lawang Pari,14.858243,121.0711196,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-421,31420036,M-020,31420000,City of San Jose Del Monte,Maharlika,14.7951512,121.0721831,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-422,31420037,M-020,31420000,City of San Jose Del Monte,Minuyan II,14.8431949,121.075566,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-423,31420038,M-020,31420000,City of San Jose Del Monte,Minuyan III,14.8465433,121.0717801,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-424,31420039,M-020,31420000,City of San Jose Del Monte,Minuyan IV,14.8465569,121.0743356,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-425,31420040,M-020,31420000,City of San Jose Del Monte,Minuyan V,14.8512749,121.074642,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-426,31420041,M-020,31420000,City of San Jose Del Monte,Minuyan Proper,14.8427664,121.0786097,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-427,31420042,M-020,31420000,City of San Jose Del Monte,Paradise III,14.8236246,121.1146297,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-428,31420043,M-020,31420000,City of San Jose Del Monte,Poblacion I,14.8088167,121.0456038,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-429,31420044,M-020,31420000,City of San Jose Del Monte,San Isidro,14.8235335,121.1323555,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-430,31420045,M-020,31420000,City of San Jose Del Monte,San Manuel,14.7817241,121.0684749,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-431,31420046,M-020,31420000,City of San Jose Del Monte,San Martin II,14.8623461,121.05564,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-432,31420047,M-020,31420000,City of San Jose Del Monte,San Martin III,14.861531,121.055192,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-433,31420048,M-020,31420000,City of San Jose Del Monte,San Martin IV,14.8606683,121.0531951,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-434,31420049,M-020,31420000,City of San Jose Del Monte,San Rafael I,14.8530968,121.044618,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-435,31420050,M-020,31420000,City of San Jose Del Monte,San Rafael III,14.8537774,121.0444443,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-436,31420051,M-020,31420000,City of San Jose Del Monte,San Rafael IV,14.8544546,121.0443102,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-437,31420052,M-020,31420000,City of San Jose Del Monte,San Rafael V,14.8499209,121.0450405,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-438,31420053,M-020,31420000,City of San Jose Del Monte,San Roque,14.8173706,121.102598,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-439,31420054,M-020,31420000,City of San Jose Del Monte,Santa Cruz II,14.8544424,121.0516535,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-440,31420055,M-020,31420000,City of San Jose Del Monte,Santa Cruz III,14.8557101,121.0520887,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-441,31420056,M-020,31420000,City of San Jose Del Monte,Santa Cruz IV,14.857812,121.0507918,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-442,31420057,M-020,31420000,City of San Jose Del Monte,Santa Cruz V,14.8566585,121.0477476,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-443,31420058,M-020,31420000,City of San Jose Del Monte,Santo Niño II,14.8582968,121.0631608,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-444,31420059,M-020,31420000,City of San Jose Del Monte,San Martin de Porres,14.8590069,121.0662332,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-445,31421001,M-021,31421000,San Miguel,Bagong Silang,15.1702964,120.9305631,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-446,31421002,M-021,31421000,San Miguel,Balaong,15.1383618,121.0254824,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-447,31421003,M-021,31421000,San Miguel,Balite,15.1742312,120.9648697,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-448,31421004,M-021,31421000,San Miguel,Bantog,15.2102128,120.9536433,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-449,31421006,M-021,31421000,San Miguel,Bardias,15.2393996,121.0112084,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-450,31421011,M-021,31421000,San Miguel,Biak-na-Bato,15.1092833,121.0690194,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-451,31421012,M-021,31421000,San Miguel,Biclat,15.1178828,120.9841812,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-452,31421013,M-021,31421000,San Miguel,Buga,15.1896015,120.9728314,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-453,31421014,M-021,31421000,San Miguel,Buliran,15.1667983,120.9942947,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-454,31421015,M-021,31421000,San Miguel,Bulualto,15.2200796,120.9542687,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-455,31421016,M-021,31421000,San Miguel,Calumpang,15.1804891,121.0311839,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-456,31421019,M-021,31421000,San Miguel,Cambio,15.1975741,120.9668595,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-457,31421020,M-021,31421000,San Miguel,Camias,15.1624925,120.9713206,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-458,31421021,M-021,31421000,San Miguel,Ilog-Bulo,15.1783906,120.951587,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-459,31421023,M-021,31421000,San Miguel,King Kabayo,15.2169078,120.9815873,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-460,31421024,M-021,31421000,San Miguel,Labne,15.1466139,121.0090457,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-461,31421025,M-021,31421000,San Miguel,Lambakin,15.2288234,121.0267349,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-462,31421027,M-021,31421000,San Miguel,Magmarale,15.1105865,121.0008816,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-463,31421028,M-021,31421000,San Miguel,Malibay,15.2279403,121.0612108,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-464,31421030,M-021,31421000,San Miguel,Mandile,15.1633776,120.920507,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-465,31421031,M-021,31421000,San Miguel,Masalipit,15.1494639,121.0364696,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-466,31421032,M-021,31421000,San Miguel,Pacalag,15.1188509,121.0250344,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-467,31421033,M-021,31421000,San Miguel,Paliwasan,15.1186563,120.9635691,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-468,31421035,M-021,31421000,San Miguel,Partida,15.2071852,121.0201745,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-469,31421036,M-021,31421000,San Miguel,Pinambaran,15.2034653,120.9776473,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-470,31421037,M-021,31421000,San Miguel,Poblacion,15.1425688,120.9764125,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-471,31421038,M-021,31421000,San Miguel,Pulong Bayabas,15.1262032,121.0121924,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-472,31421039,M-021,31421000,San Miguel,Sacdalan,15.2040293,120.9567601,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-473,31421040,M-021,31421000,San Miguel,Salacot,15.1812355,120.9606421,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-474,31421041,M-021,31421000,San Miguel,Salangan,15.1302916,120.9586295,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-475,31421043,M-021,31421000,San Miguel,San Agustin,15.1382732,120.9617055,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-476,31421044,M-021,31421000,San Miguel,San Jose,15.1476928,120.9814759,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-477,31421045,M-021,31421000,San Miguel,San Juan,15.1365648,120.9762607,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-478,31421046,M-021,31421000,San Miguel,San Vicente,15.1418151,120.9688673,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-479,31421047,M-021,31421000,San Miguel,Santa Ines,15.1692459,121.0125307,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-480,31421048,M-021,31421000,San Miguel,Santa Lucia,15.2198669,121.0070094,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-481,31421049,M-021,31421000,San Miguel,Santa Rita Bata,15.1353715,120.9725702,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-482,31421050,M-021,31421000,San Miguel,Santa Rita Matanda,15.133013,120.9661005,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-483,31421051,M-021,31421000,San Miguel,Sapang,15.1795248,120.9754507,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-484,31421052,M-021,31421000,San Miguel,Sibul,15.1669666,121.0608333,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-485,31421054,M-021,31421000,San Miguel,Tartaro,15.1660974,121.0399543,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-486,31421055,M-021,31421000,San Miguel,Tibagan,15.1320476,120.9934366,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-487,31421056,M-021,31421000,San Miguel,Bagong Pag-asa,15.1929609,120.9451905,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-488,31421057,M-021,31421000,San Miguel,Pulong Duhat,15.2254081,120.97305,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-489,31421058,M-021,31421000,San Miguel,Maligaya,15.14861,120.9807943,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-490,31421059,M-021,31421000,San Miguel,Tigpalas,15.1493749,120.9781485,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-491,31422001,M-022,31422000,San Rafael,BMA-Balagtas,14.9689569,120.9671948,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-492,31422002,M-022,31422000,San Rafael,Banca-banca,15.0241991,120.921455,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-493,31422003,M-022,31422000,San Rafael,Caingin,14.9717467,120.9434431,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-494,31422004,M-022,31422000,San Rafael,Coral na Bato,14.9942454,120.9791654,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-495,31422005,M-022,31422000,San Rafael,Cruz na Daan,15.0295597,120.934776,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-496,31422006,M-022,31422000,San Rafael,Dagat-dagatan,15.0338408,120.9145027,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-497,31422007,M-022,31422000,San Rafael,Diliman I,15.0243312,120.9492427,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-498,31422008,M-022,31422000,San Rafael,Diliman II,15.0331761,120.9531685,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-499,31422009,M-022,31422000,San Rafael,Capihan,14.9988623,120.9302607,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-500,31422010,M-022,31422000,San Rafael,Libis,14.9570063,120.9694758,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-501,31422011,M-022,31422000,San Rafael,Lico,14.9610357,120.956321,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-502,31422012,M-022,31422000,San Rafael,Maasim,15.0352253,120.9363681,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-503,31422013,M-022,31422000,San Rafael,Mabalas-balas,15.0253027,120.9426713,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-504,31422014,M-022,31422000,San Rafael,Maguinao,15.0227642,120.9335578,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-505,31422015,M-022,31422000,San Rafael,Maronquillo,14.9673942,121.0014017,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-506,31422016,M-022,31422000,San Rafael,Paco,14.9958614,120.9056589,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-507,31422017,M-022,31422000,San Rafael,Pansumaloc,15.0173756,120.8968162,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-508,31422018,M-022,31422000,San Rafael,Pantubig,14.9654954,120.9529641,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-509,31422019,M-022,31422000,San Rafael,Pasong Bangkal,15.0058419,121.0099733,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-510,31422020,M-022,31422000,San Rafael,Pasong Callos,15.0005334,121.0003495,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-511,31422021,M-022,31422000,San Rafael,Pasong Intsik,15.0109358,120.9688433,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-512,31422022,M-022,31422000,San Rafael,Pinacpinacan,14.9977275,120.9132957,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-513,31422023,M-022,31422000,San Rafael,Poblacion,14.9553234,120.9638794,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-514,31422024,M-022,31422000,San Rafael,Pulo,14.9619154,121.0145111,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-515,31422025,M-022,31422000,San Rafael,Pulong Bayabas,15.0121995,120.9046322,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-516,31422026,M-022,31422000,San Rafael,Salapungan,15.019569,120.9638589,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-517,31422027,M-022,31422000,San Rafael,Sampaloc,14.9818282,120.9264573,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-518,31422028,M-022,31422000,San Rafael,San Agustin,15.030415,120.9271789,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-519,31422030,M-022,31422000,San Rafael,San Roque,15.0087953,120.9326425,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-520,31422031,M-022,31422000,San Rafael,Talacsan,14.9600306,120.9791822,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-521,31422032,M-022,31422000,San Rafael,Tambubong,14.9686705,120.9264238,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-522,31422033,M-022,31422000,San Rafael,Tukod,14.9945148,121.0493508,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-523,31422034,M-022,31422000,San Rafael,Ulingao,14.9715537,120.9131019,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-524,31422035,M-022,31422000,San Rafael,Sapang Pahalang,14.9974633,121.0387963,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-525,31423001,M-023,31423000,Santa Maria,Bagbaguin,14.8173505,120.9581454,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-526,31423002,M-023,31423000,Santa Maria,Balasing,14.8498016,121.0027045,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-527,31423003,M-023,31423000,Santa Maria,Buenavista,14.7963649,120.9818568,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-528,31423004,M-023,31423000,Santa Maria,Bulac,14.838064,121.0226107,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-529,31423005,M-023,31423000,Santa Maria,Camangyanan,14.7973296,120.9710725,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-530,31423006,M-023,31423000,Santa Maria,Catmon,14.8295782,121.0040617,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-531,31423007,M-023,31423000,Santa Maria,Cay Pombo,14.8524993,120.9774665,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-532,31423008,M-023,31423000,Santa Maria,Caysio,14.8441724,120.9683736,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-533,31423009,M-023,31423000,Santa Maria,Guyong,14.83644,120.9766353,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-534,31423010,M-023,31423000,Santa Maria,Lalakhan,14.8148813,120.9465122,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-535,31423011,M-023,31423000,Santa Maria,Mag-asawang Sapa,14.8786226,120.9831019,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-536,31423013,M-023,31423000,Santa Maria,Mahabang Parang,14.7903755,120.9624556,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-537,31423014,M-023,31423000,Santa Maria,Manggahan,14.8521005,120.9569825,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-538,31423015,M-023,31423000,Santa Maria,Parada,14.8108268,120.9855753,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-539,31423016,M-023,31423000,Santa Maria,Poblacion,14.8197695,120.9625961,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-540,31423017,M-023,31423000,Santa Maria,Pulong Buhangin,14.8649744,120.995639,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-541,31423018,M-023,31423000,Santa Maria,San Gabriel,14.8055871,120.9588584,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-542,31423019,M-023,31423000,Santa Maria,San Jose Patag,14.8263371,120.9808069,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-543,31423020,M-023,31423000,Santa Maria,San Vicente,14.8069734,121.0038564,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-544,31423021,M-023,31423000,Santa Maria,Sta. Clara,14.8226998,120.9505514,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-545,31423022,M-023,31423000,Santa Maria,Sta. Cruz,14.8334524,120.9586748,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-546,31423023,M-023,31423000,Santa Maria,Silangan,14.8871232,120.9876112,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-547,31423024,M-023,31423000,Santa Maria,Tabing Bakod,14.8016547,120.9539822,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-548,31423025,M-023,31423000,Santa Maria,Tumana,14.8124717,120.9730783,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-549,31424001,M-024,31424000,Doña Remedios Trinidad,Bayabas,14.956099,121.0912335,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-550,31424003,M-024,31424000,Doña Remedios Trinidad,Camachin,15.0691192,121.1224866,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-551,31424004,M-024,31424000,Doña Remedios Trinidad,Camachile,14.9805587,121.0717703,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-552,31424005,M-024,31424000,Doña Remedios Trinidad,Kalawakan,15.1296435,121.1044286,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-553,31424006,M-024,31424000,Doña Remedios Trinidad,Pulong Sampalok,14.9694079,121.0831842,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-554,31424007,M-024,31424000,Doña Remedios Trinidad,Talbak,15.0892113,121.0941249,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/
+BRGY-555,31424008,M-024,31424000,Doña Remedios Trinidad,Sapang Bulak,15.0203662,121.1009766,Central,0.5,0.5,0.5,https://psgc.gitlab.io/api/provinces/031400000/barangays/

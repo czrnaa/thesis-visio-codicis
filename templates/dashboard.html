@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    
+    <style>
+        :root { --primary-red: #d90429; --sidebar-bg: #e0e0e0; --header-gray: #ccc; --border-color: #333; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background-color: #f4f4f4; }
+        
+        /* HEADER */
+        .top-bar { background-color: var(--primary-red); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; height: 60px; box-sizing: border-box; }
+        .top-bar h2 { margin: 0; font-size: 1.3rem; font-weight: 600; }
+        .user-profile { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
+        .user-circle { width: 32px; height: 32px; background: #ddd; border-radius: 50%; }
+        
+        /* LAYOUT */
+        .main-container { display: flex; flex: 1; height: calc(100vh - 60px); }
+        .sidebar { width: 260px; background: var(--sidebar-bg); border-right: 1px solid #ccc; display: flex; flex-direction: column; padding-top: 10px; }
+        .nav-item { padding: 15px 25px; color: #333; cursor: pointer; display: flex; align-items: center; gap: 15px; text-decoration: none; font-size: 1rem; font-weight: 500; transition: 0.2s; border-left: 5px solid transparent; }
+        .nav-item:hover { background: #d0d0d0; }
+        .nav-item.active { background: #ccc; border-left-color: #333; font-weight: 700; }
+        .icon { width: 20px; text-align: center; }
+
+        /* CONTENT */
+        .content { 
+            flex: 1; 
+            padding: 15px 25px; 
+            overflow-y: auto; 
+            background: #fff; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px; 
+        }
+
+        /* STATS CARDS */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; flex-shrink: 0; }
+        .stat-card { background: #d9d9d9; border: 1px solid #333; padding: 15px 20px; border-radius: 5px; }
+        .stat-header { font-weight: 600; font-size: 0.95rem; color: #333; margin-bottom: 5px; }
+        .stat-number { font-size: 2.5rem; font-weight: bold; color: #333; line-height: 1; display: block; margin-bottom: 5px; }
+        .stat-desc { font-size: 0.8rem; color: #555; }
+
+        /* TABLE */
+        .table-container { 
+            border: 1px solid #333; 
+            border-radius: 5px; 
+            background: white; 
+            flex: 1; /* Automatically takes all available middle space */
+            min-height: 120px; 
+            overflow-y: auto; 
+            position: relative; 
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        thead th { position: sticky; top: 0; background-color: #d9d9d9; z-index: 2; border-bottom: 1px solid #333; padding: 12px 15px; text-align: left; font-weight: 600; color: #333; }
+        td { padding: 10px 15px; border-bottom: 1px solid #eee; color: #333; }
+        
+        .col-id { width: 15%; } .col-loc { width: 25%; } .col-prio { width: 10%; } .col-stat { width: 15%; } .col-team { width: 15%; } .col-date { width: 20%; }
+
+        /* OVERVIEW SECTION */
+        .overview-container { 
+            border: 1px solid #333; 
+            border-radius: 5px; 
+            background: #fff; 
+            display: flex; 
+            flex-direction: column; 
+            flex-shrink: 0; /* Ensures bottom map won't squish */
+        }
+        .overview-header { background: #d9d9d9; border-bottom: 1px solid #333; padding: 10px; display: flex; justify-content: center; align-items: center; gap: 30px; font-weight: 700; font-size: 1rem; }
+        .nav-arrow { cursor: pointer; font-size: 1.2rem; user-select: none; font-weight: bold; padding: 0 10px; }
+        .nav-arrow:hover { color: var(--primary-red); }
+
+        .overview-body { padding: 15px 20px; display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 25px; }
+        .field-group { margin-bottom: 10px; }
+        .field-label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 3px; }
+        .field-input { width: 100%; padding: 8px; border: 1px solid #333; border-radius: 4px; background: #d9d9d9; font-size: 0.9rem; box-sizing: border-box; }
+        .field-input.white { background: #fff; } 
+        .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+        /* MAP */
+        .map-wrapper { position: relative; width: 100%; height: 160px; } /* Slimmer height */
+        #dashboard-map { width: 100%; height: 100%; border: 1px solid #333; border-radius: 5px; z-index: 1; background: #e0e0e0; }
+        
+        .btn-expand-map { position: absolute; bottom: 10px; right: 10px; width: 30px; height: 30px; background-color: #d94343; color: white; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold; cursor: pointer; z-index: 1000; text-decoration: none; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        .btn-expand-map:hover { background-color: #b00220; transform: scale(1.1); }
+        .leaflet-routing-container { display: none !important; }
+
+        .footer-action { padding: 8px; display: flex; justify-content: center; }
+        .btn-view-more { background: #d94343; color: white; border: none; padding: 8px 40px; border-radius: 20px; font-weight: bold; cursor: pointer; text-decoration: none; font-size: 0.9rem; }
+        .btn-view-more:hover { background: #b00220; }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <h2>Disaster Response Logistics Platform</h2>
+        <div class="user-profile">
+            <span style="font-weight: 600;">{{ user.account_id }}</span>
+            <img src="{{ url_for('static', filename='assets/person_profile.svg') }}" alt="Profile" class="user-circle" style="object-fit: cover; background: white;">
+        </div>
+    </div>
+    
+    <div class="main-container">
+        <div class="sidebar">
+            <a href="/dashboard" class="nav-item active"><span class="icon"></span> Dashboard</a>
+            <a href="/reports" class="nav-item"><span class="icon"></span> Reports</a>
+            {% if user.role != 'Responder' %}
+            <a href="/teams" class="nav-item"><span class="icon"></span> Teams & Resources</a>
+            {% endif %}
+            <a href="/monitor" class="nav-item"><span class="icon"></span> Monitor Routing</a>
+            {% if user.role == 'Programmer' %}
+            <a href="/analytics" class="nav-item"><span class="icon"></span> System Analytics</a>
+            {% endif %}
+            {% if user.role == 'Admin' %}
+            <a href="/manage_users" class="nav-item"><span class="icon"></span> Manage Users</a>
+            {% endif %}
+            <a href="/profile_settings" class="nav-item"><span class="icon"></span> Profile Settings</a>
+        </div>
+        
+        <div class="content">
+            
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-header">Active Reports</div><span class="stat-number">{{ active }}</span><span class="stat-desc">Total ongoing</span></div>
+                <div class="stat-card"><div class="stat-header">Pending Tasks</div><span class="stat-number">{{ pending }}</span><span class="stat-desc">Awaiting action</span></div>
+                <div class="stat-card"><div class="stat-header">Resources Available</div><span class="stat-number">{{ resources }}</span><span class="stat-desc">Teams on stand-by</span></div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="col-id">Task ID</th>
+                            <th class="col-loc">Location</th>
+                            <th class="col-prio">Priority</th>
+                            <th class="col-stat">Status</th>
+                            <th class="col-team">Assigned Team</th>
+                            <th class="col-date">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in reports %} 
+                        <tr>
+                            <td>{{ r.task_id }}</td>
+                            <td>{{ r.location }}</td>
+                            <td>{{ r.severity }}</td>
+                            <td>{{ r.status }}</td>
+                            <td>{{ r.assigned_team if r.assigned_team else '-' }}</td>
+                            <td>{{ r.date_submitted.strftime('%m-%d-%Y') }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" style="text-align: center; padding: 20px;">No active reports.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="overview-container">
+                <div class="overview-header">
+                    <span class="nav-arrow" onclick="prevReport()">&#10094;</span>
+                    <span id="ov-title">No Reports Available</span>
+                    <span class="nav-arrow" onclick="nextReport()">&#10095;</span>
+                </div>
+
+                <div class="overview-body">
+                    <div id="details-panel">
+                        <div class="field-group"><label class="field-label">Location</label><input class="field-input" id="ov-loc" readonly></div>
+                        <div class="row-2">
+                            <div class="field-group"><label class="field-label">Response Type</label><input class="field-input" id="ov-type" readonly></div>
+                            <div class="field-group"><label class="field-label">Severity</label><input class="field-input" id="ov-sev" readonly></div>
+                        </div>
+                        <div class="field-group"><label class="field-label">Required Resources</label><input class="field-input" id="ov-res" readonly></div>
+                        <div class="field-group"><label class="field-label">Constraints</label><input class="field-input" id="ov-con" readonly></div>
+                        <div class="row-2">
+                            <div class="field-group"><label class="field-label">Notes</label><input class="field-input white" id="ov-note" readonly></div>
+                            <div class="field-group"><label class="field-label">Status</label><input class="field-input" id="ov-stat" readonly></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="map-wrapper">
+                            <div id="dashboard-map"></div>
+                            <a href="/monitor" class="btn-expand-map" title="Monitor Full View">+</a>
+                        </div>
+
+                        <div class="row-2" style="margin-top: 15px;">
+                            <div class="field-group"><label class="field-label">Task ID</label><input class="field-input" id="ov-id" readonly></div>
+                            <div class="field-group"><label class="field-label">Distance</label><input class="field-input" id="ov-dist" readonly value="-"></div>
+                        </div>
+                        <div class="row-2">
+                            <div class="field-group"><label class="field-label">Assigned Team</label><input class="field-input" id="ov-team" readonly></div>
+                            <div class="field-group"><label class="field-label">ETA (Est.)</label><input class="field-input" id="ov-eta" readonly value="-"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="footer-action">
+                    <a href="#" id="btn-view-link" class="btn-view-more">View More</a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <script>
+        // --- DATA INJECTION FROM FLASK ---
+        const reports = [];
+
+        /* {% for r in reports %} */
+        reports.push({
+            index: parseInt("{{ loop.index0 }}"),
+            id: "{{ r.task_id }}",
+            loc: "{{ r.location }}",
+            lat: parseFloat("{{ r.lat }}"),
+            lon: parseFloat("{{ r.lon }}"),
+            type: "{{ r.disaster_type }}",
+            sev: "{{ r.severity }}",
+            res: "{{ r.resources }}",
+            con: "{{ r.constraints }}",
+            note: "{{ r.notes }}",
+            stat: "{{ r.status }}",
+            team: "{{ r.assigned_team if r.assigned_team else 'None' }}",
+            full_add: "{{ r.full_address }}",
+            team_lat: parseFloat("{{ r.team_coords.lat if r.team_coords else '' }}"),
+            team_lon: parseFloat("{{ r.team_coords.lon if r.team_coords else '' }}")
+        });
+        /* {% endfor %} */
+
+        let currentIndex = 0;
+        let map, routingControl;
+        let markers = [];
+        const HQ_COORDS = [14.8437, 120.8113]; 
+
+        function initMap() {
+            map = L.map('dashboard-map', {
+                minZoom: 9,  
+                maxZoom: 18
+            }).setView(HQ_COORDS, 11);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        }
+
+        function updateDisplay() {
+            if (reports.length === 0) { document.getElementById('ov-title').innerText = "No Reports Available"; return; }
+            const r = reports[currentIndex];
+            
+            document.getElementById('ov-title').innerText = r.id + " Report Overview";
+            document.getElementById('ov-loc').value = r.full_add || r.loc;
+            document.getElementById('ov-type').value = r.type;
+            document.getElementById('ov-sev').value = r.sev;
+            document.getElementById('ov-res').value = r.res;
+            document.getElementById('ov-con').value = r.con;
+            document.getElementById('ov-note').value = r.note;
+            document.getElementById('ov-stat').value = r.stat;
+            document.getElementById('ov-id').value = r.id;
+            document.getElementById('ov-team').value = r.team;
+            document.getElementById('btn-view-link').href = "/reports?view_id=" + r.index;
+
+            if (routingControl) {
+                map.removeControl(routingControl);
+                routingControl = null;
+            }
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+
+            let targetMarker = L.marker([r.lat, r.lon]).addTo(map).bindPopup("<b>Target:</b> " + r.loc);
+            markers.push(targetMarker);
+            
+            if (r.team !== "None" && !isNaN(r.team_lat)) {
+                routingControl = L.Routing.control({
+                    waypoints: [
+                        L.latLng(r.team_lat, r.team_lon),
+                        L.latLng(r.lat, r.lon)            
+                    ],
+                    routeWhileDragging: false, addWaypoints: false, draggableWaypoints: false, fitSelectedRoutes: true, show: false,
+                    lineOptions: { styles: [{color: 'blue', opacity: 0.7, weight: 5}] },
+                    createMarker: function(i, wp, nWps) {
+                        if (i === 0) return L.circleMarker(wp.latLng, {color: 'green', radius: 8, fillOpacity:1}).bindPopup("<b>Team:</b> " + r.team);
+                        return null;
+                    }
+                }).addTo(map);
+
+                routingControl.on('routesfound', function(e) {
+                    var summary = e.routes[0].summary;
+                    document.getElementById('ov-dist').value = (summary.totalDistance / 1000).toFixed(2) + " km";
+                    var min = Math.round(summary.totalTime / 60);
+                    document.getElementById('ov-eta').value = min < 60 ? min + " mins" : Math.floor(min/60) + " hr " + (min%60) + " mins";
+                });
+            } else {
+                map.setView([r.lat, r.lon], 13);
+                document.getElementById('ov-dist').value = r.team === "None" ? "Pending Team" : "Locating Team...";
+                document.getElementById('ov-eta').value = "-";
+            }
+        }
+
+        function nextReport() { if (reports.length > 0) { currentIndex = (currentIndex + 1) % reports.length; updateDisplay(); } }
+        function prevReport() { if (reports.length > 0) { currentIndex = (currentIndex - 1 + reports.length) % reports.length; updateDisplay(); } }
+
+        window.onload = function() {
+            if(reports.length > 0) {
+                initMap();
+                updateDisplay();
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Field Responder App</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; }
+        body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#f4f7f6; color:#333; overflow:hidden; height:100vh; display:flex; flex-direction:column; }
+        .app-header { background:#d90429; color:white; padding:14px 18px; font-weight:700; font-size:1.05rem; box-shadow:0 2px 5px rgba(0,0,0,0.2); z-index:1000; display:flex; justify-content:space-between; align-items:center; flex-shrink:0; }
+        .status-badge { background:#28a745; font-size:0.7em; padding:3px 8px; border-radius:12px; font-weight:normal; }
+        #en-route-banner { display:none; background:#d90429; color:white; text-align:center; padding:9px; font-weight:700; font-size:0.9rem; letter-spacing:0.5px; flex-shrink:0; animation:pulse-bg 2s infinite; }
+        @keyframes pulse-bg { 0%,100%{background:#d90429;}50%{background:#a50020;} }
+        .main-content { flex:1; overflow-y:auto; position:relative; }
+        #view-list { padding:12px; padding-bottom:80px; }
+        #view-map { height:100%; width:100%; display:none; }
+        #map { height:100%; width:100%; }
+        .task-card { background:white; border-radius:12px; padding:15px; margin-bottom:14px; box-shadow:0 2px 8px rgba(0,0,0,0.08); border-left:5px solid #ccc; cursor:pointer; transition:transform 0.15s; }
+        .task-card:active { transform:scale(0.98); }
+        .task-card.priority-High   { border-left-color:#d90429; }
+        .task-card.priority-Medium { border-left-color:#ffc107; }
+        .task-card.priority-Low    { border-left-color:#28a745; }
+        .task-card.en-route-card   { border-left-color:#d90429; box-shadow:0 0 0 2px rgba(217,4,41,0.25); }
+        .task-header { display:flex; justify-content:space-between; margin-bottom:5px; }
+        .task-id   { font-weight:bold; color:#555; font-size:0.88em; }
+        .task-time { font-size:0.78em; color:#888; }
+        .task-title { font-size:1.05rem; font-weight:bold; margin:4px 0; color:#333; }
+        .task-loc   { font-size:0.9rem; color:#666; margin-bottom:10px; display:flex; align-items:flex-start; gap:5px; }
+        .en-route-tag { color:#d90429; font-weight:700; font-size:0.82em; }
+        .bottom-nav { background:white; border-top:1px solid #ddd; height:60px; display:flex; justify-content:space-around; align-items:center; z-index:1000; box-shadow:0 -2px 10px rgba(0,0,0,0.05); flex-shrink:0; }
+        .nav-btn { background:none; border:none; color:#888; font-size:0.78em; display:flex; flex-direction:column; align-items:center; gap:3px; width:100%; height:100%; justify-content:center; cursor:pointer; }
+        .nav-btn i { font-size:1.35rem; }
+        .nav-btn.active { color:#d90429; font-weight:bold; }
+        .modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; display:none; align-items:flex-end; }
+        .modal-sheet   { background:white; width:100%; border-radius:20px 20px 0 0; padding:24px; animation:slideUp 0.28s ease-out; max-height:85vh; overflow-y:auto; }
+        @keyframes slideUp { from{transform:translateY(100%);}to{transform:translateY(0);} }
+        .sheet-handle { width:40px; height:5px; background:#ddd; border-radius:5px; margin:0 auto 18px; }
+        .sheet-title   { font-size:1.25rem; font-weight:bold; margin-bottom:12px; }
+        .sheet-detail  { margin-bottom:14px; font-size:0.95rem; color:#555; }
+        .sheet-detail strong { display:block; font-size:0.78em; text-transform:uppercase; color:#999; margin-bottom:3px; }
+        .btn-grid { display:grid; gap:10px; margin-top:6px; }
+        .btn-action { border:none; width:100%; padding:13px; border-radius:10px; font-weight:700; font-size:1rem; cursor:pointer; color:white; transition:opacity 0.15s; }
+        .btn-action:active { opacity:0.82; }
+        .btn-start   { background:#28a745; }
+        .btn-end     { background:#d90429; animation:pulse-btn 1.4s infinite; }
+        @keyframes pulse-btn { 0%,100%{box-shadow:0 0 0 0 rgba(217,4,41,0.45);}60%{box-shadow:0 0 0 9px rgba(217,4,41,0);} }
+        .btn-resolve { background:#28a745; }
+        .btn-close   { background:#f1f1f1; color:#444; }
+        .empty-state { text-align:center; padding-top:90px; color:#bbb; }
+        .empty-state i { font-size:3rem; margin-bottom:14px; display:block; }
+    </style>
+</head>
+<body>
+    <div class="app-header">
+        <i class="fas fa-bars"></i>
+        <span>Field Responder Unit</span>
+        <span class="status-badge">ONLINE</span>
+    </div>
+
+    <div id="en-route-banner">🚨 EN ROUTE — Task in progress</div>
+
+    <div class="main-content">
+        <div id="view-list">
+            <div id="task-container">
+                <div class="empty-state"><i class="fas fa-check-circle"></i>No active tasks</div>
+            </div>
+        </div>
+        <div id="view-map"><div id="map"></div></div>
+    </div>
+
+    <div class="bottom-nav">
+        <button class="nav-btn active" id="nav-tasks" onclick="switchTab('list',this)"><i class="fas fa-list-ul"></i>Tasks</button>
+        <button class="nav-btn" id="nav-map" onclick="switchTab('map',this)"><i class="fas fa-map-marked-alt"></i>Map</button>
+        <button class="nav-btn"><i class="fas fa-user"></i>Profile</button>
+    </div>
+
+    <div id="detail-modal" class="modal-overlay" onclick="handleOverlayClick(event)">
+        <div class="modal-sheet" onclick="event.stopPropagation()">
+            <div class="sheet-handle"></div>
+            <div class="sheet-title" id="m-title">Task Details</div>
+            <div class="sheet-detail"><strong>Location</strong><span id="m-loc">—</span></div>
+            <div class="sheet-detail"><strong>Incident Type</strong><span id="m-type">—</span></div>
+            <div class="sheet-detail"><strong>Situation / Notes</strong><span id="m-notes">—</span></div>
+            <div class="sheet-detail"><strong>Requirements</strong><span id="m-res">—</span></div>
+            <div class="btn-grid">
+                <button class="btn-action btn-start" id="btn-route-toggle" onclick="toggleRoute()">▶ Start Route</button>
+                <button class="btn-action btn-resolve" onclick="markResolved()">✅ Mark Resolved</button>
+                <button class="btn-action btn-close" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        var currentReports = [];
+        var selectedIndex  = null;
+        var mapInitialized = false;
+        var leafletMap;
+        var enRouteTasks   = {};
+
+        function fetchReports() {
+            fetch('/responder_data')
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    currentReports = data;
+                    renderList();
+                    if (mapInitialized) renderMapMarkers();
+                })
+                .catch(function(e) { console.error('Fetch error', e); });
+        }
+
+        function renderList() {
+            var container = document.getElementById('task-container');
+            container.innerHTML = '';
+            if (!currentReports.length) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-check-circle"></i>All clear. No active tasks.</div>';
+                return;
+            }
+            currentReports.forEach(function(r, idx) {
+                var isEnRoute = !!enRouteTasks[r.task_id];
+                var priority  = (r.severity === 'Critical' || r.severity === 'High') ? 'priority-High' : 'priority-Medium';
+                var card = document.createElement('div');
+                card.className = 'task-card ' + priority + (isEnRoute ? ' en-route-card' : '');
+                card.setAttribute('onclick', 'openModal(' + idx + ')');
+                card.innerHTML =
+                    '<div class="task-header">' +
+                        '<span class="task-id">' + r.task_id + '</span>' +
+                        '<span class="task-time">' + (isEnRoute ? '<span class="en-route-tag">🚨 En Route</span>' : r.status) + '</span>' +
+                    '</div>' +
+                    '<div class="task-title">' + r.disaster_type + ' — ' + r.severity + '</div>' +
+                    '<div class="task-loc"><i class="fas fa-map-marker-alt" style="margin-top:3px;color:#d90429;"></i> ' + r.location + '</div>' +
+                    '<div style="font-size:0.85rem;padding:8px 10px;background:#f8f8f8;border-radius:6px;color:#555;">Tap for details</div>';
+                container.appendChild(card);
+            });
+        }
+
+        function initMap() {
+            if (mapInitialized) return;
+            leafletMap = L.map('map', { zoomControl: true }).setView([15.00, 121.00], 10);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(leafletMap);
+            mapInitialized = true;
+            renderMapMarkers();
+        }
+
+        function renderMapMarkers() {
+            leafletMap.eachLayer(function(layer) { if (layer instanceof L.Marker) leafletMap.removeLayer(layer); });
+            currentReports.forEach(function(r, idx) {
+                L.marker([r.lat, r.lon]).addTo(leafletMap)
+                    .bindPopup('<b>' + r.task_id + '</b><br>' + r.location)
+                    .on('click', function() { openModal(idx); });
+            });
+        }
+
+        function switchTab(tab, btn) {
+            document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            if (tab === 'list') {
+                document.getElementById('view-list').style.display = 'block';
+                document.getElementById('view-map').style.display  = 'none';
+            } else {
+                document.getElementById('view-list').style.display = 'none';
+                document.getElementById('view-map').style.display  = 'block';
+                setTimeout(initMap, 80);
+            }
+        }
+
+        function openModal(idx) {
+            selectedIndex = idx;
+            var r = currentReports[idx];
+            document.getElementById('m-title').textContent = r.task_id + ': ' + r.disaster_type;
+            document.getElementById('m-loc').textContent   = r.location;
+            document.getElementById('m-type').textContent  = r.disaster_type;
+            document.getElementById('m-notes').textContent = r.notes     || 'No additional notes.';
+            document.getElementById('m-res').textContent   = r.resources || 'Standard response.';
+            syncRouteButton(r.task_id);
+            document.getElementById('detail-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('detail-modal').style.display = 'none';
+        }
+
+        function handleOverlayClick(e) {
+            if (e.target.id === 'detail-modal') closeModal();
+        }
+
+        function syncRouteButton(taskId) {
+            var btn = document.getElementById('btn-route-toggle');
+            var r = currentReports[selectedIndex];
+            var status = (r.status || '').toLowerCase();
+
+            // ── DONE state: grey, disabled ──
+            // Also check enRouteTasks[taskId] === false (explicitly ended this session) so a
+            // stale "En Route" server response cannot re-enable the button before the DB write
+            // propagates to the next poll.
+            if (status.indexOf('waiting') !== -1 || status.indexOf('resolved') !== -1 || enRouteTasks[taskId] === false) {
+                btn.textContent = 'Task Completed';
+                btn.className = 'btn-action';
+                btn.style.background = '#95a5a6';
+                btn.style.cursor = 'not-allowed';
+                btn.disabled = true;
+                return;
+            }
+
+            // Reset styles for active tasks
+            btn.style.background = '';
+            btn.style.cursor = 'pointer';
+            btn.disabled = false;
+
+            if (enRouteTasks[taskId]) {
+                btn.textContent = 'End Task';
+                btn.className   = 'btn-action btn-end';
+            } else {
+                btn.textContent = 'Start Route';
+                btn.className   = 'btn-action btn-start';
+            }
+        }
+
+        function toggleRoute() {
+            if (selectedIndex === null) return;
+            var r = currentReports[selectedIndex];
+            
+            // Prevent clicks if completed
+            var status = (r.status || '').toLowerCase();
+            if (status.indexOf('waiting') !== -1 || status.indexOf('resolved') !== -1) return;
+
+            if (!enRouteTasks[r.task_id]) {
+                enRouteTasks[r.task_id] = true;
+                syncRouteButton(r.task_id);
+                document.getElementById('en-route-banner').style.display = 'block';
+                fetch('/update_status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task_id: r.task_id, status: 'En Route' })
+                });
+                if (mapInitialized) {
+                    leafletMap.flyTo([r.lat, r.lon], 15, { animate: true, duration: 1.2 });
+                }
+                renderList();
+            } else {
+                if (!confirm('End task for ' + r.task_id + '?\nThis will notify the operator to update the report status.')) return;
+                enRouteTasks[r.task_id] = false;
+                syncRouteButton(r.task_id);
+                fetch('/update_status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task_id: r.task_id, status: 'Waiting for Approval' })
+                });
+                var anyActive = Object.values(enRouteTasks).some(function(v) { return v; });
+                if (!anyActive) document.getElementById('en-route-banner').style.display = 'none';
+                renderList();
+                closeModal();
+            }
+        }
+
+        function markResolved() {
+            if (!confirm('Mark this task as RESOLVED?')) return;
+            var r = currentReports[selectedIndex];
+            fetch('/update_status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ task_id: r.task_id, status: 'Resolved' })
+            }).then(function() { closeModal(); fetchReports(); });
+        }
+
+        setInterval(fetchReports, 4000);
+        fetchReports();
+
+        function updateGPS() {
+            if (!navigator.geolocation) return;
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                fetch('/api/update_location', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lat: pos.coords.latitude, lon: pos.coords.longitude })
+                }).catch(function(err) { console.error('GPS sync failed', err); });
+            }, function() {}, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
+        }
+        setInterval(updateGPS, 15000);
+        updateGPS();
+    </script>
+</body>
+</html>

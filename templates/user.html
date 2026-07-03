@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create Report</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root { --primary-red: #d90429; --sidebar-bg: #e0e0e0; --input-bg: #fff; --border-color: #333; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background-color: #f4f4f4; }
+        
+        /* HEADER */
+        .top-bar { background-color: var(--primary-red); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; height: 60px; box-sizing: border-box; }
+        .top-bar h2 { margin: 0; font-size: 1.3rem; font-weight: 600; }
+        .user-profile { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
+        .user-circle { width: 32px; height: 32px; background: #ddd; border-radius: 50%; }
+        
+        /* LAYOUT */
+        .main-container { display: flex; flex: 1; height: calc(100vh - 60px); }
+        .sidebar { width: 260px; background: var(--sidebar-bg); border-right: 1px solid #ccc; display: flex; flex-direction: column; padding-top: 10px; }
+        .nav-item { padding: 15px 25px; color: #333; cursor: pointer; display: flex; align-items: center; gap: 15px; text-decoration: none; font-size: 1rem; font-weight: 500; transition: 0.2s; border-left: 5px solid transparent; }
+        .nav-item:hover { background: #d0d0d0; }
+        .nav-item.active { background: #ccc; border-left-color: #333; font-weight: 700; }
+        .icon { width: 20px; text-align: center; }
+
+        /* CONTENT & FORM */
+        .content { flex: 1; padding: 30px; overflow-y: auto; background: #fff; }
+        .form-container { border: 1px solid #333; border-radius: 5px; background: #fff; max-width: 1200px; margin: 0 auto; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        
+        /* UPDATED HEADER BAR WITH CLOSE BUTTON */
+        .form-header-bar { 
+            background: #d9d9d9; 
+            padding: 12px 20px; 
+            border-bottom: 1px solid #333; 
+            font-weight: 700; 
+            color: #333; 
+            font-size: 1.1rem; 
+            border-radius: 5px 5px 0 0; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+
+        .close-btn {
+            text-decoration: none;
+            color: #333;
+            font-size: 1.5rem;
+            line-height: 1;
+            cursor: pointer;
+            font-weight: bold;
+            transition: color 0.2s;
+        }
+        .close-btn:hover {
+            color: var(--primary-red);
+        }
+
+        .form-body { padding: 25px; display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 40px; }
+        
+        /* GENERAL INPUTS */
+        label { display: block; font-size: 0.85rem; font-weight: 600; color: #333; margin-bottom: 5px; }
+        input[type="text"], select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 5px; font-size: 0.9rem; background: #e0e0e0; box-sizing: border-box; color: #333; margin-bottom: 0; }
+        input[type="text"]:focus, select:focus, textarea:focus { outline: 1px solid var(--primary-red); background: #fff; }
+        input[readonly] { background: #ccc; cursor: default; }
+        input.locked-input { background: #d0d0d0; color: #555; cursor: not-allowed; font-weight: bold; }
+
+        .form-group { margin-bottom: 15px; position: relative; }
+        .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+
+        /* LOCATION BOX */
+        .location-container {
+            background-color: #d9d9d9;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .location-container select, 
+        .location-container input:not(.locked-input), 
+        .location-container textarea {
+            background-color: #fff !important;
+            border: 1px solid #333;
+            border-radius: 5px;
+        }
+
+        /* AUTO-SUGGESTION DROPDOWN STYLE */
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0; 
+            right: 0;
+            background: white;
+            border: 1px solid #333;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            z-index: 1000;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .search-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 0.9rem; color: #333; }
+        .search-item:hover { background-color: #f1f1f1; color: var(--primary-red); font-weight: 500; }
+        .search-item strong { display: block; }
+        .search-item small { color: #666; font-size: 0.8em; }
+
+        /* MULTISELECT STYLE - FIXED ALIGNMENT HERE */
+        .multiselect { position: relative; }
+        .select-box { 
+            position: relative; 
+            display: block; 
+            width: 100%; 
+            padding: 10px; 
+            border: 1px solid #333; 
+            border-radius: 5px; 
+            font-size: 0.9rem; 
+            background: #e0e0e0; 
+            cursor: pointer; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            box-sizing: border-box; /* THIS FIXES THE ALIGNMENT ISSUE */
+        }
+        .checkboxes { display: none; position: absolute; background-color: white; border: 1px solid #333; border-radius: 5px; width: 100%; max-height: 350px; overflow-y: auto; z-index: 1000; margin-top: 5px; }
+        .checkboxes label { display: flex; align-items: center; padding: 8px 10px; cursor: pointer; border-bottom: 1px solid #eee; margin: 0; font-weight: normal; gap: 8px; }
+        .checkboxes label:hover { background-color: #f1f1f1; }
+        .qty-controls { display: none; align-items: center; gap: 6px; margin-left: auto; }
+        .qty-controls.active { display: flex; }
+        .qty-btn { width: 26px; height: 26px; border: 1px solid #333; border-radius: 4px; background: #e0e0e0; font-size: 1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; color: #333; user-select: none; }
+        .qty-btn:hover { background: #ccc; }
+        .qty-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .qty-val { min-width: 20px; text-align: center; font-weight: 700; font-size: 0.9rem; }
+
+        .btn-submit { background: #d94343; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; cursor: pointer; float: right; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
+        .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
+        #mini-map { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <h2>Disaster Response Logistics Platform</h2>
+        <div class="user-profile">
+            <span style="font-weight: 600;">{{ user.account_id }}</span>
+            <img src="{{ url_for('static', filename='assets/person_profile.svg') }}" alt="Profile" class="user-circle" style="object-fit: cover; background: white;">
+        </div>
+    </div>
+    
+    <div class="main-container">
+        <div class="sidebar">
+            <a href="/dashboard" class="nav-item"><span class="icon"></span> Dashboard</a>
+            <a href="/reports" class="nav-item active"><span class="icon"></span> Reports</a>
+            <a href="/teams" class="nav-item"><span class="icon"></span> Teams & Resources</a>
+            <a href="/monitor" class="nav-item"><span class="icon"></span> Monitor Routing</a>
+            <a href="/profile_settings" class="nav-item"><span class="icon"></span> Profile Settings</a>
+        </div>
+        
+        <div class="content">
+            <div class="form-container">
+                <div class="form-header-bar">
+                    <span>Report Form</span>
+                    <a href="/reports" class="close-btn" title="Cancel">&times;</a>
+                </div>
+                
+                <form action="/submit_report" method="POST">
+                    <div class="form-body">
+                        
+                        <div class="left-col">
+                            <div class="row-2">
+                                <div class="form-group"><label>Task ID</label><input type="text" name="task_id" value="{{ task_id }}" readonly></div>
+                                <div class="form-group"><label>Incident Type*</label>
+                                    <select id="incident_type_select" name="disaster_type" required onchange="updateResponseTypes()">
+                                        <option value="">-- Select an option --</option>
+                                        <option value="Relief Goods Distribution">Relief Goods Distribution</option><option value="Emergency Logistics Prepositioning">Emergency Logistics Prepositioning</option><option value="Mobile Financial Assistance Payouts">Mobile Financial Assistance Payouts</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group"><label>Severity Level*</label>
+                                <select name="severity" required>
+                                    <option value="">-- Select an option --</option><option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option><option value="Critical">Critical</option>
+                                </select>
+                            </div>
+
+                            <div class="row-2">
+                                <div class="form-group"><label>Response Type*</label>
+                                    <select id="response_type_select" name="response_type" required>
+                                        <option value="">-- Select Incident Type first --</option>
+                                    </select>
+                                </div>
+                                <div class="form-group"><label>Estimated Number of People Affected*</label>
+                                    <select name="affected">
+                                        <option value="">-- Select that applies --</option><option value="1-10">1-10</option><option value="11-50">11-50</option><option value="50-100">50-100</option><option value="100+">100+</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group"><label>Required Resources*</label>
+                                <div class="multiselect">
+                                    <div class="select-box" onclick="toggleCheckbox('resources_list', 'res_display')"><span id="res_display">-- Select that applies --</span></div>
+                                    <div id="resources_list" class="checkboxes">
+                                        <label><input type="checkbox" data-vehicle="Food Trucks" onchange="onVehicleToggle(this)"> <span>Food Trucks</span>
+                                            <span class="qty-controls" data-for="Food Trucks"><button type="button" class="qty-btn" onclick="changeQty(this,-1)" disabled>−</button><span class="qty-val">1</span><button type="button" class="qty-btn" onclick="changeQty(this,1)">+</button></span>
+                                        </label>
+                                        <label><input type="checkbox" data-vehicle="Cargo Truck" onchange="onVehicleToggle(this)"> <span>Cargo Truck</span>
+                                            <span class="qty-controls" data-for="Cargo Truck"><button type="button" class="qty-btn" onclick="changeQty(this,-1)" disabled>−</button><span class="qty-val">1</span><button type="button" class="qty-btn" onclick="changeQty(this,1)">+</button></span>
+                                        </label>
+                                        <label><input type="checkbox" data-vehicle="Ambulances" onchange="onVehicleToggle(this)"> <span>Ambulances</span>
+                                            <span class="qty-controls" data-for="Ambulances"><button type="button" class="qty-btn" onclick="changeQty(this,-1)" disabled>−</button><span class="qty-val">1</span><button type="button" class="qty-btn" onclick="changeQty(this,1)">+</button></span>
+                                        </label>
+                                        <label><input type="checkbox" data-vehicle="Vans" onchange="onVehicleToggle(this)"> <span>Vans</span>
+                                            <span class="qty-controls" data-for="Vans"><button type="button" class="qty-btn" onclick="changeQty(this,-1)" disabled>−</button><span class="qty-val">1</span><button type="button" class="qty-btn" onclick="changeQty(this,1)">+</button></span>
+                                        </label>
+                                        <label><input type="checkbox" data-vehicle="MPVs/Sedans" onchange="onVehicleToggle(this)"> <span>Multi-Purpose Vehicles (MPVs) / Sedans</span>
+                                            <span class="qty-controls" data-for="MPVs/Sedans"><button type="button" class="qty-btn" onclick="changeQty(this,-1)" disabled>−</button><span class="qty-val">1</span><button type="button" class="qty-btn" onclick="changeQty(this,1)">+</button></span>
+                                        </label>
+                                    </div>
+                                    <input type="hidden" name="resources" id="resources_hidden" value="">
+                                </div>
+                            </div>
+
+                            <div class="form-group"><label>Notes</label><textarea name="notes" rows="6" placeholder="Your text here..."></textarea></div>
+                        </div>
+
+                        <div class="right-col">
+                            <div class="row-3">
+                                <div class="form-group"><label>Date</label><input type="text" name="date" value="{{ auto_date }}" readonly></div>
+                                <div class="form-group"><label>Day</label><input type="text" name="day" value="{{ auto_day }}" readonly></div>
+                                <div class="form-group"><label>Time</label><input type="text" name="time" value="{{ auto_time }}" readonly></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Location*</label>
+                                <div class="location-container">
+                                    
+                                    <div class="form-group">
+                                        <input type="text" value="Central Luzon (Region III) - Bulacan" readonly class="locked-input">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <select id="municipality_select" name="municipality_code" required onchange="loadBarangays()">
+                                            <option value="">-- Select Municipality / City --</option>
+                                            {% for m in municipalities %}
+                                            <option value="{{ m.municipality_code }}" data-name="{{ m.municipality }}">{{ m.municipality }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <select id="barangay_select" name="barangay_id" required disabled onchange="selectBarangay()">
+                                            <option value="">-- Select Barangay --</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group" style="position: relative;">
+                                        <input type="text" id="address_input" name="address" placeholder="Select barangay first..." disabled autocomplete="off" onkeyup="searchRestrictedLocation()">
+                                        <div id="search_results" class="search-results"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <textarea name="landmark" rows="2" placeholder="Landmark"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="submitBtn" class="btn-submit" disabled><span>⬆</span> Submit Report</button>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" id="lat" name="lat">
+                    <input type="hidden" id="lon" name="lon">
+                    <input type="hidden" id="municipality_name" name="municipality">
+                    <input type="hidden" id="barangay_name" name="barangay_name">
+                    <div id="mini-map"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map = L.map('mini-map').setView([14.85, 120.81], 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+        let marker = null;
+        let searchTimeout = null;
+
+        function setReportPoint(lat, lon, label) {
+            document.getElementById('lat').value = lat;
+            document.getElementById('lon').value = lon;
+            document.getElementById('submitBtn').disabled = false;
+            if (marker) map.removeLayer(marker);
+            marker = L.marker([lat, lon]).addTo(map).bindPopup(label || 'Selected barangay').openPopup();
+            map.setView([lat, lon], 14);
+        }
+
+        function loadBarangays() {
+            const municipalitySelect = document.getElementById('municipality_select');
+            const selectedOption = municipalitySelect.options[municipalitySelect.selectedIndex];
+            const municipalityCode = municipalitySelect.value;
+            const municipalityName = selectedOption ? selectedOption.getAttribute('data-name') || '' : '';
+            const barangaySelect = document.getElementById('barangay_select');
+            const input = document.getElementById('address_input');
+
+            document.getElementById('municipality_name').value = municipalityName;
+            document.getElementById('barangay_name').value = '';
+            document.getElementById('lat').value = '';
+            document.getElementById('lon').value = '';
+            document.getElementById('submitBtn').disabled = true;
+            barangaySelect.innerHTML = '<option value="">-- Select Barangay --</option>';
+            barangaySelect.disabled = true;
+            input.disabled = true;
+            input.value = '';
+            input.placeholder = 'Select barangay first...';
+            if (marker) { map.removeLayer(marker); marker = null; }
+
+            if (!municipalityCode) return;
+
+            fetch(`/api/barangays?municipality_code=${encodeURIComponent(municipalityCode)}`)
+                .then(res => res.json())
+                .then(rows => {
+                    rows.forEach(row => {
+                        const option = document.createElement('option');
+                        option.value = row.barangay_id;
+                        option.textContent = row.barangay;
+                        option.dataset.name = row.barangay;
+                        option.dataset.lat = row.lat;
+                        option.dataset.lon = row.lon;
+                        option.dataset.label = row.label;
+                        barangaySelect.appendChild(option);
+                    });
+                    barangaySelect.disabled = false;
+                })
+                .catch(() => {
+                    barangaySelect.innerHTML = '<option value="">Unable to load barangays</option>';
+                });
+        }
+
+        function selectBarangay() {
+            const municipalityName = document.getElementById('municipality_name').value;
+            const barangaySelect = document.getElementById('barangay_select');
+            const selectedOption = barangaySelect.options[barangaySelect.selectedIndex];
+            const input = document.getElementById('address_input');
+
+            if (!barangaySelect.value || !selectedOption) {
+                document.getElementById('barangay_name').value = '';
+                document.getElementById('lat').value = '';
+                document.getElementById('lon').value = '';
+                document.getElementById('submitBtn').disabled = true;
+                input.disabled = true;
+                input.placeholder = 'Select barangay first...';
+                return;
+            }
+
+            const barangayName = selectedOption.dataset.name || selectedOption.textContent;
+            const label = selectedOption.dataset.label || `${barangayName}, ${municipalityName}`;
+            document.getElementById('barangay_name').value = barangayName;
+            input.disabled = false;
+            input.placeholder = `Search street in ${label} (optional)...`;
+            setReportPoint(parseFloat(selectedOption.dataset.lat), parseFloat(selectedOption.dataset.lon), label);
+        }
+
+        // --- DROPDOWN AUTOSUGGESTION LOGIC ---
+        function searchRestrictedLocation() {
+            let city = document.getElementById('municipality_name').value;
+            let barangay = document.getElementById('barangay_name').value;
+            let street = document.getElementById('address_input').value;
+            let resultsDiv = document.getElementById('search_results');
+
+            if (street.length < 3) { resultsDiv.style.display = 'none'; return; }
+
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                let query = `${street}, ${barangay}, ${city}, Bulacan`;
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=5`)
+                    .then(res => res.json())
+                    .then(data => {
+                        resultsDiv.innerHTML = "";
+                        if (data.length === 0) { resultsDiv.style.display = 'none'; return; }
+                        
+                        data.forEach(place => {
+                            let item = document.createElement('div');
+                            item.className = 'search-item';
+                            // Format: "Viola Street" (Bold) then full address (Small)
+                            let displayName = place.display_name.split(",")[0]; 
+                            item.innerHTML = `<strong>${displayName}</strong><small>${place.display_name}</small>`;
+                            
+                            item.onclick = function() { selectLocation(place, displayName); };
+                            resultsDiv.appendChild(item);
+                        });
+                        resultsDiv.style.display = 'block';
+                    });
+            }, 500);
+        }
+
+        function selectLocation(place, simpleName) {
+            document.getElementById('address_input').value = simpleName;
+            document.getElementById('search_results').style.display = 'none';
+        }
+
+        function toggleCheckbox(listId, displayId) {
+            let checkboxes = document.getElementById(listId);
+            let isVisible = checkboxes.style.display === "block";
+            document.querySelectorAll('.checkboxes').forEach(el => el.style.display = 'none');
+            if (!isVisible) checkboxes.style.display = "block";
+        }
+
+        function updateDisplay(listId, displayId) {
+            let container = document.getElementById(listId);
+            let inputs = container.querySelectorAll('input[type="checkbox"]');
+            let selected = [];
+            for (let i = 0; i < inputs.length; i++) {
+                if (inputs[i].checked) {
+                    let vehicle = inputs[i].getAttribute('data-vehicle');
+                    if (vehicle) {
+                        let qtyEl = container.querySelector('.qty-controls[data-for="' + vehicle + '"] .qty-val');
+                        let qty = qtyEl ? parseInt(qtyEl.textContent) : 1;
+                        selected.push(vehicle + ' x' + qty);
+                    } else {
+                        selected.push(inputs[i].parentElement.innerText.trim());
+                    }
+                }
+            }
+            document.getElementById(displayId).innerText = selected.length > 0 ? selected.join(", ") : "-- Select that applies --";
+            // Update hidden field for form submission
+            let hidden = document.getElementById('resources_hidden');
+            if (hidden) hidden.value = selected.join(', ');
+        }
+
+        function onVehicleToggle(cb) {
+            let vehicle = cb.getAttribute('data-vehicle');
+            let container = cb.closest('.checkboxes');
+            let qtyCtrl = container.querySelector('.qty-controls[data-for="' + vehicle + '"]');
+            if (cb.checked) {
+                qtyCtrl.classList.add('active');
+                // Reset to 1 when first checked
+                qtyCtrl.querySelector('.qty-val').textContent = '1';
+                let btns = qtyCtrl.querySelectorAll('.qty-btn');
+                btns[0].disabled = true;   // − disabled at 1
+                btns[1].disabled = false;  // + enabled
+            } else {
+                qtyCtrl.classList.remove('active');
+                qtyCtrl.querySelector('.qty-val').textContent = '1';
+            }
+            updateDisplay('resources_list', 'res_display');
+        }
+
+        function changeQty(btn, delta) {
+            event.preventDefault();
+            event.stopPropagation();
+            let qtyCtrl = btn.closest('.qty-controls');
+            let valEl = qtyCtrl.querySelector('.qty-val');
+            let cur = parseInt(valEl.textContent);
+            let next = Math.max(0, Math.min(10, cur + delta));
+            valEl.textContent = next;
+            let btns = qtyCtrl.querySelectorAll('.qty-btn');
+            btns[0].disabled = (next <= 0);  // − button
+            btns[1].disabled = (next >= 10); // + button
+            // If quantity drops to 0, uncheck the vehicle
+            if (next === 0) {
+                let vehicle = qtyCtrl.getAttribute('data-for');
+                let cb = qtyCtrl.closest('.checkboxes').querySelector('input[data-vehicle="' + vehicle + '"]');
+                if (cb) { cb.checked = false; qtyCtrl.classList.remove('active'); }
+            }
+            updateDisplay('resources_list', 'res_display');
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.multiselect')) document.querySelectorAll('.checkboxes').forEach(el => el.style.display = 'none');
+            if (!e.target.closest('#address_input') && !e.target.closest('.search-results')) document.getElementById('search_results').style.display = 'none';
+        });
+
+        // --- DYNAMIC RESPONSE TYPE LOGIC ---
+        const RESPONSE_TYPE_MAP = {
+            "Relief Goods Distribution": [
+                "Food Items (FFPs & RTEF)",
+                "Non-Food Items (NFIs)"
+            ],
+            "Emergency Logistics Prepositioning": [
+                "Bulk Food Items",
+                "Bulk Non-Food Items (NFIs)",
+                "Mobile Storage Units",
+                "Staging Area Equipment"
+            ],
+            "Mobile Financial Assistance Payouts": [
+                "Emergency Cash Transfer (ECT) Disbursements",
+                "Assistance to Individuals in Crisis Situation (AICS) Cash Aid",
+                "Mobile Command Systems/Tents for Payouts"
+            ]
+        };
+
+        function updateResponseTypes(preserveValue) {
+            const incidentType = document.getElementById('incident_type_select').value;
+            const responseSelect = document.getElementById('response_type_select');
+            const options = RESPONSE_TYPE_MAP[incidentType] || [];
+            responseSelect.innerHTML = '<option value="">-- Select an option --</option>';
+            options.forEach(function(opt) {
+                const el = document.createElement('option');
+                el.value = opt;
+                el.textContent = opt;
+                if (preserveValue && opt === preserveValue) el.selected = true;
+                responseSelect.appendChild(el);
+            });
+        }
+    </script>
+</body>
+</html>

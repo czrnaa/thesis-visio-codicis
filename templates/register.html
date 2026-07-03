@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register User</title>
+    <style>
+        :root { --primary-red: #d90429; --sidebar-bg: #e0e0e0; --border-color: #333; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background-color: #f4f4f4; }
+        
+        /* --- LAYOUT & SIDEBAR (Your Original Styles) --- */
+        .top-bar { background-color: var(--primary-red); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; height: 60px; box-sizing: border-box; }
+        .top-bar h2 { margin: 0; font-size: 1.3rem; font-weight: 600; }
+        .user-profile { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
+        .user-circle { width: 32px; height: 32px; background: #ddd; border-radius: 50%; }
+        
+        .main-container { display: flex; flex: 1; height: calc(100vh - 60px); }
+        .sidebar { width: 260px; background: var(--sidebar-bg); border-right: 1px solid #ccc; display: flex; flex-direction: column; padding-top: 10px; }
+        .nav-item { padding: 15px 25px; color: #333; cursor: pointer; display: flex; align-items: center; gap: 15px; text-decoration: none; font-size: 1rem; font-weight: 500; transition: 0.2s; border-left: 5px solid transparent; }
+        .nav-item:hover { background: #d0d0d0; }
+        .nav-item.active { background: #ccc; border-left-color: #333; font-weight: 700; }
+        .icon { width: 20px; text-align: center; }
+
+        .content { flex: 1; padding: 40px; overflow-y: auto; background: #fff; display: flex; justify-content: center; }
+
+        /* --- FORM CARD STYLES --- */
+        .form-card {
+            background: #fff;
+            border: 1px solid #333;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 500px;
+            padding: 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+
+        .card-header {
+            background: #d9d9d9;
+            padding: 15px 20px;
+            border-bottom: 1px solid #333;
+            font-weight: 700;
+            font-size: 1.1rem;
+            display: flex; justify-content: space-between; align-items: center;
+            border-radius: 7px 7px 0 0;
+        }
+
+        .card-body { padding: 30px; }
+
+        .form-group { margin-bottom: 20px; position: relative; } /* Relative for dropdown positioning */
+        .form-group label { display: block; font-weight: 600; margin-bottom: 8px; color: #333; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 10px; border: 1px solid #333; border-radius: 4px;
+            background: #f9f9f9; font-size: 0.95rem; box-sizing: border-box;
+        }
+        
+        #generated_id { background-color: #e0e0e0; font-weight: bold; color: #555; cursor: not-allowed; }
+
+        .btn-submit {
+            width: 100%; background: #27ae60; color: white; border: none; padding: 12px;
+            border-radius: 5px; font-weight: bold; font-size: 1rem; cursor: pointer;
+        }
+        .btn-submit:hover { background: #219150; }
+
+        .btn-cancel {
+            display: block; text-align: center; margin-top: 15px; color: #666; text-decoration: none; font-size: 0.9rem;
+        }
+        .btn-cancel:hover { color: #333; text-decoration: underline; }
+
+        .success-box {
+            background-color: #d4edda; color: #155724; padding: 15px; border: 1px solid #c3e6cb;
+            border-radius: 5px; margin-bottom: 20px;
+        }
+        .pass-display { font-family: monospace; font-size: 1.1rem; font-weight: bold; background: white; padding: 2px 6px; border-radius: 3px; }
+        .note { font-size: 0.8rem; color: #666; margin-bottom: 15px; display: block; font-style: italic; }
+
+        /* --- NEW: AUTO-SUGGESTION DROPDOWN STYLES --- */
+        .suggestions-list {
+            position: absolute;
+            top: 100%; left: 0; right: 0;
+            background: white;
+            border: 1px solid #333;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+            display: none;
+        }
+        .suggestion-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+            color: #333;
+        }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:hover { background-color: #f0f0f0; font-weight: 500; }
+        
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <h2>Disaster Response Logistics Platform</h2>
+        <div class="user-profile"><span>{{ user.account_id }}</span><div class="user-circle"></div></div>
+    </div>
+    
+    <div class="main-container">
+        <div class="sidebar">
+            <a href="/dashboard" class="nav-item"><span class="icon"></span> Dashboard</a>
+            <a href="/reports" class="nav-item"><span class="icon"></span> Reports</a>
+            <a href="/teams" class="nav-item"><span class="icon"></span> Teams & Resources</a>
+            <a href="/monitor" class="nav-item"><span class="icon"></span> Monitor Routing</a>
+
+            {% if user.role == 'Admin' %}
+            <a href="/manage_users" class="nav-item active"><span class="icon"></span> Manage Users</a>
+            {% endif %}
+
+            <a href="/profile_settings" class="nav-item"><span class="icon"></span> Profile Settings</a>
+        </div>
+        
+        <div class="content">
+            <div class="form-card">
+                <div class="card-header">
+                    <span>Register New Account</span>
+                </div>
+                <div class="card-body">
+
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, msg in messages %}
+                                <div style="padding:10px 14px;border-radius:5px;margin-bottom:15px;font-size:0.9rem;
+                                            background:{{ '#f8d7da' if category=='error' else '#d4edda' }};
+                                            color:{{ '#721c24' if category=='error' else '#155724' }};
+                                            border:1px solid {{ '#f5c6cb' if category=='error' else '#c3e6cb' }};">
+                                    {{ msg }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    {% if success_user %}
+                    <div class="success-box">
+                        <strong>User Created Successfully!</strong><br><br>
+                        Account ID: <span class="pass-display">{{ success_user.account_id }}</span><br>
+                        Password: <span class="pass-display">{{ generated_pass }}</span><br><br>
+                        <small>Please copy these details now. The password will not be shown again.</small>
+                    </div>
+                    {% endif %}
+
+                    <form action="/register" method="POST" autocomplete="off">
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label>First Name</label>
+                                <input type="text" name="first_name" placeholder="John" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Last Name</label>
+                                <input type="text" name="last_name" placeholder="Doe" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Mobile Number</label>
+                            <input type="tel" name="phone" id="phoneInput"
+                                   placeholder="09XX XXX XXXX"
+                                   pattern="^(09|\+639)\d{2}\s?\d{3}\s?\d{4}$"
+                                   title="Enter a valid PH mobile number (e.g. 0917 123 4567 or +639171234567)"
+                                   required maxlength="15">
+                            <span class="note">Format: 09XX XXX XXXX or +639XX XXX XXXX</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" name="email" id="emailInput"
+                                   placeholder="user@example.com"
+                                   required maxlength="120">
+                            <span class="note">Used for password reset OTPs.</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Role</label>
+                            <select name="role" id="roleSelect" required>
+                                <option value="">-- Select Role --</option>
+                                <option value="Operator">Operator</option>
+                                <option value="Responder">Responder</option>
+                            </select>
+                        </div>
+
+                        <div id="responder-fields" class="hidden">
+                            <div class="form-group">
+                                <label>Municipality (Bulacan)</label>
+                                <select name="municipality" id="municipality">
+                                    <option value="">-- Select Municipality --</option>
+                                    <option value="Malolos">Malolos</option>
+                                    <option value="Plaridel">Plaridel</option>
+                                    <option value="San Miguel">San Miguel</option>
+                                    <option value="Bocaue">Bocaue</option>
+                                    <option value="Guiguinto">Guiguinto</option>
+                                    <option value="Calumpit">Calumpit</option>
+                                    <option value="Balagtas">Balagtas</option>
+                                    <option value="Baliuag">Baliuag</option>
+                                    <option value="Meycauayan">Meycauayan</option>
+                                    <option value="Hagonoy">Hagonoy</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Street / Barangay</label>
+                                <input type="text" name="street" id="street" placeholder="Type street name..." oninput="fetchSuggestions()">
+                                <div id="suggestions" class="suggestions-list"></div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Account ID (Auto-Generated)</label>
+                            <input type="text" id="generated_id" placeholder="Select a role..." readonly>
+                        </div>
+
+                        <span class="note">Password will be auto-generated (e.g. password001) upon creation.</span>
+
+                        <button type="submit" class="btn-submit">Create Account</button>
+                        <a href="/manage_users" class="btn-cancel">Back to User List</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data for Auto-ID (Passed from Python)
+        const nextOptId = "{{ next_opt }}";
+        const nextRspId = "{{ next_rsp }}";
+
+        const roleSelect = document.getElementById('roleSelect');
+        const idInput = document.getElementById('generated_id');
+        const responderFields = document.getElementById('responder-fields');
+        const munInput = document.getElementById('municipality');
+        const streetInput = document.getElementById('street');
+
+        // 1. Role Toggle Logic
+        roleSelect.addEventListener('change', function() {
+            if (this.value === 'Operator') {
+                idInput.value = nextOptId;
+                responderFields.style.display = 'none';
+                munInput.removeAttribute('required');
+                streetInput.removeAttribute('required');
+            } else if (this.value === 'Responder') {
+                idInput.value = nextRspId;
+                responderFields.style.display = 'block';
+                munInput.setAttribute('required', 'required');
+                streetInput.setAttribute('required', 'required');
+            } else {
+                idInput.value = '';
+                responderFields.style.display = 'none';
+            }
+        });
+
+        // 2. Auto-Suggestion Logic (Nominatim API)
+        let debounceTimer;
+        
+        function fetchSuggestions() {
+            const query = streetInput.value;
+            const municipality = munInput.value;
+            const suggestionsBox = document.getElementById('suggestions');
+
+            // Clear timer on keypress
+            clearTimeout(debounceTimer);
+
+            // Hide if empty or short
+            if (query.length < 3) {
+                suggestionsBox.style.display = 'none';
+                return;
+            }
+
+            // Wait 300ms before searching
+            debounceTimer = setTimeout(() => {
+                // Combine Street + Municipality + Bulacan for accuracy
+                const context = municipality ? `${municipality}, Bulacan` : "Bulacan";
+                const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ", " + context)}&format=json&addressdetails=1&limit=5&countrycodes=ph`;
+
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        suggestionsBox.innerHTML = '';
+                        if (data.length > 0) {
+                            suggestionsBox.style.display = 'block';
+                            data.forEach(item => {
+                                const div = document.createElement('div');
+                                div.className = 'suggestion-item';
+                                
+                                // Clean up the display name (grab just the first part mostly)
+                                let mainText = item.address.road || item.address.suburb || item.display_name.split(',')[0];
+                                let subText = item.display_name;
+
+                                div.innerHTML = `<strong>${mainText}</strong><br><small style="color:#666;">${subText}</small>`;
+                                
+                                div.onclick = function() {
+                                    streetInput.value = mainText; // Fill input
+                                    suggestionsBox.style.display = 'none'; // Hide list
+                                };
+                                suggestionsBox.appendChild(div);
+                            });
+                        } else {
+                            suggestionsBox.style.display = 'none';
+                        }
+                    })
+                    .catch(err => console.error("Error fetching location:", err));
+            }, 300);
+        }
+
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target.id !== 'street') {
+                document.getElementById('suggestions').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

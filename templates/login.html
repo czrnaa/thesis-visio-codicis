@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Disaster Logistics</title>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+        }
+
+        /* LEFT SIDE (RED BRANDING) */
+        .brand-panel {
+            background-color: #d90429; /* Red Color */
+            width: 35%;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 40px;
+        }
+        
+        .brand-text {
+            font-size: 3rem;
+            font-weight: bold;
+            line-height: 1.2;
+        }
+
+        /* RIGHT SIDE (LOGIN FORM) */
+        .login-panel {
+            width: 65%;
+            background-color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-box {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #d90429;
+            font-size: 3.5rem;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #e0e0e0;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        /* PASSWORD WRAPPER FOR SHOW/HIDE BUTTON */
+        .password-wrapper {
+            position: relative;
+            width: 100%;
+            margin-bottom: 20px; /* Added spacing since link is gone */
+        }
+        
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            top: 40%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #666;
+            font-size: 0.9rem;
+            user-select: none;
+            background: none;
+            border: none;
+            font-weight: 600;
+        }
+        
+        .toggle-password:hover { color: #d90429; }
+
+        .btn-login {
+            background-color: #d90429;
+            color: white;
+            border: none;
+            padding: 12px 40px;
+            font-size: 1.2rem;
+            border-radius: 25px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .btn-login:hover {
+            background-color: #b00220;
+        }
+
+        .error {
+            color: red;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="brand-panel">
+        <div class="brand-text">
+            Disaster<br>
+            Response<br>
+            Logistics<br>
+            Platform
+        </div>
+    </div>
+
+    <div class="login-panel">
+        <div class="login-box">
+            <h1>Welcome Back</h1>
+
+            {% if error %}
+                <div class="error">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST">
+                <label>Account ID</label>
+                <input type="text" name="account_id" placeholder="Enter ID" required>
+
+                <label>Password</label>
+                <div class="password-wrapper">
+                    <input type="password" name="password" id="password" placeholder="*********" required>
+                    <span class="toggle-password" onclick="togglePassword()">Show</span>
+                </div>
+
+                <button type="submit" class="btn-login">Login</button>
+
+                <div style="text-align:center;margin-top:18px;">
+                    <a href="/forgot_password" style="color:#d90429;text-decoration:none;font-size:0.9rem;font-weight:500;">
+                        Forgot Password?
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function togglePassword() {
+        var passwordField = document.getElementById("password");
+        var toggleBtn = document.querySelector(".toggle-password");
+        
+        if (passwordField.type === "password") {
+            passwordField.type = "text";
+            toggleBtn.textContent = "Hide";
+        } else {
+            passwordField.type = "password";
+            toggleBtn.textContent = "Show";
+        }
+    }
+</script>
+
+</body>
+</html>
