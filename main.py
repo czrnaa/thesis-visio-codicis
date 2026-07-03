@@ -1624,7 +1624,21 @@ def create_app():
         ui_pin_node = None
         if constraint and obstacle_lat and obstacle_lon:
             try:
-                ui_pin_node = nearest_graph_node(float(obstacle_lat), float(obstacle_lon))
+                obs_lat, obs_lon = float(obstacle_lat), float(obstacle_lon)
+                # Try to snap to an intermediate node on the baseline path first
+                if baseline_path and len(baseline_path) > 2:
+                    ui_pin_node = min(
+                        baseline_path[1:-1],
+                        key=lambda k: math.hypot(NODE_LOCATIONS[k]['lat'] - obs_lat, NODE_LOCATIONS[k]['lon'] - obs_lon)
+                    )
+                else:
+                    # Fallback to nearest global node that isn't start or end
+                    valid_nodes = [k for k in NODE_LOCATIONS.keys() if k != start_node and k != end_node]
+                    if valid_nodes:
+                        ui_pin_node = min(
+                            valid_nodes,
+                            key=lambda k: math.hypot(NODE_LOCATIONS[k]['lat'] - obs_lat, NODE_LOCATIONS[k]['lon'] - obs_lon)
+                        )
             except (TypeError, ValueError):
                 pass
                 
@@ -1638,15 +1652,21 @@ def create_app():
                     penalty_nodes.update(baseline_path[1:-1])
 
             elif constraint == 'flooded_road':
-                blocked = ui_pin_node or max(baseline_path[1:-1], key=lambda n: BULACAN_RISK_PROFILE.get(n, {}).get('flood', 0.5))
-                if has_light_vehicle:
-                    if blocked not in avoid_nodes: avoid_nodes.append(blocked)
-                else:
-                    penalty_nodes.add(blocked)
+                blocked = ui_pin_node
+                if not blocked and len(baseline_path) > 2:
+                    blocked = max(baseline_path[1:-1], key=lambda n: BULACAN_RISK_PROFILE.get(n, {}).get('flood', 0.5))
+                if blocked:
+                    if has_light_vehicle:
+                        if blocked not in avoid_nodes: avoid_nodes.append(blocked)
+                    else:
+                        penalty_nodes.add(blocked)
 
             elif constraint == 'road_block':
-                blocked = ui_pin_node or max(baseline_path[1:-1], key=lambda n: BULACAN_RISK_PROFILE.get(n, {}).get('vuln', 0.5))
-                if blocked not in avoid_nodes: avoid_nodes.append(blocked)
+                blocked = ui_pin_node
+                if not blocked and len(baseline_path) > 2:
+                    blocked = max(baseline_path[1:-1], key=lambda n: BULACAN_RISK_PROFILE.get(n, {}).get('vuln', 0.5))
+                if blocked and blocked not in avoid_nodes: 
+                    avoid_nodes.append(blocked)
 
         # --- PLAIN ALTERNATIVE (no specific constraint selected) ---
         if want_alternative and not constraint and baseline_path and len(baseline_path) > 2:
