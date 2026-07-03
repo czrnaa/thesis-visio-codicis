@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+<<<<<<< HEAD
 
+=======
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
 <head>
     <meta charset="UTF-8">
     <title>Monitor Routing</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     <style>
+<<<<<<< HEAD
         :root {
             --primary-red: #d90429;
             --sidebar-bg: #e0e0e0;
@@ -311,11 +315,103 @@
 <body>
     <span id="can-reroute-flag" data-value="{% if can_reroute %}true{% else %}false{% endif %}"
         style="display:none;"></span>
+=======
+        :root { 
+            --primary-red: #d90429; 
+            --sidebar-bg: #e0e0e0; 
+            --panel-header-bg: #d9d9d9;
+            --input-bg: #d0d0d0; 
+            --border-color: #333;
+        }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background-color: #f4f4f4; }
+        
+        /* HEADER */
+        .top-bar { background-color: var(--primary-red); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; height: 60px; box-sizing: border-box; }
+        .top-bar h2 { margin: 0; font-size: 1.3rem; font-weight: 600; }
+        .user-profile { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
+        .user-circle { width: 32px; height: 32px; background: #ddd; border-radius: 50%; }
+        
+        /* LAYOUT */
+        .main-container { display: flex; flex: 1; height: calc(100vh - 60px); }
+        .sidebar { width: 260px; background: var(--sidebar-bg); border-right: 1px solid #ccc; display: flex; flex-direction: column; padding-top: 10px; }
+        .nav-item { padding: 15px 25px; color: #333; cursor: pointer; display: flex; align-items: center; gap: 15px; text-decoration: none; font-size: 1rem; font-weight: 500; transition: 0.2s; border-left: 5px solid transparent; }
+        .nav-item:hover { background: #d0d0d0; }
+        .nav-item.active { background: #ccc; border-left-color: #333; font-weight: 700; }
+        .icon { width: 20px; text-align: center; }
+
+        /* CONTENT */
+        .content { 
+            flex: 1; 
+            padding: 20px 25px; 
+            overflow: hidden; 
+            background: #fff; 
+            display: flex; 
+            flex-direction: column; 
+        }
+
+        /* --- MONITOR LAYOUT (CSS GRID) --- */
+        .monitor-grid { 
+            display: grid; 
+            grid-template-columns: 2fr 1fr; 
+            gap: 20px; 
+            height: 48vh; 
+            min-height: 380px;
+            flex-shrink: 0; 
+            margin-bottom: 20px;
+        }
+        
+        #map { width: 100%; height: 100%; background: #e0e0e0; }
+
+        /* LEFT: MAP */
+        .map-container { border: 1px solid #333; border-radius: 6px; position: relative; overflow: hidden; }
+
+        /* RIGHT: DETAILS PANEL */
+        .details-panel { border: 1px solid #333; border-radius: 6px; background: #fff; display: flex; flex-direction: column; overflow: hidden; }
+        .panel-header { background: var(--panel-header-bg); padding: 12px 15px; border-bottom: 1px solid #333; font-weight: 700; font-size: 1.1rem; display: flex; justify-content: space-between; color: #222; }
+        .task-label { font-size: 0.9rem; color: #555; font-weight: 600; align-self: center; }
+        .panel-body { padding: 15px 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+        h3 { margin: 0; font-size: 1rem; font-weight: 700; color: #222; padding-bottom: 5px; }
+        .info-row { display: flex; justify-content: space-between; border-bottom: 1px solid #999; padding: 8px 0; font-size: 0.9rem; }
+        .info-label { font-weight: 500; color: #333; }
+        .info-val { font-weight: 400; color: #333; text-align: right; }
+        .input-group { margin-top: 5px; }
+        .input-group label { display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 4px; color: #333; }
+        .input-group input { width: 100%; padding: 10px; border: 1px solid #333; border-radius: 5px; background: var(--input-bg); font-size: 0.9rem; box-sizing: border-box; color: #000; }
+
+        /* BOTTOM TABLE */
+        .table-container { 
+            border: 1px solid #333; 
+            border-radius: 5px; 
+            overflow: hidden; 
+            background: white; 
+            flex: 1; 
+            min-height: 150px;
+            overflow-y: auto; 
+        }
+        .table-container thead { position: sticky; top: 0; z-index: 5; background: #d9d9d9; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        thead { border-bottom: 1px solid #333; }
+        th, td { padding: 12px 15px; text-align: left; border-right: 1px solid #999; }
+        th:last-child, td:last-child { border-right: none; }
+        td { border-bottom: 1px solid #eee; }
+        
+        .btn-view { padding: 4px 12px; border: 1px solid #333; background: #fff; border-radius: 4px; font-size: 0.85rem; cursor: pointer; color: #333; }
+        .btn-view:hover { background: #f0f0f0; }
+        .hidden { display: none !important; }
+        .leaflet-routing-container { display: none !important; }
+        @keyframes pulse-red { 0%,100% { box-shadow:0 0 0 0 rgba(217,4,41,0.5); } 60% { box-shadow:0 0 0 10px rgba(217,4,41,0); } }
+        .btn-end-task { animation: pulse-red 1.4s infinite; }
+    </style>
+</head>
+<body>
+    <span id="can-reroute-flag" data-value="{% if can_reroute %}true{% else %}false{% endif %}" style="display:none;"></span>
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
 
     <div class="top-bar">
         <h2>Disaster Response Logistics Platform</h2>
         <div style="display:flex;align-items:center;gap:14px;">
             <div style="position:relative;display:inline-block;">
+<<<<<<< HEAD
                 <button id="notif-bell-btn" onclick="toggleNotifDropdown()"
                     style="background:none;border:none;color:white;cursor:pointer;padding:4px;position:relative;display:flex;align-items:center;justify-content:center;">
                     <img src="{{ url_for('static', filename='assets/bell_notif.svg') }}" alt="Notifications"
@@ -336,16 +432,36 @@
                         <div style="padding:20px;text-align:center;color:#aaa;font-size:0.85rem;">No new notifications
                         </div>
                     </div>
+=======
+                <button id="notif-bell-btn" onclick="toggleNotifDropdown()" style="background:none;border:none;color:white;cursor:pointer;padding:4px;position:relative;display:flex;align-items:center;justify-content:center;">
+                    <img src="{{ url_for('static', filename='assets/bell_notif.svg') }}" alt="Notifications" style="width: 22px; height: 22px;">
+                    <span id="notif-count" style="display:none;position:absolute;top:-2px;right:-6px;background:#ffc107;color:#333;border-radius:50%;width:18px;height:18px;font-size:0.65rem;font-weight:700;align-items:center;justify-content:center;">0</span>
+                </button>
+                <div id="notif-dropdown" style="display:none;position:absolute;right:0;top:38px;width:320px;background:white;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.18);z-index:9999;overflow:hidden;">
+                    <div style="background:#192a56;color:white;padding:10px 14px;font-weight:700;font-size:0.9rem;display:flex;justify-content:space-between;align-items:center;">
+                        <span>Notifications</span>
+                        <button onclick="dismissAllNotifs()" style="background:none;border:1px solid rgba(255,255,255,0.4);color:white;font-size:0.75rem;border-radius:4px;padding:2px 8px;cursor:pointer;">Clear all</button>
+                    </div>
+                    <div id="notif-list"><div style="padding:20px;text-align:center;color:#aaa;font-size:0.85rem;">No new notifications</div></div>
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                 </div>
             </div>
             <div class="user-profile">
                 <span style="font-weight: 600;">{{ user.account_id }}</span>
+<<<<<<< HEAD
                 <img src="{{ url_for('static', filename='assets/person_profile.svg') }}" alt="Profile"
                     class="user-circle" style="object-fit: cover; background: white;">
             </div>
         </div>
     </div>
 
+=======
+                <img src="{{ url_for('static', filename='assets/person_profile.svg') }}" alt="Profile" class="user-circle" style="object-fit: cover; background: white;">
+            </div>
+        </div>
+    </div>
+    
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
     <div class="main-container">
         <div class="sidebar">
             <a href="/dashboard" class="nav-item"><span class="icon"></span> Dashboard</a>
@@ -362,7 +478,11 @@
             {% endif %}
             <a href="/profile_settings" class="nav-item"><span class="icon"></span> Profile Settings</a>
         </div>
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
         <div class="content">
             <div class="monitor-grid">
                 <div class="map-container">
@@ -376,6 +496,7 @@
                     </div>
                     <div class="panel-body">
                         <h3 id="d-team">Pending Assignment</h3>
+<<<<<<< HEAD
                         <div id="reroute-alert" class="alert-box alert-error hidden"
                             style="margin-bottom: 10px; font-size: 0.85rem; padding: 10px;"></div>
 
@@ -386,12 +507,24 @@
                                     id="d-sev">-</span></div>
                             <div class="info-row"><span class="info-label">Assigned Task</span><span class="info-val"
                                     id="d-task">Response</span></div>
+=======
+                        <div id="reroute-alert" class="alert-box alert-error hidden" style="margin-bottom: 10px; font-size: 0.85rem; padding: 10px;"></div>
+                        
+                        <div id="active-details" class="hidden">
+                            <div class="info-row"><span class="info-label">Incident Type</span><span class="info-val" id="d-type">-</span></div>
+                            <div class="info-row"><span class="info-label">Severity Level</span><span class="info-val" id="d-sev">-</span></div>
+                            <div class="info-row"><span class="info-label">Assigned Task</span><span class="info-val" id="d-task">Response</span></div>
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                         </div>
 
                         <div class="info-row" style="border-bottom: 2px solid #999; margin-bottom: 10px;">
                             <span class="info-label">Status</span><span class="info-val" id="d-stat">-</span>
                         </div>
+<<<<<<< HEAD
 
+=======
+                        
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                         <div class="input-group">
                             <label>Location</label>
                             <input type="text" id="d-loc" readonly>
@@ -405,6 +538,7 @@
                             <input type="text" id="d-eta" readonly>
                         </div>
 
+<<<<<<< HEAD
                         <div id="absra-container" class="hidden"
                             style="background:#e8f4f8;padding:10px;border-left:4px solid #2980b9;margin-top:15px;margin-bottom:10px;border-radius:0 4px 4px 0;">
                             <label
@@ -447,17 +581,47 @@
                                 <button class="constraint-btn" data-type="flooded_road" onclick="selectConstraint(this)"
                                     style="flex:1;padding:8px;border:2px dashed #999;border-radius:4px;background:#fff;cursor:pointer;font-weight:600;font-size:0.85rem;">Flooded
                                     Road</button>
+=======
+                        <div id="absra-container" class="hidden" style="background:#e8f4f8;padding:10px;border-left:4px solid #2980b9;margin-top:15px;margin-bottom:10px;border-radius:0 4px 4px 0;">
+                            <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;color:#192a56;font-weight:bold;font-size:0.9rem;">
+                                <input type="checkbox" id="toggle-absra" style="width:auto;margin:0;" checked onchange="onAbsraToggle()">
+                                <span id="absra-label">ABSRA Optimization: ON</span>
+                            </label>
+                            <span style="font-size:0.8rem;color:#555;font-weight:normal;display:block;margin-top:5px;" id="absra-desc">Uses Bidirectional Search &amp; Arc-Flags</span>
+                        </div>
+
+                        <button id="btn-start" class="hidden" style="margin-top:10px;width:100%;background:#27ae60;color:white;border:none;padding:10px;font-weight:bold;font-size:0.92rem;border-radius:4px;cursor:pointer;" onclick="startRoute()">
+                            Start Route
+                        </button>
+                        <button id="btn-reroute" class="hidden" style="margin-top:8px;width:100%;background:#2980b9;color:white;border:none;padding:10px;font-weight:bold;font-size:0.92rem;border-radius:4px;cursor:pointer;" onclick="triggerAlternativeRoute()">
+                            Find Alternative Route
+                        </button>
+                        <button id="btn-constraint-toggle" class="hidden" style="margin-top:6px;width:100%;background:#2980b9;color:white;border:none;padding:10px;font-weight:bold;font-size:0.92rem;border-radius:4px;cursor:pointer;" onclick="toggleConstraintPanel()">
+                            &#9650; Add Constraint
+                        </button>
+                        <div id="constraint-panel" class="hidden" style="margin-top:6px;border:1px solid #2980b9;border-radius:4px;padding:10px;background:#f0f7ff;">
+                            <div style="font-size:0.8rem;font-weight:600;color:#555;margin-bottom:8px;">Select one road condition:</div>
+                            <button class="constraint-btn" data-type="road_block" onclick="selectConstraint(this)" style="width:100%;margin-bottom:6px;padding:8px;border:2px dashed #999;border-radius:4px;background:#fff;cursor:pointer;font-weight:600;font-size:0.85rem;">Road Block</button>
+                            <div style="display:flex;gap:6px;">
+                                <button class="constraint-btn" data-type="heavy_traffic" onclick="selectConstraint(this)" style="flex:1;padding:8px;border:2px dashed #999;border-radius:4px;background:#fff;cursor:pointer;font-weight:600;font-size:0.85rem;">Heavy Traffic</button>
+                                <button class="constraint-btn" data-type="flooded_road" onclick="selectConstraint(this)" style="flex:1;padding:8px;border:2px dashed #999;border-radius:4px;background:#fff;cursor:pointer;font-weight:600;font-size:0.85rem;">Flooded Road</button>
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                             </div>
                         </div>
 
                         {% if user.role != 'Responder' %}
+<<<<<<< HEAD
                         <button id="btn-assign-task" class="hidden"
                             style="margin-top:10px;width:100%;background:#d90429;color:white;border:none;padding:10px;font-weight:bold;font-size:0.92rem;border-radius:4px;cursor:pointer;"
                             onclick="window.location.href='/teams'">
+=======
+                        <button id="btn-assign-task" class="hidden" style="margin-top:10px;width:100%;background:#d90429;color:white;border:none;padding:10px;font-weight:bold;font-size:0.92rem;border-radius:4px;cursor:pointer;" onclick="window.location.href='/teams'">
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                             Assign Task
                         </button>
                         {% endif %}
 
+<<<<<<< HEAD
                         <button id="btn-approve" class="hidden"
                             style="margin-top:10px;width:100%;background:#d90429;color:white;border:none;padding:10px;font-weight:bold;font-size:0.92rem;border-radius:4px;cursor:pointer;"
                             onclick="approveTask()">
@@ -466,15 +630,26 @@
 
                         <div id="readonly-notice" class="hidden"
                             style="background:#f9f9f9;border:1px dashed #ccc;border-radius:4px;padding:8px 12px;font-size:0.8rem;color:#888;margin-top:10px;text-align:center;">
+=======
+                        <button id="btn-approve" class="hidden" style="margin-top:10px;width:100%;background:#d90429;color:white;border:none;padding:10px;font-weight:bold;font-size:0.92rem;border-radius:4px;cursor:pointer;" onclick="approveTask()">
+                            Approve Task
+                        </button>
+
+                        <div id="readonly-notice" class="hidden" style="background:#f9f9f9;border:1px dashed #ccc;border-radius:4px;padding:8px 12px;font-size:0.8rem;color:#888;margin-top:10px;text-align:center;">
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                             Route is being monitored.
                         </div>
                     </div>
                 </div>
             </div>
 
+<<<<<<< HEAD
             <div
                 style="flex-shrink: 0; font-size:1rem;font-weight:700;color:#222;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #d90429;">
                 Active Reports</div>
+=======
+            <div style="flex-shrink: 0; font-size:1rem;font-weight:700;color:#222;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #d90429;">Active Reports</div>
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
             <div class="table-container">
                 <table>
                     <thead>
@@ -489,9 +664,13 @@
                         </tr>
                     </thead>
                     <tbody id="table_body">
+<<<<<<< HEAD
                         <tr>
                             <td colspan="7" style="text-align:center;padding:20px;color:#888;">Loading reports...</td>
                         </tr>
+=======
+                        <tr><td colspan="7" style="text-align:center;padding:20px;color:#888;">Loading reports...</td></tr>
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                     </tbody>
                 </table>
             </div>
@@ -528,15 +707,25 @@
             const dd = document.getElementById('notif-dropdown');
             dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
         }
+<<<<<<< HEAD
         document.addEventListener('click', function (e) {
             const btn = document.getElementById('notif-bell-btn');
             const dd = document.getElementById('notif-dropdown');
+=======
+        document.addEventListener('click', function(e) {
+            const btn = document.getElementById('notif-bell-btn');
+            const dd  = document.getElementById('notif-dropdown');
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
             if (btn && dd && !btn.contains(e.target) && !dd.contains(e.target)) dd.style.display = 'none';
         });
         function loadNotifications() {
             fetch('/api/notifications').then(r => r.json()).then(notes => {
                 const badge = document.getElementById('notif-count');
+<<<<<<< HEAD
                 const list = document.getElementById('notif-list');
+=======
+                const list  = document.getElementById('notif-list');
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                 if (!notes.length) {
                     badge.style.display = 'none';
                     list.innerHTML = '<div style="padding:20px;text-align:center;color:#aaa;font-size:0.85rem;">No new notifications</div>';
@@ -549,7 +738,11 @@
                         <span style="font-size:0.72rem;color:#888;white-space:nowrap;font-weight:600;">${n.time}</span>
                         <button onclick="dismissNotif(${n.id})" style="background:none;border:none;color:#999;cursor:pointer;font-size:1rem;font-weight:bold;padding:0 2px;">✕</button>
                     </div>`).join('');
+<<<<<<< HEAD
             }).catch(() => { });
+=======
+            }).catch(() => {});
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
         }
         function dismissNotif(id) {
             fetch('/api/dismiss_notification/' + id, { method: 'POST' }).then(() => {
@@ -572,7 +765,11 @@
 
         var map = L.map('map', { minZoom: 11, maxZoom: 18 }).setView([14.8437, 120.8113], 12);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
         let routingControl = null;
         let markers = [];
         let activeData = null;
@@ -594,9 +791,15 @@
         let constraintMarkers = {};
 
         const CONSTRAINT_ICONS = {
+<<<<<<< HEAD
             road_block: { emoji: '\u26D4', color: '#c0392b', label: 'Road Block' },
             heavy_traffic: { emoji: '\uD83D\uDE97', color: '#e67e22', label: 'Heavy Traffic' },
             flooded_road: { emoji: '\uD83C\uDF0A', color: '#2980b9', label: 'Flooded Road' },
+=======
+            road_block:    { emoji: '\u26D4', color: '#c0392b', label: 'Road Block' },
+            heavy_traffic: { emoji: '\uD83D\uDE97', color: '#e67e22', label: 'Heavy Traffic' },
+            flooded_road:  { emoji: '\uD83C\uDF0A', color: '#2980b9', label: 'Flooded Road' },
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
         };
 
         function makeConstraintIcon(type) {
@@ -618,18 +821,31 @@
 
         function buildConstraintPopup(c) {
             const cfg = CONSTRAINT_ICONS[c.constraint_type] || { color: '#d4ac0d', label: 'Constraint' };
+<<<<<<< HEAD
             const ts = c.timestamp ? '<div style="font-size:0.72rem;color:#888;margin-top:4px;">Reported: ' + c.timestamp + '</div>' : '';
+=======
+            const ts  = c.timestamp ? '<div style="font-size:0.72rem;color:#888;margin-top:4px;">Reported: ' + c.timestamp + '</div>' : '';
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
             const rep = c.reported_by ? '<div style="font-size:0.72rem;color:#888;">By: ' + c.reported_by + '</div>' : '';
             const tsk = c.task_id ? '<div style="font-size:0.72rem;color:#888;">Task: ' + c.task_id + '</div>' : '';
             let actions = '';
             if (CAN_REROUTE) {
                 actions = '<button onclick="removeConstraint(' + c.id + ')" '
+<<<<<<< HEAD
                     + 'style="margin-top:8px;width:100%;background:#27ae60;color:#fff;border:none;padding:6px 10px;'
                     + 'border-radius:4px;font-weight:600;font-size:0.8rem;cursor:pointer;">'
                     + '\u2713 Mark as Cleared</button>';
             } else {
                 actions = '<div style="margin-top:8px;font-size:0.72rem;color:#888;font-style:italic;">'
                     + 'Only responders can clear this constraint.</div>';
+=======
+                        + 'style="margin-top:8px;width:100%;background:#27ae60;color:#fff;border:none;padding:6px 10px;'
+                        + 'border-radius:4px;font-weight:600;font-size:0.8rem;cursor:pointer;">'
+                        + '\u2713 Mark as Cleared</button>';
+            } else {
+                actions = '<div style="margin-top:8px;font-size:0.72rem;color:#888;font-style:italic;">'
+                        + 'Only responders can clear this constraint.</div>';
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
             }
             return '<div style="min-width:170px;font-family:Segoe UI,sans-serif;">'
                 + '<div style="font-weight:700;color:' + cfg.color + ';font-size:0.95rem;margin-bottom:2px;">'
@@ -643,10 +859,17 @@
         function refreshConstraints(opts) {
             opts = opts || {};
             fetch('/api/active_constraints')
+<<<<<<< HEAD
                 .then(function (r) { return r.json(); })
                 .then(function (rows) {
                     const seen = {};
                     rows.forEach(function (c) {
+=======
+                .then(function(r) { return r.json(); })
+                .then(function(rows) {
+                    const seen = {};
+                    rows.forEach(function(c) {
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                         seen[c.id] = true;
                         if (constraintMarkers[c.id]) {
                             // Already drawn; just refresh popup contents
@@ -659,7 +882,11 @@
                         }
                     });
                     // Drop markers whose constraint was cleared elsewhere
+<<<<<<< HEAD
                     Object.keys(constraintMarkers).forEach(function (id) {
+=======
+                    Object.keys(constraintMarkers).forEach(function(id) {
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                         if (!seen[id]) {
                             constraintLayer.removeLayer(constraintMarkers[id]);
                             delete constraintMarkers[id];
@@ -667,7 +894,11 @@
                     });
                     if (typeof opts.onUpdate === 'function') { opts.onUpdate(rows); }
                 })
+<<<<<<< HEAD
                 .catch(function (err) { console.warn('Constraint fetch failed:', err); });
+=======
+                .catch(function(err) { console.warn('Constraint fetch failed:', err); });
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
         }
 
         function showConstraintToast(text) {
@@ -683,16 +914,27 @@
                 document.body.appendChild(t);
             }
             t.textContent = text;
+<<<<<<< HEAD
             requestAnimationFrame(function () { t.style.opacity = '1'; });
             clearTimeout(window.__constraintToastTO);
             window.__constraintToastTO = setTimeout(function () { t.style.opacity = '0'; }, 3500);
+=======
+            requestAnimationFrame(function() { t.style.opacity = '1'; });
+            clearTimeout(window.__constraintToastTO);
+            window.__constraintToastTO = setTimeout(function() { t.style.opacity = '0'; }, 3500);
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
         }
 
         function removeConstraint(cid) {
             if (!confirm('Mark this constraint as cleared? Routes will be allowed through here again.')) return;
             fetch('/api/remove_constraint/' + cid, { method: 'POST' })
+<<<<<<< HEAD
                 .then(function (r) { return r.json(); })
                 .then(function (res) {
+=======
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                     if (res.status === 'success' || res.status === 'info') {
                         if (constraintMarkers[cid]) {
                             constraintLayer.removeLayer(constraintMarkers[cid]);
@@ -705,7 +947,11 @@
                         alert(res.message || 'Could not clear constraint.');
                     }
                 })
+<<<<<<< HEAD
                 .catch(function (err) {
+=======
+                .catch(function(err) {
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                     console.error('Remove constraint failed:', err);
                     alert('Network error while clearing constraint.');
                 });
@@ -715,15 +961,26 @@
         setInterval(refreshConstraints, 10000);
 
         function showActionButtons(show) {
+<<<<<<< HEAD
             var absraCont = document.getElementById('absra-container');
             var btnStart = document.getElementById('btn-start');
             var btnReroute = document.getElementById('btn-reroute');
             var btnConstraint = document.getElementById('btn-constraint-toggle');
+=======
+            var absraCont      = document.getElementById('absra-container');
+            var btnStart       = document.getElementById('btn-start');
+            var btnReroute     = document.getElementById('btn-reroute');
+            var btnConstraint  = document.getElementById('btn-constraint-toggle');
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
             var constraintPanel = document.getElementById('constraint-panel');
 
             if (CAN_REROUTE) {
                 if (absraCont) absraCont.classList.toggle('hidden', !show);
+<<<<<<< HEAD
                 if (btnStart) btnStart.classList.toggle('hidden', !show);
+=======
+                if (btnStart)  btnStart.classList.toggle('hidden', !show);
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                 // Reroute and constraint buttons only shown when en route (handled by syncStartButton)
                 if (!show) {
                     if (btnReroute) btnReroute.classList.add('hidden');
@@ -760,7 +1017,11 @@
         }
 
         function syncApproveButton() {
+<<<<<<< HEAD
             if (CAN_REROUTE || !activeData) return;
+=======
+            if (CAN_REROUTE || !activeData) return; 
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
             const btnApprove = document.getElementById('btn-approve');
             const notice = document.getElementById('readonly-notice');
             if (!btnApprove || !notice) return;
@@ -797,8 +1058,13 @@
             if (!confirm('Approve this task completion? This will mark the operation as fully resolved.')) return;
 
             const taskId = activeData.task_id;
+<<<<<<< HEAD
             activeData.status = 'Resolved';
 
+=======
+            activeData.status = 'Resolved'; 
+            
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
             syncApproveButton();
             document.getElementById('d-stat').innerText = 'Resolved';
 
@@ -807,8 +1073,13 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ task_id: taskId, status: 'Resolved' })
             })
+<<<<<<< HEAD
                 .then(() => loadData())
                 .catch(err => console.error("Error approving task:", err));
+=======
+            .then(() => loadData()) 
+            .catch(err => console.error("Error approving task:", err));
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
         }
 
         const enRouteTasks = {};
@@ -880,22 +1151,35 @@
         function startRoute() {
             if (!activeData || !CAN_REROUTE) return;
             const btn = document.getElementById('btn-start');
+<<<<<<< HEAD
             if (btn && btn.disabled) return;
+=======
+            if (btn && btn.disabled) return; 
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
             const taskId = activeData.task_id;
             const status = (activeData.status || '').toLowerCase();
             if (status.indexOf('waiting') !== -1 || status.indexOf('resolved') !== -1) return;
 
             if (!enRouteTasks[taskId]) {
                 enRouteTasks[taskId] = true;
+<<<<<<< HEAD
                 activeData.status = 'En Route';
+=======
+                activeData.status = 'En Route'; 
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                 syncStartButton();
                 fetch('/update_status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_id: taskId, status: 'En Route' }) });
                 if (activeData.lat && activeData.lon) map.flyTo([activeData.lat, activeData.lon], 15, { animate: true, duration: 1.2 });
             } else {
                 if (!confirm('End task for ' + taskId + '?\nThis will notify the operator to update the report status.')) return;
                 enRouteTasks[taskId] = false;
+<<<<<<< HEAD
                 activeData.status = 'Waiting for Approval';
                 syncStartButton();
+=======
+                activeData.status = 'Waiting for Approval'; 
+                syncStartButton(); 
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                 fetch('/update_status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_id: taskId, status: 'Waiting for Approval' }) });
             }
         }
@@ -916,6 +1200,7 @@
                 return;
             }
 
+<<<<<<< HEAD
             const labelMap = {
                 'road_block': 'Blocked Road',
                 'flooded_road': 'Flooded Road',
@@ -930,6 +1215,11 @@
             const btn = document.getElementById('btn-reroute');
             const origHtml = btn.innerHTML;
             btn.innerHTML = '&#8987; Finding alternative path...';
+=======
+            const btn = document.getElementById('btn-reroute');
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = '&#128205; Locating...';
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
             btn.disabled = true;
 
             isAlternativeMode = true;
@@ -950,11 +1240,14 @@
             function doReroute(lat, lon) {
                 btn.innerHTML = origHtml;
                 btn.disabled = false;
+<<<<<<< HEAD
                 
                 // Update activeData so the new GPS location "sticks" when they click View Route again
                 if (activeData) {
                     activeData.team_location = { lat: lat, lon: lon };
                 }
+=======
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
 
                 // Use the original route's geometry — the one the responder
                 // was just on — to:
@@ -972,27 +1265,41 @@
                         const d = (p.lat - lat) * (p.lat - lat) + (p.lng - lon) * (p.lng - lon);
                         if (d < minD) { minD = d; closestIdx = i; }
                     }
+<<<<<<< HEAD
                     
                     if (closestIdx >= lastRouteCoords.length - 2) {
                         closestIdx = Math.floor(lastRouteCoords.length / 2);
                     }
 
+=======
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                     // The obstacle is somewhere ahead of the responder on
                     // the original route. Place the pin roughly halfway
                     // between the responder and the destination along that
                     // geometry.
+<<<<<<< HEAD
                     let aheadIdx = Math.min(
                         lastRouteCoords.length - 2,
                         closestIdx + Math.max(1, Math.floor((lastRouteCoords.length - closestIdx) * 0.45))
                     );
                     if (aheadIdx < 0) aheadIdx = 0;
+=======
+                    const aheadIdx = Math.min(
+                        lastRouteCoords.length - 1,
+                        closestIdx + Math.max(1, Math.floor((lastRouteCoords.length - closestIdx) * 0.45))
+                    );
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                     const pin = lastRouteCoords[aheadIdx];
                     pendingObstacle = { lat: pin.lat, lon: pin.lng };
 
                     // Render the original route as a faded dashed line so
                     // the responder can see what they're going around.
                     originalRoutePoly = L.polyline(
+<<<<<<< HEAD
                         lastRouteCoords.map(function (p) { return [p.lat, p.lng]; }),
+=======
+                        lastRouteCoords.map(function(p) { return [p.lat, p.lng]; }),
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                         { color: '#7f8c8d', weight: 5, opacity: 0.55, dashArray: '8,8' }
                     ).addTo(map);
                     originalRoutePoly.bindTooltip('Avoided route', { sticky: true, direction: 'top' });
@@ -1003,9 +1310,15 @@
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
+<<<<<<< HEAD
                     function (pos) { doReroute(pos.coords.latitude, pos.coords.longitude); },
                     function (err) {
                         console.warn('Geolocation unavailable, falling back to stored team location.');
+=======
+                    function(pos) { doReroute(pos.coords.latitude, pos.coords.longitude); },
+                    function(err) {
+                        console.warn('Geolocation unavailable (' + err.message + '), falling back to stored team location.');
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                         if (activeData && activeData.team_location) {
                             doReroute(activeData.team_location.lat, activeData.team_location.lon);
                         } else {
@@ -1015,6 +1328,10 @@
                     { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
                 );
             } else {
+<<<<<<< HEAD
+=======
+                // No geolocation API — fall back to stored team location or depot
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                 if (activeData && activeData.team_location) {
                     doReroute(activeData.team_location.lat, activeData.team_location.lon);
                 } else {
@@ -1026,21 +1343,35 @@
         let currentConstraint = '';
 
         // ── Live responder location (operators/admins/programmers only) ──────────
+<<<<<<< HEAD
         let liveResponderMarker = null;
+=======
+        let liveResponderMarker  = null;
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
         let liveLocationInterval = null;
 
         function stopLiveTracking() {
             if (liveLocationInterval) { clearInterval(liveLocationInterval); liveLocationInterval = null; }
+<<<<<<< HEAD
             if (liveResponderMarker) { map.removeLayer(liveResponderMarker); liveResponderMarker = null; }
+=======
+            if (liveResponderMarker)  { map.removeLayer(liveResponderMarker);  liveResponderMarker  = null; }
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
         }
 
         function startLiveTracking(taskId) {
             stopLiveTracking();
             function update() {
                 fetch('/responder_data')
+<<<<<<< HEAD
                     .then(function (r) { return r.json(); })
                     .then(function (rows) {
                         var row = rows.find(function (r) { return r.task_id === taskId; });
+=======
+                    .then(function(r) { return r.json(); })
+                    .then(function(rows) {
+                        var row = rows.find(function(r) { return r.task_id === taskId; });
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                         if (!row || !row.team_location) return;
                         var lat = row.team_location.lat, lon = row.team_location.lon;
                         if (liveResponderMarker) {
@@ -1051,7 +1382,11 @@
                                 fillOpacity: 0.9, weight: 2
                             }).addTo(map).bindPopup('<b>Responder Live Location</b>');
                         }
+<<<<<<< HEAD
                     }).catch(function () { });
+=======
+                    }).catch(function() {});
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
             }
             update();
             liveLocationInterval = setInterval(update, 5000);
@@ -1080,7 +1415,11 @@
 
                         const tr = document.createElement('tr');
                         tr.style.cursor = 'pointer';
+<<<<<<< HEAD
                         tr.onclick = function () {
+=======
+                        tr.onclick = function() {
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                             document.querySelectorAll('#table_body tr').forEach(r => r.style.background = '');
                             tr.style.background = '#eaf4fb';
                             document.querySelector('.monitor-grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1109,8 +1448,13 @@
                         const btn = document.createElement('button');
                         btn.className = 'btn-view';
                         btn.innerHTML = 'View Route';
+<<<<<<< HEAD
                         btn.onclick = function (e) {
                             e.stopPropagation();
+=======
+                        btn.onclick = function(e) {
+                            e.stopPropagation(); 
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                             document.querySelectorAll('#table_body tr').forEach(r => r.style.background = '');
                             tr.style.background = '#eaf4fb';
                             document.querySelector('.monitor-grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1126,7 +1470,11 @@
                         if (targetRow) {
                             viewRoute(targetRow);
                         }
+<<<<<<< HEAD
                         autoTaskId = null;
+=======
+                        autoTaskId = null; 
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                     }
                 })
                 .catch(err => console.error('[Monitor] loadData failed:', err));
@@ -1135,20 +1483,29 @@
         function viewRoute(data, overrideTeamLat, overrideTeamLon) {
             stopLiveTracking();
             activeData = data;
+<<<<<<< HEAD
 
+=======
+            
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
             const isPending = (!data.team_location || data.assigned_team === "Pending Assignment" || data.status === "Pending");
             if (isPending) data.status = "Pending"; // Lock status to Pending for unassigned tasks
 
             document.getElementById('d-id').innerText = data.task_id;
             document.getElementById('d-stat').innerText = data.status;
             document.getElementById('d-loc').value = data.location;
+<<<<<<< HEAD
 
+=======
+            
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
             if (isPending) {
                 document.getElementById('d-team').innerText = "Pending Assignment";
                 document.getElementById('active-details').classList.add('hidden');
                 document.getElementById('d-dist').value = "";
                 document.getElementById('d-eta').value = "";
                 showActionButtons(false);
+<<<<<<< HEAD
 
                 // Hide Approve/Readonly tools for pending tasks
                 if (document.getElementById('btn-approve')) document.getElementById('btn-approve').classList.add('hidden');
@@ -1156,6 +1513,15 @@
 
                 // SHOW ASSIGN TASK BUTTON
                 if (document.getElementById('btn-assign-task')) document.getElementById('btn-assign-task').classList.remove('hidden');
+=======
+                
+                // Hide Approve/Readonly tools for pending tasks
+                if(document.getElementById('btn-approve')) document.getElementById('btn-approve').classList.add('hidden');
+                if(document.getElementById('readonly-notice')) document.getElementById('readonly-notice').classList.add('hidden');
+                
+                // SHOW ASSIGN TASK BUTTON
+                if(document.getElementById('btn-assign-task')) document.getElementById('btn-assign-task').classList.remove('hidden');
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
 
             } else {
                 document.getElementById('d-team').innerText = data.assigned_team;
@@ -1163,12 +1529,20 @@
                 document.getElementById('d-type').innerText = data.disaster_type;
                 document.getElementById('d-sev').innerText = data.severity;
                 showActionButtons(true);
+<<<<<<< HEAD
 
+=======
+                
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                 syncStartButton();
                 syncApproveButton();
 
                 // HIDE ASSIGN TASK BUTTON
+<<<<<<< HEAD
                 if (document.getElementById('btn-assign-task')) document.getElementById('btn-assign-task').classList.add('hidden');
+=======
+                if(document.getElementById('btn-assign-task')) document.getElementById('btn-assign-task').classList.add('hidden');
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
             }
 
             if (routingControl) { map.removeControl(routingControl); routingControl = null; }
@@ -1180,15 +1554,28 @@
 
             if (!isPending && data.lat && data.lon) {
                 // Reroute: use live GPS override → start from responder's current location
+<<<<<<< HEAD
                 let teamLat = overrideTeamLat != null ? overrideTeamLat : (data.team_location ? data.team_location.lat : DEPOT_LAT);
                 let teamLon = overrideTeamLon != null ? overrideTeamLon : (data.team_location ? data.team_location.lon : DEPOT_LON);
                 
+=======
+                // Initial route: always start from Marilao Municipal Hall depot
+                let teamLat, teamLon;
+                if (overrideTeamLat != null && overrideTeamLon != null) {
+                    teamLat = overrideTeamLat;
+                    teamLon = overrideTeamLon;
+                } else {
+                    teamLat = DEPOT_LAT;
+                    teamLon = DEPOT_LON;
+                }
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
                 let useAbsra = document.getElementById('toggle-absra') ? document.getElementById('toggle-absra').checked : true;
                 let routeUrl = `/calculate_route?task_id=${data.task_id}&team_lat=${teamLat}&team_lon=${teamLon}&task_lat=${data.lat}&task_lon=${data.lon}&alternative=${isAlternativeMode}&use_absra=${useAbsra}&constraint=${currentConstraint}`;
                 if (pendingObstacle) {
                     routeUrl += `&obstacle_lat=${pendingObstacle.lat}&obstacle_lon=${pendingObstacle.lon}`;
                 }
                 fetch(routeUrl)
+<<<<<<< HEAD
                     .then(res => res.json())
                     .then(routeData => {
                         let alertBox = document.getElementById('reroute-alert');
@@ -1256,6 +1643,77 @@
                             }
                         }
                     }).catch(err => console.error("Routing Error:", err));
+=======
+                .then(res => res.json())
+                .then(routeData => {
+                    let alertBox = document.getElementById('reroute-alert');
+                    if (routeData.coords && routeData.coords.length > 0) {
+                        // Don't pass every intermediate A* graph node to OSRM as a forced
+                        // waypoint — that produces unnecessary detours because OSRM has to
+                        // visit each one in order. Keep just start + end so OSRM picks the
+                        // actual shortest road path. For alternative routing, drop in a
+                        // single mid-graph waypoint to force a genuinely different route.
+                        let waypoints;
+                        if (isAlternativeMode && routeData.coords.length > 2) {
+                            const midIdx = Math.floor(routeData.coords.length / 2);
+                            const midC = routeData.coords[midIdx];
+                            markers.push(L.circleMarker([midC[0], midC[1]], {color: 'blue', radius: 6}).addTo(map));
+                            waypoints = [L.latLng(teamLat, teamLon), L.latLng(midC[0], midC[1]), L.latLng(data.lat, data.lon)];
+                        } else if (isAlternativeMode) {
+                            let midLat = (teamLat + data.lat) / 2, midLon = (teamLon + data.lon) / 2 + 0.015;
+                            markers.push(L.circleMarker([midLat, midLon], {color: 'blue', radius: 6}).addTo(map));
+                            waypoints = [L.latLng(teamLat, teamLon), L.latLng(midLat, midLon), L.latLng(data.lat, data.lon)];
+                        } else {
+                            waypoints = [L.latLng(teamLat, teamLon), L.latLng(data.lat, data.lon)];
+                        }
+                        routingControl = L.Routing.control({
+                            waypoints: waypoints, show: false, addWaypoints: false, draggableWaypoints: false, routeWhileDragging: false, fitSelectedRoutes: false,
+                            lineOptions: { styles: [{color: '#d90429', opacity: 0.8, weight: 6}] },
+                            createMarker: (i, wp, n) => {
+                                if (i === 0) return L.circleMarker(wp.latLng, {color: 'green', radius: 6});
+                                if (i === n - 1) return L.marker(wp.latLng);
+                                return null;
+                            }
+                        }).addTo(map);
+                        // Capture this route's actual road geometry — next
+                        // reroute will use it to place the obstacle pin on
+                        // the road that's being avoided.
+                        routingControl.on('routesfound', function(e) {
+                            if (e.routes && e.routes[0] && e.routes[0].coordinates) {
+                                lastRouteCoords = e.routes[0].coordinates;
+                            }
+                        });
+                        document.getElementById('d-dist').value = routeData.distance;
+                        document.getElementById('d-eta').value = routeData.eta;
+                        // A reroute with a chosen constraint type just persisted a new
+                        // warning pin server-side — pull it down so it shows up right away.
+                        if (currentConstraint) {
+                            const savedType = currentConstraint;
+                            const knownIds = new Set(Object.keys(constraintMarkers).map(Number));
+                            refreshConstraints({
+                                onUpdate: function(rows) {
+                                    // Find the brand-new pin so we can flash it for the responder.
+                                    const fresh = rows.find(r => !knownIds.has(r.id) && r.constraint_type === savedType);
+                                    if (fresh) {
+                                        const lbl = (CONSTRAINT_ICONS[savedType] && CONSTRAINT_ICONS[savedType].label) || 'Constraint';
+                                        showConstraintToast('\u26A0\uFE0F ' + lbl + ' pinned on the map');
+                                        const m = constraintMarkers[fresh.id];
+                                        if (m) { m.openPopup(); }
+                                    }
+                                }
+                            });
+                        }
+                        currentConstraint = '';
+                        isAlternativeMode = false;
+                        // Operators see a live green dot tracking the responder
+                        if (!CAN_REROUTE) startLiveTracking(data.task_id);
+                        if (alertBox) {
+                            if (routeData.is_rerouted && !CAN_REROUTE) { alertBox.classList.remove('hidden'); alertBox.innerHTML = `<strong>&#9888;&#65039; ${routeData.message}</strong>`; }
+                            else { alertBox.classList.add('hidden'); }
+                        }
+                    }
+                }).catch(err => console.error("Routing Error:", err));
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
             } else if (data.lat && data.lon) {
                 markers.push(L.marker([data.lat, data.lon]).addTo(map));
                 map.setView([data.lat, data.lon], 13);
@@ -1266,5 +1724,8 @@
         setInterval(loadData, 5000); 
     </script>
 </body>
+<<<<<<< HEAD
 
+=======
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
 </html>

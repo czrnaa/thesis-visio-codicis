@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 Node Name,Latitude,Longitude,Graph Connections
 HQ_Malolos,14.8437,120.8113,Paombong; Guiguinto; Plaridel; Malolos (City Hall)
 Paombong,14.8322,120.7890,HQ_Malolos; Hagonoy
@@ -16,4 +17,24 @@ Calumpit (Market),14.9160,120.7680,Calumpit
 Guiguinto (Plaza),14.8320,120.8830,Guiguinto
 Bocaue (Crossing),14.7980,120.9280,Bocaue
 San Miguel (Viola Street),15.1485,120.9820,San Miguel
+=======
+Node Name,Latitude,Longitude,Graph Connections
+HQ_Malolos,14.8437,120.8113,Paombong; Guiguinto; Plaridel; Malolos (City Hall)
+Paombong,14.8322,120.7890,HQ_Malolos; Hagonoy
+Hagonoy,14.8320,120.7380,Paombong
+Calumpit,14.9140,120.7650,Plaridel; Calumpit (Market)
+Plaridel,14.8870,120.8570,HQ_Malolos; Calumpit; Guiguinto; San Miguel; Plaridel (Municipal Hall)
+Guiguinto,14.8300,120.8800,HQ_Malolos; Plaridel; Balagtas; Guiguinto (Plaza)
+Balagtas,14.8150,120.9100,Guiguinto; Bocaue; Marilao
+Bocaue,14.7960,120.9250,Balagtas; Bocaue (Crossing); Marilao
+Marilao,14.7724,120.9600,Bocaue; Balagtas; Marilao (Municipal Hall); Meycauayan
+San Miguel,15.1450,120.9780,Plaridel; San Miguel (Viola Street)
+Meycauayan,14.7369,120.9608,Marilao; Marilao (Municipal Hall)
+Malolos (City Hall),14.8450,120.8150,HQ_Malolos
+Plaridel (Municipal Hall),14.8890,120.8600,Plaridel
+Calumpit (Market),14.9160,120.7680,Calumpit
+Guiguinto (Plaza),14.8320,120.8830,Guiguinto
+Bocaue (Crossing),14.7980,120.9280,Bocaue
+San Miguel (Viola Street),15.1485,120.9820,San Miguel
+>>>>>>> 962c265c4c585b30caf59583901f266918170aa6
 Marilao (Municipal Hall),14.7743,120.9592,Marilao
